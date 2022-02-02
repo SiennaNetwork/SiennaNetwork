@@ -1,33 +1,33 @@
 ---
-name:     SiennaLPToken
+name:     LPToken
 label:    20210823_230433_SiennaLPToken
 codeId:   30431
 codeHash: 61e403652ab26c1e91fb84513d425a9a77c00cbc804a6f1a8527d8f24bb66091
 initTx:   D2586AFE4293BE6A32B02659B86BCE70BFD790D6F32F45DA7B3777F6EF641830
 address:  secret1f2eeehe8p35q0esrz99fuvsnkx90zzljycv6jk
 ---
-name:     SiennaMGMT
+name:     MGMT
 label:    20210823_230433_SiennaMGMT
 codeId:   30429
 codeHash: bfd67c2fb628473ebd5dc6431ee84ad51455f8344916af2c10b567eb60a6e71b
 initTx:   BCC60C44B907F60ACE38490C03ED8BA35079E2172E098015F34FCE418F9B9511
 address:  secret15fac6p4we7nddkwxexkvkgen328kljxn4jf08s
 ---
-name:     SiennaRPT
+name:     RPT
 label:    20210823_230433_SiennaRPT
 codeId:   30430
 codeHash: 7941e1cd03f42977e010137c6bcef7fc70fae7c46199855f9cc3a4b1088c1481
 initTx:   6A139A997F597EF0A75989818696C6A463031604E19386F20AF902FDDBB82A59
 address:  secret162l5suzlv4r3qqaelagzj3v2lncqfufjxckd75
 ---
-name:     SiennaRewardPool
+name:     RewardPool
 label:    20210823_230433_SiennaRewardPool
 codeId:   30432
 codeHash: 63c6e414179eca219fac72c4587295d6fb382abb04f359999f5f74bf27cb52a6
 initTx:   101F42165557F3832E50F58D46B9D9765B9A570C54028389F7264F576A76AFCD
 address:  secret1p4zv237gajn3kmt80hpt6q207ny8egx4p7xpne
 ---
-name:     SiennaSNIP20
+name:     SIENNA
 label:    20210823_230433_SiennaSNIP20
 codeId:   30428
 codeHash: 9f55f7bb6f738258ac37219f1a045d07f1332b17ec550cd8ac73b10cc2ec9e50

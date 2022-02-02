@@ -1,33 +1,33 @@
 ---
-name:     SiennaAMMFactory
+name:     AMM[v1].Factory
 label:    20211206_124728/SiennaAMMFactory
 codeId:   235
 codeHash: 8d69b5f625d8e14300ea6b1306fc174d68e711c2ec29f015d682be109ccb386e
 initTx:   8593B46AC06B7B003E28273FE9A5F3FFF801A22843F0BF640941E28F24F45249
 address:  secret1p2d5qvvvk3rsw8h7ae6qzrn6h7zlqge949w76t
 ---
-name:     SiennaMGMT
+name:     MGMT
 label:    20211206_124728/SiennaMGMT
 codeId:   233
 codeHash: 6c7ff371d51930e26335f1364658ed785128768f76ce02d38e31c91f72207ec4
 initTx:   3C4339DDA92143918D9BA19084F4F4DCED8852523975E152691CCD9098A0A41F
 address:  secret1g0zenpqgnw55y6d46mj7gyeh7qwxrldpyjmfac
 ---
-name:     SiennaRPT
+name:     RPT
 label:    20211206_124728/SiennaRPT
 codeId:   234
 codeHash: 2d5aefff63f9edbc870bb2c69799cd03580767734b613388c1294baa39988833
 initTx:   DB793E685062EBC6DD32D94D0FD71505F431EFECB5B9AFC57C1D67B4487F13A3
 address:  secret1tq4jqvrr265p5mwksfex8tvlntsu6cep8lm7xl
 ---
-name:     SiennaRewards_SIENNA_Pool
+name:     Rewards[v2].SIENNA
 label:    20211206_124728/SiennaRewards_SIENNA_Pool
 codeId:   242
 codeHash: 26ac6ea2b61be9741d8febdc032065f0ccc2502c0eee93608a3f15c188ff20c6
 initTx:   960BE1BB6C880A39835C26570F14E481B9FA7BC6E1CA75F5264502185A6CE028
 address:  secret1932nkpsl36e4h0drcgarupc5vq3k7hc0ffrpmr
 ---
-name:     SiennaSNIP20
+name:     SIENNA
 label:    20211206_124728/SiennaSNIP20
 codeId:   232
 codeHash: 9746193ec4174effaad3067ce78aa1e03b03fa73ef0c7787dd231a9117b84562

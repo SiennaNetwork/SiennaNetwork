@@ -1,47 +1,47 @@
 ---
-name:     SiennaAMMFactory
+name:     AMM[v1].Factory
 label:    20211208_182646/SiennaAMMFactory
 codeId:   235
 codeHash: 8d69b5f625d8e14300ea6b1306fc174d68e711c2ec29f015d682be109ccb386e
 initTx:   30949980EC80DA0B56A246232DBB7CD5AB11BAA5A42CDB11D8D7F1B03C11A0AE
 address:  secret1mxm7e66tj35q6fdu0g8h3ujw5dh4c0jcrkmhrc
 ---
-name:     SiennaMGMT
+name:     MGMT
 label:    20211208_182646/SiennaMGMT
 codeId:   233
 codeHash: 6c7ff371d51930e26335f1364658ed785128768f76ce02d38e31c91f72207ec4
 initTx:   B932623FDF47B46948CACA25F34E733F94E3ECAEF279A7B792F292AFB454CCE5
 address:  secret1lm96hrtvysj6fneym05c5d505swpe6jz7e4v43
 ---
-name:     SiennaRPT
+name:     RPT
 label:    20211208_182646/SiennaRPT
 codeId:   234
 codeHash: 2d5aefff63f9edbc870bb2c69799cd03580767734b613388c1294baa39988833
 initTx:   CB856C8DF70E8A4240BDBAA6953AA889687635CCB2DFB8861A55A06BA0D49B73
 address:  secret1xy5mufh7djtt0xeh5qmeqehyv68m9u5y956fr4
 ---
-name:     SiennaRewards_SIENNA-sSCRT_Pool
+name:     Rewards[v2].SIENNA-sSCRT
 label:    20211208_182646/SiennaRewards_SIENNA-sSCRT_Pool
 codeId:   242
 codeHash: 26ac6ea2b61be9741d8febdc032065f0ccc2502c0eee93608a3f15c188ff20c6
 initTx:   3952E1236520544E5DB6CB9D32DB0AF741620B72DA6FA79CF4882A166A1DD7E0
 address:  secret1lcpzn5ch9d0y38p0yhhxlnx6ywhr60qdqvu8ve
 ---
-name:     SiennaRewards_SIENNA_Pool
+name:     Rewards[v2].SIENNA
 label:    20211208_182646/SiennaRewards_SIENNA_Pool
 codeId:   242
 codeHash: 26ac6ea2b61be9741d8febdc032065f0ccc2502c0eee93608a3f15c188ff20c6
 initTx:   A996FED39BC1771993454791BD03C8C62752E81C8269AA07D4A47157C51478F9
 address:  secret1jadyua7hudeudmn54xrq0jtexmmrgt7usek2uv
 ---
-name:     SiennaSNIP20
+name:     SIENNA
 label:    20211208_182646/SiennaSNIP20
 codeId:   232
 codeHash: 9746193ec4174effaad3067ce78aa1e03b03fa73ef0c7787dd231a9117b84562
 initTx:   87C5407C802B60E8F1C434FE57A8D98E24C2CC777BE049B9FBC67A44F84C01E6
 address:  secret1pzxcxnt7l8fhernsqha8jsshkyd698v0wdgr8q
 ---
-name:                SiennaSwap_SIENNA-sSCRT
+name:                AMM[v1].SIENNA-sSCRT
 exchange:
   address:           secret1tljfh9ph99t8ekpc6md4dtkmh86jwhskyau6te
 lp_token:

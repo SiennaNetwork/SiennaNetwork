@@ -3,7 +3,7 @@ import alignYAML from 'align-yaml'
 import {
   bold,
   resolve, dirname, rimraf,
-  writeFileSync, bold, readdirSync, statSync, unlinkSync,
+  readFileSync, writeFileSync, readdirSync, statSync, unlinkSync,
   Deployment
 } from '@hackbg/fadroma'
 import { workspace } from '@sienna/settings'
@@ -20,16 +20,53 @@ export async function fixReceipts ({ agent, deployment }) {
   ]) {
     const deployments = resolve(workspace, 'receipts', chainId, 'deployments')
     for (const prefix of readdirSync(deployments)) {
-      if (prefix === '.active') continue
-      const path = resolve(deployments, prefix)
-      const stats = statSync(path)
-      if (stats.isDirectory() && !stats.isSymbolicLink()) {
-        const deployment = new Deployment(path)
-        const yaml = toYAML(deployment)
-        console.log(`${path}.yml`, yaml.length)
-        writeFileSync(`${path}.yml`, yaml)
-        rimraf(path)
+      console.log(chainId, prefix)
+      if (prefix.endsWith('.yml')) {
+        const path = resolve(deployments, prefix)
+        let output = ''
+        for (const contract of YAML.loadAll(readFileSync(path, 'utf8'))) {
+          if (contract.name === 'SiennaSNIP20') {
+            contract.name = 'SIENNA'
+          }
+          if (contract.name.startsWith('Sienna')) {
+            contract.name = contract.name.slice('Sienna'.length)
+          }
+          if (contract.name.startsWith('Rewards_')) {
+            contract.name = 'Rewards[v2].' + contract.name.slice(
+              'Rewards_'.length,
+              contract.name.length-'_Pool'.length
+            )
+          }
+          if (contract.name.endsWith('_LP')) {
+            contract.name = contract.name.slice(0,contract.name.length-'_LP'.length)+'.LP'
+          }
+          if (contract.name.startsWith('Swap_')) {
+            contract.name = 'AMM[v1].' + contract.name.slice('Swap_'.length)
+          }
+          if (contract.name === 'AMMFactory') {
+            contract.name = 'AMM[v1].Factory'
+          }
+          if (contract.name === 'AMMFactory@v1') {
+            contract.name = 'AMM[v1].Factory'
+          }
+          if (contract.name === 'AMMFactory@v2') {
+            contract.name = 'AMM[v2].Factory'
+          }
+          output += '---\n'
+          output += alignYAML(YAML.dump(contract, { noRefs: true }))
+        }
+        writeFileSync(`${path}`, output)
       }
+      //if (prefix === '.active') continue
+      //const path = resolve(deployments, prefix)
+      //const stats = statSync(path)
+      //if (stats.isDirectory() && !stats.isSymbolicLink()) {
+        //const deployment = new Deployment(path)
+        //const yaml = toYAML(deployment)
+        //console.log(`${path}.yml`, yaml.length)
+        //writeFileSync(`${path}.yml`, yaml)
+        //rimraf(path)
+      //}
     }
   }
 

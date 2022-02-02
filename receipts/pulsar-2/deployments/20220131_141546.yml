@@ -1,26 +1,26 @@
 ---
-name:     SiennaAMMFactory@v1
+name:     AMM[v1].Factory
 label:    20220131_141546/SiennaAMMFactory@v1+20220131_141656
 codeId:   2724
 codeHash: f27c3de202e59cbb33570bbe961325f26cb4296b1995faa7bc896191fc06bce1
 initTx:   1F756A2D89A2E4F80B274F32F57396207C987557E49B87E8A3CDB97325A667EA
 address:  secret15p53l5wj9cz6znzz34mxud8ndn2wma2m2l855u
 ---
-name:     SiennaMGMT
+name:     MGMT
 label:    20220131_141546/SiennaMGMT
 codeId:   233
 codeHash: 6c7ff371d51930e26335f1364658ed785128768f76ce02d38e31c91f72207ec4
 initTx:   3963A75BF54E7AEC33D37B8F655C13CC6713911BEA0F10D1EA9C8554AAE86B36
 address:  secret1nzl29r5n5wfmqt6p7kedkhx88na6vc50fdf04e
 ---
-name:     SiennaRPT
+name:     RPT
 label:    20220131_141546/SiennaRPT
 codeId:   234
 codeHash: 2d5aefff63f9edbc870bb2c69799cd03580767734b613388c1294baa39988833
 initTx:   49BC1315751F0FA4A4D6918F6FEFBE78AB1F2CB78BBD9B35EFA81BFC302C6BDC
 address:  secret19r402efz3rm2mdzerjwf639acl050mhzxgf8gn
 ---
-name:     SiennaSNIP20
+name:     SIENNA
 label:    20220131_141546/SiennaSNIP20
 codeId:   232
 codeHash: 9746193ec4174effaad3067ce78aa1e03b03fa73ef0c7787dd231a9117b84562

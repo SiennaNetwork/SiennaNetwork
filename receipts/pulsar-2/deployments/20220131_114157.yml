@@ -1,12 +1,12 @@
 ---
-name:     SiennaMGMT
+name:     MGMT
 label:    20220131_114157/SiennaMGMT
 codeId:   233
 codeHash: 6c7ff371d51930e26335f1364658ed785128768f76ce02d38e31c91f72207ec4
 initTx:   348EDE13F5FD4B54B03E28D16DA271C9661C70AE72A1BAF9083AD7FCF97DBFA9
 address:  secret1xjffmyg6f7tcayns8vu64guztuxevxtndgm6cm
 ---
-name:     SiennaSNIP20
+name:     SIENNA
 label:    20220131_114157/SiennaSNIP20
 codeId:   232
 codeHash: 9746193ec4174effaad3067ce78aa1e03b03fa73ef0c7787dd231a9117b84562

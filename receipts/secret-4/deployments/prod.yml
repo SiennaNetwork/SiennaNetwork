@@ -34,141 +34,141 @@ config:
   - - secret1c05rdgey2u0fx80y90s28jy77g7d52daxftx9p
     - '75000000000000000000'
 ---
-name:     SiennaAMMFactory
+name:     AMM[v1].Factory
 label:    prod/SiennaAMMFactory
 codeId:   110
 codeHash: b1f8a2086c7ca3bf8a0866275885b21462829158927a2a757064ccd65a593b36
 initTx:   CB18E61BF0D5B65FAAB2E47CE19B50C1EC5B8BC241170399EAA6D9DC7E5832F2
 address:  secret1zvk7pvhtme6j8yw3ryv0jdtgg937w0g0ggu8yy
 ---
-name:     SiennaMGMT
+name:     MGMT
 codeHash: b1e4c4d76a5aedd180d08d8fec99ad84ed1a8a08d6d8a32a30c8c0f9835f4fab
 address:  secret1kn6kvc97nvu69dqten0w9p9e95dw6d6luv3dfx
 ---
-name:     SiennaRPT
+name:     RPT
 codeHash: a9bfc78d182eb8d3cbb74d4269ef1f529a607f7842d755f00fef7df13c02c5b4
 address:  secret107j8czcysrkvxsllvhqj4mhmcegt9hx2ra3x42
 ---
-name:    SiennaRewards_SATOM-SIENNA_Pool
+name:    Rewards[v2].SATOM-SIENNA
 codeId:  119
 address: secret140aj8h58wk3g0dsu9ukpd9vlajlwfk7rcray0c
 initTx:  5D9456EF9968BEC7DD1DEF3DC66E0AAE374A6E02293DE96B6A872B8A55034C45
 ---
-name:    SiennaRewards_SIENNA-SDVPN_Pool
+name:    Rewards[v2].SIENNA-SDVPN
 codeId:  119
 address: secret1l368m7kgg3taylx0tmd7ews6ma6msfhpmtlwz6
 initTx:  59A3AFED5B1A085A1E49881A9419F6BF85064489C96F990D37B9D19C4B6810ED
 ---
-name:    SiennaRewards_SIENNA-SEFI_Pool
+name:    Rewards[v2].SIENNA-SEFI
 codeId:  119
 address: secret1f6pfxup7xp9auvafcu9ftsc6090h843rdt7cxc
 initTx:  1631F667CF10C2A9CFFE304D33E5870C6D5D609D83B067929401578B94DEF3EF
 ---
-name:    SiennaRewards_SIENNA-WBTC_Pool
+name:    Rewards[v2].SIENNA-WBTC
 codeId:  119
 address: secret1pj22jz7hmacl6w69lqfpcu9agwfyecl34vdhwy
 initTx:  332E23E173ED89BCE5E519F53E8990A6AC32307CCF4C98A7AE99B621ADC1ED10
 ---
-name:    SiennaRewards_SIENNA-sBNB_Pool
+name:    Rewards[v2].SIENNA-sBNB
 codeId:  119
 address: secret12xzexvvy9xfk4t024jldydu8ehrs6dej9nspmm
 initTx:  809FDC0E6483639B9709357A6D87DD6D703337F1B02776E5E7B99EF593FB9B75
 ---
-name:    SiennaRewards_SIENNA-sETH_Pool
+name:    Rewards[v2].SIENNA-sETH
 codeId:  119
 address: secret1nc30hhxxadajz89g25954kzlweyqhy35z48fwc
 initTx:  E616DB6B88B2AA4A893378CAF66684A24D8A7EF498D7BA92087D1B7A58267847
 ---
-name:    SiennaRewards_SIENNA-sRUNE_Pool
+name:    Rewards[v2].SIENNA-sRUNE
 codeId:  119
 address: secret197d69eefvyffkalpacuydvurqrnu6a5qt7dlwz
 initTx:  3A3B9DE33370A80249BF5A3246E49472B42E1107F63EB66E94F9AB72D0982525
 ---
-name:    SiennaRewards_SIENNA-sSCRT_Pool
+name:    Rewards[v2].SIENNA-sSCRT
 codeId:  119
 address: secret1qd6mh5tlnnl6an66ymv0023ancf2jte9sn4ut0
 initTx:  265ED2A8FAA1233A218BF380FB03F19CAF307290FBB31D82F192E356FFD48D89
 ---
-name:    SiennaRewards_SIENNA-sUSDC_ERC20_Pool
+name:    Rewards[v2].SIENNA-sUSDC_ERC20
 codeId:  119
 address: secret1rh2wdnu4qkf5292fscv8nhw4hnzk58vq90nhz4
 initTx:  4AC2BA2B1F9471B34EB50AAD59D78EDE085D91E18BBF776D65AA74ABA4AA25BB
 ---
-name:    SiennaRewards_SIENNA-sUSDT_ERC20_Pool
+name:    Rewards[v2].SIENNA-sUSDT_ERC20
 codeId:  119
 address: secret19p2s70w2qrtmxh26patry8k7vfc4jcnvm3rfj2
 initTx:  E823F385C9D5C1182F20DB2EA74FB90B39DDEC168F1AE19EAE1760B944BF6FB5
 ---
-name:    SiennaRewards_SIENNA-sXMR_Pool
+name:    Rewards[v2].SIENNA-sXMR
 codeId:  119
 address: secret1sc0l6t2aa3z99ls7gmdn85cfyewex0yladl0dz
 initTx:  53804788D62BDDB5DA881566A29CF51872D20EC5AB260ACF3A9DCB953838503F
 ---
-name:    SiennaRewards_SIENNA_Pool
+name:    Rewards[v2].SIENNA
 codeId:  119
 address: secret109g22wm3q3nfys0v6uh7lqg68cn6244n2he4t6
 initTx:  1685E98BDB2A69CAE9BC98C9AE2C3B7CD881C9CC02CF6AFC983350D23E6D726D
 ---
-name:    SiennaRewards_SLUNA-SIENNA_Pool
+name:    Rewards[v2].SLUNA-SIENNA
 codeId:  119
 address: secret1vxmt5uaf2ttcmah60uwgl3uwzxh4k6sqpds8ce
 initTx:  05FF7028B53CE8C2A7DF7B70A38CB12EDEB844DA62083CB395B9BD778EF2238A
 ---
-name:    SiennaRewards_SOSMO-SIENNA_Pool
+name:    Rewards[v2].SOSMO-SIENNA
 codeId:  119
 address: secret14xffhwfcvu9tsexcg6spjtjtwpnc8sfmy7nhy6
 initTx:  A17EB8F86E46B0273C54882D081A156EE62B972960E5DF7EB851BB3CA9D1EC71
 ---
-name:    SiennaRewards_SSCRT-SLUNA_Pool
+name:    Rewards[v2].SSCRT-SLUNA
 codeId:  119
 address: secret1vunhrvruuzdas6zfp0rpudp0w4lrznw3c5wmdr
 initTx:  BABB3A8BB6F91F5CD1DD7A9548FA8FBEF3E7848B827D19F90641CAC255509B46
 ---
-name:    SiennaRewards_SSCRT-SUST_Pool
+name:    Rewards[v2].SSCRT-SUST
 codeId:  119
 address: secret196cgxj7qpmacatms7lk68jhyt7k9u7mpusaa5m
 initTx:  79498A4EFDB1F065AB5767A18B8DCA5EDD47D54F7263CA9C000D0448D96E5562
 ---
-name:    SiennaRewards_SUST-SIENNA_Pool
+name:    Rewards[v2].SUST-SIENNA
 codeId:  119
 address: secret1hshupwpm7733fwgayh9e6n8prdzrweueys40xf
 initTx:  47A717789131FB66BB606CB5B97A3EB80751338BDA9F57B1EF645B54E5945DC0
 ---
-name:    SiennaRewards_sSCRT-sETH_Pool
+name:    Rewards[v2].sSCRT-sETH
 codeId:  119
 address: secret15l5vpepsaaaryga0wtyr5rv8nld6lqs0r75q8u
 initTx:  D7FCC80CFC930ACBBA38666F8B1AD1D44013AF8A097A89F1C165EA437EEEF57F
 ---
-name:    SiennaRewards_sSCRT-sUSDC_ERC20_Pool
+name:    Rewards[v2].sSCRT-sUSDC_ERC20
 codeId:  119
 address: secret1twt4d50s9dskqkcxw29sh6gugy5jsc9eukhnh4
 initTx:  6684DB24F25E74B9C4B3327023AF195ACE1FCDFFE6A239A49668D7F97E3C541E
 ---
-name:    SiennaRewards_sSCRT-sWBTC_Pool
+name:    Rewards[v2].sSCRT-sWBTC
 codeId:  119
 address: secret1ys8629ymruxakjs6xscw88aje4ew00xgkqd7a8
 initTx:  FD6B9C762832EDD71E578D8B43DDC8E4166DFAB19446399CE91545F07B8E868A
 ---
-name:    SiennaRewards_sXMR-sSCRT_Pool
+name:    Rewards[v2].sXMR-sSCRT
 codeId:  119
 address: secret14s2qkvyxpjfe65mhxjhcg62lyetx867873keg7
 initTx:  FB4760A8E673EA63B7E0D2047E1DE81C29D1CA45330D6C170569725A871D5272
 ---
-name:    SiennaRewards_sXMR-sUSDT_ERC20_Pool
+name:    Rewards[v2].sXMR-sUSDT_ERC20
 codeId:  119
 address: secret1aftudwrr9cg7re8xs474u2y03xd25f44kl7v6p
 initTx:  DCC18EB842A3E1E0A432CEF8CE6B10EF22FFA44783392729F7E94F816F7FD6AF
 ---
-name:    SiennaRewards_sXMR-sWBTC_Pool
+name:    Rewards[v2].sXMR-sWBTC
 codeId:  119
 address: secret129886eu55rud2ph3r673tgt7mcj3p0s7v6hl2l
 initTx:  45F5B13DAAE2A6D4B5404A3042C0D5DF4A6B3897F48A28F922CCF7F149D94BE7
 ---
-name:     SiennaSNIP20
+name:     SIENNA
 codeHash: c1dc8261059fee1de9f1873cd1359ccd7a6bc5623772661fa3d55332eb652084
 address:  secret1rgm2m5t530tdzyd99775n6vzumxa5luxcllml4
 ---
-name:                SiennaSwap_SATOM-SIENNA
+name:                AMM[v1].SATOM-SIENNA
 exchange:
   address:           secret1hdmlyyshlm9wdzzzredgrfgqvj0qfga9dqv48l
 lp_token:
@@ -183,7 +183,7 @@ token_1:
     contract_addr:   secret1rgm2m5t530tdzyd99775n6vzumxa5luxcllml4
     token_code_hash: c1dc8261059fee1de9f1873cd1359ccd7a6bc5623772661fa3d55332eb652084
 ---
-name:                SiennaSwap_SIENNA-SDVPN
+name:                AMM[v1].SIENNA-SDVPN
 exchange:
   address:           secret19lqma3p3hq9j552a6zgwq2k0x9wx0kf3d035ya
 lp_token:
@@ -198,7 +198,7 @@ token_1:
     contract_addr:   secret1k8cge73c3nh32d4u0dsd5dgtmk63shtlrfscj5
     token_code_hash: ad91060456344fc8d8e93c0600a3957b8158605c044b3bef7048510b3157b807
 ---
-name:                SiennaSwap_SIENNA-SEFI
+name:                AMM[v1].SIENNA-SEFI
 exchange:
   address:           secret1ef32pr9st29f2k7qrjd4vgq3tj4dvgv66hsdj9
 lp_token:
@@ -213,7 +213,7 @@ token_1:
     contract_addr:   secret15l9cqgz5uezgydrglaak5ahfac69kmx2qpd6xt
     token_code_hash: C7FE67B243DFEDC625A28ADA303434D6F5A46A3086E7D2B5063A814E9F9A379D
 ---
-name:                SiennaSwap_SIENNA-WBTC
+name:                AMM[v1].SIENNA-WBTC
 exchange:
   address:           secret1ny3ycqfana9995dpfjquejjvx6qjvlnwenszz5
 lp_token:
@@ -228,7 +228,7 @@ token_1:
     contract_addr:   secret1g7jfnxmxkjgqdts9wlmn238mrzxz5r92zwqv4a
     token_code_hash: 2DA545EBC441BE05C9FA6338F3353F35AC02EC4B02454BC49B1A66F4B9866AED
 ---
-name:                SiennaSwap_SIENNA-sBNB
+name:                AMM[v1].SIENNA-sBNB
 exchange:
   address:           secret1gzmeahvxmpvm8j7jr59nzyu7m9kfcyr03dr0jh
 lp_token:
@@ -243,7 +243,7 @@ token_1:
     contract_addr:   secret1tact8rxxrvynk4pwukydnle4l0pdmj0sq9j9d5
     token_code_hash: D0DB7128B8697419AD915C9FA2C2B2DA462634AB95CBB3CA187564A1275561CF
 ---
-name:                SiennaSwap_SIENNA-sETH
+name:                AMM[v1].SIENNA-sETH
 exchange:
   address:           secret16h2zlqp45wrj9l3p5px6j55thdxptmgs0j3ke0
 lp_token:
@@ -258,7 +258,7 @@ token_1:
     contract_addr:   secret1wuzzjsdhthpvuyeeyhfq2ftsn3mvwf9rxy6ykw
     token_code_hash: 2DA545EBC441BE05C9FA6338F3353F35AC02EC4B02454BC49B1A66F4B9866AED
 ---
-name:                SiennaSwap_SIENNA-sRUNE
+name:                AMM[v1].SIENNA-sRUNE
 exchange:
   address:           secret1qm0sfft5zgqw3r3h3ftzcpkvzlady7daaawlcs
 lp_token:
@@ -273,7 +273,7 @@ token_1:
     contract_addr:   secret1el5uj9ns9sty682dem033pt50xsv5mklmsvy24
     token_code_hash: 2DA545EBC441BE05C9FA6338F3353F35AC02EC4B02454BC49B1A66F4B9866AED
 ---
-name:                SiennaSwap_SIENNA-sSCRT
+name:                AMM[v1].SIENNA-sSCRT
 exchange:
   address:           secret12mhc3vl7gkwy96zc0uthcx66gt8fam2hqgkz4v
 lp_token:
@@ -288,7 +288,7 @@ token_1:
     contract_addr:   secret1k0jntykt7e4g3y88ltc60czgjuqdy4c9e8fzek
     token_code_hash: AF74387E276BE8874F07BEC3A87023EE49B0E7EBE08178C49D0A49C3C98ED60E
 ---
-name:                SiennaSwap_SIENNA-sUSDC_ERC20
+name:                AMM[v1].SIENNA-sUSDC_ERC20
 exchange:
   address:           secret1qncs7zvp8dxkw7e8m0stpqxgmpm705wrgu4jsd
 lp_token:
@@ -303,7 +303,7 @@ token_1:
     contract_addr:   secret1h6z05y90gwm4sqxzhz4pkyp36cna9xtp7q0urv
     token_code_hash: 2DA545EBC441BE05C9FA6338F3353F35AC02EC4B02454BC49B1A66F4B9866AED
 ---
-name:                SiennaSwap_SIENNA-sUSDT_ERC20
+name:                AMM[v1].SIENNA-sUSDT_ERC20
 exchange:
   address:           secret1vx2ecq5nmau722mmvx78dk388fnjqmyvapcyny
 lp_token:
@@ -318,7 +318,7 @@ token_1:
     contract_addr:   secret18wpjn83dayu4meu6wnn29khfkwdxs7kyrz9c8f
     token_code_hash: 2DA545EBC441BE05C9FA6338F3353F35AC02EC4B02454BC49B1A66F4B9866AED
 ---
-name:                SiennaSwap_SIENNA-sXMR
+name:                AMM[v1].SIENNA-sXMR
 exchange:
   address:           secret1angrgadt62w3vcf4q2yxnw5d3s02f9dsw0syan
 lp_token:
@@ -333,7 +333,7 @@ token_1:
     contract_addr:   secret19ungtd2c7srftqdwgq0dspwvrw63dhu79qxv88
     token_code_hash: 667A3DBEC9096DE530A5521A83E6090DF0956475BD4ACC8D05F382D4F8FFDD05
 ---
-name:                SiennaSwap_SLUNA-SIENNA
+name:                AMM[v1].SLUNA-SIENNA
 exchange:
   address:           secret1chnpt8dhg7xsy7w6n7nfprv860sq6x94w2vp2c
 lp_token:
@@ -348,7 +348,7 @@ token_1:
     contract_addr:   secret1rgm2m5t530tdzyd99775n6vzumxa5luxcllml4
     token_code_hash: c1dc8261059fee1de9f1873cd1359ccd7a6bc5623772661fa3d55332eb652084
 ---
-name:                SiennaSwap_SOSMO-SIENNA
+name:                AMM[v1].SOSMO-SIENNA
 exchange:
   address:           secret14q3rmr928enspkf76e0l0egumse5kufztu3e4g
 lp_token:
@@ -363,7 +363,7 @@ token_1:
     contract_addr:   secret1rgm2m5t530tdzyd99775n6vzumxa5luxcllml4
     token_code_hash: c1dc8261059fee1de9f1873cd1359ccd7a6bc5623772661fa3d55332eb652084
 ---
-name:                SiennaSwap_SSCRT-SLUNA
+name:                AMM[v1].SSCRT-SLUNA
 exchange:
   address:           secret127m5s4ngjm3d9s4j4mklwrvce6wartfadtaj6q
 lp_token:
@@ -378,7 +378,7 @@ token_1:
     contract_addr:   secret1ra7avvjh9fhr7dtr3djutugwj59ptctsrakyyw
     token_code_hash: ad91060456344fc8d8e93c0600a3957b8158605c044b3bef7048510b3157b807
 ---
-name:                SiennaSwap_SSCRT-SUST
+name:                AMM[v1].SSCRT-SUST
 exchange:
   address:           secret1wsyctve8keay992arwk4lv9u9flq8q983ejg2a
 lp_token:
@@ -393,7 +393,7 @@ token_1:
     contract_addr:   secret129h4vu66y3gry6wzwa24rw0vtqjyn8tujuwtn9
     token_code_hash: ad91060456344fc8d8e93c0600a3957b8158605c044b3bef7048510b3157b807
 ---
-name:                SiennaSwap_SUST-SIENNA
+name:                AMM[v1].SUST-SIENNA
 exchange:
   address:           secret1dxyaykqlkzs6x2kg0u65q9v2cz35jzsmay7t3y
 lp_token:
@@ -408,7 +408,7 @@ token_1:
     contract_addr:   secret1rgm2m5t530tdzyd99775n6vzumxa5luxcllml4
     token_code_hash: c1dc8261059fee1de9f1873cd1359ccd7a6bc5623772661fa3d55332eb652084
 ---
-name:                SiennaSwap_sSCRT-sETH
+name:                AMM[v1].sSCRT-sETH
 exchange:
   address:           secret1ala3wd5jx8wvc23khnu7z4kglhpkvek843vgdf
 lp_token:
@@ -423,7 +423,7 @@ token_1:
     contract_addr:   secret1wuzzjsdhthpvuyeeyhfq2ftsn3mvwf9rxy6ykw
     token_code_hash: 2DA545EBC441BE05C9FA6338F3353F35AC02EC4B02454BC49B1A66F4B9866AED
 ---
-name:                SiennaSwap_sSCRT-sUSDC_ERC20
+name:                AMM[v1].sSCRT-sUSDC_ERC20
 exchange:
   address:           secret1f2gz25aw6mexw0m2vxm37yd6f3y94kn4zujs4c
 lp_token:
@@ -438,7 +438,7 @@ token_1:
     contract_addr:   secret1h6z05y90gwm4sqxzhz4pkyp36cna9xtp7q0urv
     token_code_hash: 2DA545EBC441BE05C9FA6338F3353F35AC02EC4B02454BC49B1A66F4B9866AED
 ---
-name:                SiennaSwap_sSCRT-sWBTC
+name:                AMM[v1].sSCRT-sWBTC
 exchange:
   address:           secret1c5qjspn066het2jn5ncw837ftnagq5t0c07tpe
 lp_token:
@@ -453,7 +453,7 @@ token_1:
     contract_addr:   secret1g7jfnxmxkjgqdts9wlmn238mrzxz5r92zwqv4a
     token_code_hash: 2DA545EBC441BE05C9FA6338F3353F35AC02EC4B02454BC49B1A66F4B9866AED
 ---
-name:                SiennaSwap_sXMR-sSCRT
+name:                AMM[v1].sXMR-sSCRT
 exchange:
   address:           secret1w95sau5ll2cm0tdy2r0mf8m8572rhq7sumltam
 lp_token:
@@ -468,7 +468,7 @@ token_1:
     contract_addr:   secret1k0jntykt7e4g3y88ltc60czgjuqdy4c9e8fzek
     token_code_hash: AF74387E276BE8874F07BEC3A87023EE49B0E7EBE08178C49D0A49C3C98ED60E
 ---
-name:                SiennaSwap_sXMR-sUSDT_ERC20
+name:                AMM[v1].sXMR-sUSDT_ERC20
 exchange:
   address:           secret1y4e8c6rvz5hxjjdf7kxuc0uply8mdj9m880zkf
 lp_token:
@@ -483,7 +483,7 @@ token_1:
     contract_addr:   secret18wpjn83dayu4meu6wnn29khfkwdxs7kyrz9c8f
     token_code_hash: 2DA545EBC441BE05C9FA6338F3353F35AC02EC4B02454BC49B1A66F4B9866AED
 ---
-name:                SiennaSwap_sXMR-sWBTC
+name:                AMM[v1].sXMR-sWBTC
 exchange:
   address:           secret18fs3zw3vel608zd2h9ldu735wjf5zzwvukf23v
 lp_token:

@@ -1,33 +1,33 @@
 ---
-name:     SiennaAMMFactory@v1
+name:     AMM[v1].Factory
 label:    20220201_120938/SiennaAMMFactory@v1+20220201_121100
 codeId:   2789
 codeHash: f27c3de202e59cbb33570bbe961325f26cb4296b1995faa7bc896191fc06bce1
 initTx:   11438F8DB78C748ED68A60D0E7490582F09A798E45B90CB65B21BDA8DD2643F7
 address:  secret15wmj4kmg24eqw93dj0tv3mn20dsdj36j3ep90a
 ---
-name:     SiennaMGMT
+name:     MGMT
 label:    20220201_120938/SiennaMGMT
 codeId:   2748
 codeHash: 5f77b64877cb785e3344d55766b6a2023f4e8075d4f9b94e3863aad5962a44c2
 initTx:   D91E39E1149C6034F10AC566BB8CCE7CE4D028384492B2AB31544A9597C5B2F6
 address:  secret1vrhwcjlk5an7cux89fnygl8fpk2fgeryfeljtu
 ---
-name:     SiennaRPT
+name:     RPT
 label:    20220201_120938/SiennaRPT
 codeId:   2749
 codeHash: 500b1a29c48186a5652c441d3374f06f8657435b52e7de15e80742eeb03806ea
 initTx:   7CF8A3BAE44ED9FF4ACA01F4D26DD786E262CCAA60B5CD723FE9ABBEEE542F46
 address:  secret1hgh9p53qv08436ge7r2mu8uw9khxax6nxuacne
 ---
-name:     SiennaSNIP20
+name:     SIENNA
 label:    20220201_120938/SiennaSNIP20
 codeId:   2746
 codeHash: 46e5bca7904e5247952a831cfe426586f614767ec1485bfb2d78c40ae5bf10c8
 initTx:   D7FC1F46C9D70E94C2F8D6E127D5500961E6E016457FE277E5C3EF79E193A6F7
 address:  secret1e7hh38qdnsktwgax95z5dynfa7662he0xrqy20
 ---
-name:                SiennaSwap_v1_LP-SIENNA-SETH
+name:                AMM[v1].v1_LP-SIENNA-SETH
 exchange:
   address:           secret1x5cdmzfcrwghsd469syt37j206lvdatfq5ks6r
 token_0:
@@ -45,7 +45,7 @@ codeId:              2793
 codeHash:            267b2b1d48d0acc173677e29c76bb63cd2e368bca7d55e56a16c048a90b6e6f3
 address:             secret1w39g8ehz283v5wu9a02j9y6llkz9c4geujw5dn
 ---
-name:                SiennaSwap_v1_LP-SIENNA-SSCRT
+name:                AMM[v1].v1_LP-SIENNA-SSCRT
 exchange:
   address:           secret1502gqjyz28q6qrez6xe8ejvndp954sr379702m
 token_0:
@@ -63,7 +63,7 @@ codeId:              2793
 codeHash:            267b2b1d48d0acc173677e29c76bb63cd2e368bca7d55e56a16c048a90b6e6f3
 address:             secret1nfuqqquq3uspvuzzfesz6pz4zh4zp54vmu9dcg
 ---
-name:                SiennaSwap_v1_SIENNA-SETH
+name:                AMM[v1].v1_SIENNA-SETH
 exchange:
   address:           secret1x5cdmzfcrwghsd469syt37j206lvdatfq5ks6r
 token_0:
@@ -81,7 +81,7 @@ codeId:              2791
 codeHash:            ea6bfaf124b2540765b81d12f3efcd6efe3aeaa4ab498a2331f2e40ad9ea0209
 address:             secret1x5cdmzfcrwghsd469syt37j206lvdatfq5ks6r
 ---
-name:                SiennaSwap_v1_SIENNA-SSCRT
+name:                AMM[v1].v1_SIENNA-SSCRT
 exchange:
   address:           secret1502gqjyz28q6qrez6xe8ejvndp954sr379702m
 token_0:

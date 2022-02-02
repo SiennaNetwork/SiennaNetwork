@@ -6,140 +6,140 @@ codeHash: 7a3f39c50a8ab5f3db1ffdeeab3bf548ef22888161392541bdea7ace543c9433
 initTx:   C071FDAB699E308F9BD28FCE5094CED1181A9506BF960F9CECD7C0AEFDB88A31
 address:  secret1c2cnr9wdvgtsgaf07jtnzqr9nj4yarvryj2nju
 ---
-name:     SiennaAMMFactory
+name:     AMM[v1].Factory
 label:    20210913_112307/SiennaAMMFactory
 codeId:   30690
 codeHash: c3d1e37bf7570d36c1d4e8fd50fd6361c67260e02942ba6b5522d8402d4de823
 initTx:   F3009C3E6F88C142705B2129B7B284D3BF6445A9B523935CF28506CCCB0FA481
 address:  secret1ft4jp9ee86rvdsm0cqhyjwshagq3dl0cf7eh8r
 ---
-name:     SiennaMGMT
+name:     MGMT
 label:    20210913_112306/SiennaMGMT
 codeId:   30429
 codeHash: bfd67c2fb628473ebd5dc6431ee84ad51455f8344916af2c10b567eb60a6e71b
 initTx:   1FCE12778E703950E33502E66060468734BF2191B21CD91585758CBDCD18B07F
 address:  secret14f2r68cfalnp56ecqczv3qhr38ktdez5n4pjxw
 ---
-name:     SiennaRPT
+name:     RPT
 label:    20210913_112306/SiennaRPT
 codeId:   30430
 codeHash: 7941e1cd03f42977e010137c6bcef7fc70fae7c46199855f9cc3a4b1088c1481
 initTx:   3C9D2B9E8BA89FFA7C223459880B4733C57B39CFAB9862163FA25252E9303551
 address:  secret1y9jjpqchrunl3n92hmlflxqk5u97z8rw7p820w
 ---
-name:     SiennaRewards_SIENNA-SITOK_Pool
+name:     Rewards[v2].SIENNA-SITOK
 label:    20210913_112306/SiennaRewards_SIENNA-SITOK_Pool
 codeId:   30432
 codeHash: 63c6e414179eca219fac72c4587295d6fb382abb04f359999f5f74bf27cb52a6
 initTx:   661A7102B7D58D4B0B7458AD1EAADF4C9E9BC7F87F63B738513665690818194B
 address:  secret16uret97ml5r5mda5rjt6p9pp0tqlguzg7jamy0
 ---
-name:     SiennaRewards_SIENNA-SITOK_Pool@20210929_091126
+name:     Rewards[v2].SIENNA-SITOK_Pool@20210929_0
 label:    20210913_112306/SiennaRewards_SIENNA-SITOK_Pool@20210929_091126
 codeId:   30432
 codeHash: 63c6e414179eca219fac72c4587295d6fb382abb04f359999f5f74bf27cb52a6
 initTx:   EBAAEA66CF6139F9DA3E347A0A990D795B54F9EAA29360344981AA45C5943BEF
 address:  secret180e3l2fhzw5j2xu5t9ld6p6hgrlk9hzzewf56n
 ---
-name:     SiennaRewards_SIENNA-STEST_Pool
+name:     Rewards[v2].SIENNA-STEST
 label:    20210913_112306/SiennaRewards_SIENNA-STEST_Pool
 codeId:   30432
 codeHash: 63c6e414179eca219fac72c4587295d6fb382abb04f359999f5f74bf27cb52a6
 initTx:   CC1E9086BFEDB853488C1CD62FC9719C22F1EE7577EC2D6EEB5FC12FCA9E9AA1
 address:  secret15pfxyyu6gsa4knag7zpa4hsavwj0cxh5l3crg3
 ---
-name:     SiennaRewards_SIENNA-STEST_Pool@20210929_091659
+name:     Rewards[v2].SIENNA-STEST_Pool@20210929_0
 label:    20210913_112306/SiennaRewards_SIENNA-STEST_Pool@20210929_091659
 codeId:   30432
 codeHash: 63c6e414179eca219fac72c4587295d6fb382abb04f359999f5f74bf27cb52a6
 initTx:   CB02E9B817D565D7349F0B546581FFB7F3A305DFC0E6E0A84BB0704F5CD6257C
 address:  secret1lwwgz8shfu2kerrzfejne5n6kyl46p934hpqnz
 ---
-name:     SiennaRewards_SIENNA-sETH_Pool
+name:     Rewards[v2].SIENNA-sETH
 label:    20210913_112306/SiennaRewards_SIENNA-sETH_Pool
 codeId:   30432
 codeHash: 63c6e414179eca219fac72c4587295d6fb382abb04f359999f5f74bf27cb52a6
 initTx:   808731F2644A39AC5BD5BA898BA596DFAB974BECA2DEDF16B88A84EA7988DB97
 address:  secret16j4pqheghjr3qns0q7rgu5wyanpj0kkzdz8yw4
 ---
-name:     SiennaRewards_SIENNA-sETH_Pool@20210929_091301
+name:     Rewards[v2].SIENNA-sETH_Pool@20210929_0
 label:    20210913_112306/SiennaRewards_SIENNA-sETH_Pool@20210929_091301
 codeId:   30432
 codeHash: 63c6e414179eca219fac72c4587295d6fb382abb04f359999f5f74bf27cb52a6
 initTx:   8B10B39FCA150C9730A594CBC41336A24E1ABB8B764F703B0D6D44114A33C114
 address:  secret16ste9jap3wguu7eda4r574g0s73hytnf6whwnv
 ---
-name:     SiennaRewards_SIENNA-sSCRT_Pool
+name:     Rewards[v2].SIENNA-sSCRT
 label:    20210913_112306/SiennaRewards_SIENNA-sSCRT_Pool
 codeId:   30432
 codeHash: 63c6e414179eca219fac72c4587295d6fb382abb04f359999f5f74bf27cb52a6
 initTx:   80675A9F486149187E27FE17014A921F6B544A23FEE97C4B5CA5DFF8397661FD
 address:  secret17lymkv0yplglzrh7ykc9ntfzcnqwefexdgkmpj
 ---
-name:     SiennaRewards_SIENNA-sSCRT_Pool@20210929_091423
+name:     Rewards[v2].SIENNA-sSCRT_Pool@20210929_0
 label:    20210913_112306/SiennaRewards_SIENNA-sSCRT_Pool@20210929_091423
 codeId:   30432
 codeHash: 63c6e414179eca219fac72c4587295d6fb382abb04f359999f5f74bf27cb52a6
 initTx:   01D405D8312ADD7D2E18542F86871C3EA92F7212C39275121311D08858C3A62F
 address:  secret15l08ra4jce0vw7cwhxcsyw66np5590853jx6y8
 ---
-name:     SiennaRewards_SIENNA_Pool
+name:     Rewards[v2].SIENNA
 label:    20210913_112306/SiennaRewards_SIENNA_Pool
 codeId:   30432
 codeHash: 63c6e414179eca219fac72c4587295d6fb382abb04f359999f5f74bf27cb52a6
 initTx:   E4B3AC740244DCFDBEE388DB70CDE24F1E4A751358E6651D65A08E1C74BC4A50
 address:  secret1md32wyrcpnvtkjtj7z52nrsh074dxte2gdq6wq
 ---
-name:     SiennaRewards_SIENNA_Pool@20210929_002533
+name:     Rewards[v2].SIENNA_Pool@20210929_0
 label:    20210913_112306/SiennaRewards_SIENNA_Pool@20210929_002533
 codeId:   30432
 codeHash: 63c6e414179eca219fac72c4587295d6fb382abb04f359999f5f74bf27cb52a6
 initTx:   E6C29D7A9B81154267B93DCF7E1CEF7C32350020BDE3A8DC416C121C39C30122
 address:  secret129gn0yg5z78gpwet2wespy97wwcqjyt3ssjvyu
 ---
-name:     SiennaRewards_SIENNA_Pool@20210929_091759
+name:     Rewards[v2].SIENNA_Pool@20210929_0
 label:    20210913_112306/SiennaRewards_SIENNA_Pool@20210929_091759
 codeId:   30432
 codeHash: 63c6e414179eca219fac72c4587295d6fb382abb04f359999f5f74bf27cb52a6
 initTx:   0B1711B7E8CED01A51DE4E9FF3EEC87D1209D71199F0ABD6E0809825867AED6A
 address:  secret1x0fpakcqhsc2khxsyk2gytndlvvg07ddyk9c45
 ---
-name:     SiennaRewards_SIENNA_Pool@20211003_121333
+name:     Rewards[v2].SIENNA_Pool@20211003_1
 label:    20210913_112306/SiennaRewards_SIENNA_Pool@20211003_121333
 codeId:   30940
 codeHash: 7a3f39c50a8ab5f3db1ffdeeab3bf548ef22888161392541bdea7ace543c9433
 initTx:   4E6962C9E1F1FAF0691EEDE7D5A0A79B16B8D0366C410D9A5ADF240FE94A1912
 address:  secret1acvc2dv78xddzgmqshheg9yfs0mg7egvcp9e2s
 ---
-name:     SiennaRewards_SITOK-STEST_Pool
+name:     Rewards[v2].SITOK-STEST
 label:    20210913_112306/SiennaRewards_SITOK-STEST_Pool
 codeId:   30432
 codeHash: 63c6e414179eca219fac72c4587295d6fb382abb04f359999f5f74bf27cb52a6
 initTx:   5E028EF76269A02D38F443D4D12F4C64609E775FA9309D73D4FD7391C1E42D14
 address:  secret1ljp9tpmv0z80qk4xec2h050eefcjgqjq7cwrl2
 ---
-name:     SiennaRewards_SITOK-STEST_Pool@20210929_091851
+name:     Rewards[v2].SITOK-STEST_Pool@20210929_0
 label:    20210913_112306/SiennaRewards_SITOK-STEST_Pool@20210929_091851
 codeId:   30432
 codeHash: 63c6e414179eca219fac72c4587295d6fb382abb04f359999f5f74bf27cb52a6
 initTx:   9F14EF44BD847DFB442C646BEFFE5CB5710F59F458D4E2EE7E14032111C3D45C
 address:  secret1lwgqree3w0w0vzvphc8kzxjf29xrp39fey9qjj
 ---
-name:     SiennaRewards_sSCRT-STEST_Pool
+name:     Rewards[v2].sSCRT-STEST
 label:    20210913_112306/SiennaRewards_sSCRT-STEST_Pool
 codeId:   30432
 codeHash: 63c6e414179eca219fac72c4587295d6fb382abb04f359999f5f74bf27cb52a6
 initTx:   1F61292309DB0FC4C1E2CC5C6E307814B2C7E68962116A8392551286000EB281
 address:  secret1tx4j68ftlnyx8pw8lsggg8vf6mklthwcd68xnw
 ---
-name:     SiennaRewards_sSCRT-STEST_Pool@20210929_091943
+name:     Rewards[v2].sSCRT-STEST_Pool@20210929_0
 label:    20210913_112306/SiennaRewards_sSCRT-STEST_Pool@20210929_091943
 codeId:   30432
 codeHash: 63c6e414179eca219fac72c4587295d6fb382abb04f359999f5f74bf27cb52a6
 initTx:   168386407DA9DC658C00E2D1145122210EDFE7B8BFC184D2AB85587D54D779C6
 address:  secret1var0f2xqz6q4ey4glcvgqncqyguma8a6kw2092
 ---
-name:     SiennaSNIP20
+name:     SIENNA
 label:    20210913_112306/SiennaSNIP20
 codeId:   30428
 codeHash: 9f55f7bb6f738258ac37219f1a045d07f1332b17ec550cd8ac73b10cc2ec9e50

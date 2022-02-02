@@ -150,6 +150,6 @@ export async function deployRewardPool ({
   const REWARDS = new RewardsContract[version]({ lpToken, rewardToken, agent })
   REWARDS.name = name
   await chain.buildAndUpload(agent, [REWARDS])
-  await deployment.getOrInit(agent, REWARDS, REWARDS.label, REWARDS.initMsg)
+  await deployment.getOrInit(agent, REWARDS)
   return { REWARDS }
 }

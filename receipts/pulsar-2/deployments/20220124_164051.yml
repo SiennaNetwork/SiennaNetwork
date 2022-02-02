@@ -1,19 +1,19 @@
 ---
-name:     SiennaMGMT
+name:     MGMT
 label:    20220124_164051/SiennaMGMT
 codeId:   233
 codeHash: 6c7ff371d51930e26335f1364658ed785128768f76ce02d38e31c91f72207ec4
 initTx:   FC5BCF53B4AA69160A3A80EDFCEEB6931BC216E61245D1F5199BC53ED92169AF
 address:  secret1n2t2j6ergsn5c9nhrceaxkemkvgx5phvuxdm2k
 ---
-name:     SiennaRPT
+name:     RPT
 label:    20220124_164051/SiennaRPT
 codeId:   234
 codeHash: 2d5aefff63f9edbc870bb2c69799cd03580767734b613388c1294baa39988833
 initTx:   79EF67DA0FE4F470A2A9C08E809D40FFED1DCD3096964811BF29E23AC47774B0
 address:  secret1mk3afz33479xz3ejfar0ltuvjcqwsexrat4p0d
 ---
-name:     SiennaSNIP20
+name:     SIENNA
 label:    20220124_164051/SiennaSNIP20
 codeId:   232
 codeHash: 9746193ec4174effaad3067ce78aa1e03b03fa73ef0c7787dd231a9117b84562
