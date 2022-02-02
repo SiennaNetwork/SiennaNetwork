@@ -22,8 +22,16 @@ into which the values returned by each procedure can also be added
 
 The active [`Chain`](https://github.com/hackbg/fadroma/blob/22.01/packages/ops/Chain.ts)
 is selected via the `FADROMA_CHAIN` environment variable.
+You can set it in a `.env` file in the root of the repo.
 
-Run this script with `FADROMA_CHAIN` set to an empty value, to list possible values.
+Run this script with `FADROMA_CHAIN` set to an empty value,
+to list possible values.
+
+### Receipts
+
+Results of uploads and inits are stored in `receipts/*/{deployments,uploads}`.
+These are used to keep track of deployed contracts.
+See [`../receipts`](../receipts).
 
 ### Reset localnet
 
@@ -42,7 +50,7 @@ Fadroma.command('reset', async ({ chain }) => {
 })
 ```
 
-## Deploymentss
+## Deployments
 
 The Sienna platform consists of multiple smart contracts that
 depend on each other's existence and configuration. A group of
@@ -169,13 +177,6 @@ Fadroma.command('deploy factory v1',
   deployAMMFactory.v1)
 ```
 
-## Upgrades and migrations
-
-### Migrating to `@sienna/factory v2.0.0` + `@sienna/rewards v3.0.0`
-
-```typescript
-```
-
 ## Helper commands for auditing the contract logic
 
 This spins up a rewards contract on localnet and lets you interact with it.
@@ -183,6 +184,24 @@ This spins up a rewards contract on localnet and lets you interact with it.
 ```typescript
 import { rewardsAudit } from '@sienna/amm'
 Fadroma.command('audit rewards', rewardsAudit)
+```
+
+## Import receipts in old format
+
+This function addes the minimum of
+`{ codeId, codeHash, initTx: contractAddress }`
+to AMM and Rewards pool instantiation receipts
+from the mainnet deploy that were previously stored
+in a non-compatible format.
+
+```typescript
+Fadroma.command('fix receipts',
+  Deployments.activate,
+  ({ agent, deployment }) => {
+    for (const [name, data] of Object.entries(deployment.receipts)) {
+      console.log(name, data)
+    }
+  })
 ```
 
 ## Entry point

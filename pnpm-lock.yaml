@@ -996,7 +996,10 @@ importers:
       '@sienna/tge': link:../contracts/tge
 
   settings:
-    specifiers: {}
+    specifiers:
+      yaml: ^1.10.2
+    dependencies:
+      yaml: 1.10.2
 
 packages:
 
