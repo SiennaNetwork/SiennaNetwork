@@ -248,6 +248,7 @@ pub(crate) fn swap<S: Storage, A: Api, Q: Querier>(
             recipient,
             Uint128(mint_amount),
             None,
+            None,
             BLOCK_SIZE,
             config.sold_token.code_hash,
             config.sold_token.address,
@@ -283,6 +284,7 @@ pub(crate) fn refund<S: Storage, A: Api, Q: Querier>(
         messages: vec![snip20::transfer_msg(
             address.unwrap_or_else(|| env.message.sender.clone()),
             refund_amount,
+            None,
             None,
             BLOCK_SIZE,
             config.sold_token.code_hash,
@@ -320,6 +322,7 @@ pub(crate) fn claim<S: Storage, A: Api, Q: Querier>(
             messages.push(snip20::transfer_msg(
                 output_address.clone(),
                 balance,
+                None,
                 None,
                 BLOCK_SIZE,
                 token_code_hash,

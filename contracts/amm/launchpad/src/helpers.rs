@@ -100,6 +100,7 @@ pub(crate) fn create_transfer_message(
             to_address,
             amount,
             None,
+            None,
             BLOCK_SIZE,
             token_code_hash.clone(),
             contract_addr.clone(),

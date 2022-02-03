@@ -149,9 +149,11 @@ impl TokenType<HumanAddr> {
                 CosmosMsg::Wasm(WasmMsg::Execute {
                     contract_addr: contract_addr.clone(),
                     callback_code_hash: token_code_hash.to_string(),
-                    msg: to_binary(&snip20::HandleMsg::Send {   
+                    msg: to_binary(&snip20::HandleMsg::Send {
                         recipient,
+                        recipient_code_hash: None,
                         amount,
+                        memo: None,
                         padding: None,
                         msg: None,
                     })?,

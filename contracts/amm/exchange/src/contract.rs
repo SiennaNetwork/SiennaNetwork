@@ -306,6 +306,7 @@ fn add_liquidity<S: Storage, A: Api, Q: Querier>(
                     env.contract.address.clone(),
                     amount,
                     None,
+                    None,
                     BLOCK_SIZE,
                     token_code_hash.clone(),
                     contract_addr.clone(),
@@ -358,6 +359,7 @@ fn add_liquidity<S: Storage, A: Api, Q: Querier>(
     messages.push(snip20::mint_msg(
         env.message.sender,
         Uint128(lp_tokens),
+        None,
         None,
         BLOCK_SIZE,
         lp_token_info.code_hash,
@@ -426,6 +428,7 @@ fn remove_liquidity<S: Storage, A: Api, Q: Querier>(
     messages.push(snip20::burn_msg(
         amount,
         None,
+        None,
         BLOCK_SIZE,
         lp_token_info.code_hash,
         lp_token_info.address,
@@ -480,6 +483,7 @@ fn swap(
                     messages.push(snip20::transfer_msg(
                         burner_address,
                         swap.sienna_commission,
+                        None,
                         None,
                         BLOCK_SIZE,
                         token_code_hash.clone(),
