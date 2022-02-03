@@ -24,7 +24,7 @@ const console = Console("@sienna/amm/upgrade");
 
 export async function deployLend({
   chain,
-  admin,
+  agent,
   deployment,
   prefix,
 }: MigrationContext): Promise<{
@@ -36,7 +36,7 @@ export async function deployLend({
 }> {
   let mock_oracle = { address: null, codeHash: null };
   const [INTEREST_MODEL, ORACLE, MARKET, OVERSEER, MOCK_ORACLE] =
-    await chain.buildAndUpload(admin, [
+    await chain.buildAndUpload(agent, [
       new InterestModelContract({ workspace }),
       new LendOracleContract({ workspace }),
       new LendMarketContract({ workspace }),
@@ -45,7 +45,7 @@ export async function deployLend({
     ]);
 
   // paramters taken from Compound
-  await deployment.createContract(admin, INTEREST_MODEL, {
+  await deployment.getOrInit(agent, INTEREST_MODEL, INTEREST_MODEL.label, {
     base_rate_year: "20000000000000000",
     blocks_year: 6311520,
     jump_multiplier_year: "200000000000000000",
@@ -54,13 +54,13 @@ export async function deployLend({
   });
 
   if (chain.isLocalnet) {
-    let contract = await deployment.createContract(admin, MOCK_ORACLE, {});
+    let contract = await deployment.init(agent, MOCK_ORACLE, {});
 
     mock_oracle.address = contract.initTx.contractAddress;
     mock_oracle.codeHash = contract.codeHash;
   }
 
-  let overseer = await deployment.createContract(admin, OVERSEER, {
+  let overseer = await deployment.getOrInit(agent, OVERSEER, OVERSEER.label, {
     close_factor: "500000000000000000",
     entropy: randomHex(36),
     market_contract: {
