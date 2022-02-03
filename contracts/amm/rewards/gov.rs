@@ -168,8 +168,12 @@ where
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum GovernanceQuery {
-    Polls {},
-    Poll {},
+    Polls {
+        // TODO: add pagination
+        // take: u16, 
+        // page: u16
+    },
+    Poll { id: u64},
 }
 impl<S, A, Q, C> QueryDispatch<S, A, Q, C, GovernanceResponse> for GovernanceQuery
 where
@@ -181,10 +185,11 @@ where
     fn dispatch_query(self, core: &C) -> StdResult<GovernanceResponse> {
         match self {
             GovernanceQuery::Polls {} => GovernanceResponse::polls(core),
-            GovernanceQuery::Poll {} => GovernanceResponse::poll(core),
+            GovernanceQuery::Poll {id} => GovernanceResponse::poll(core, id),
         }
     }
 }
+
 
 // response api ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -202,7 +207,7 @@ where
     C: Governance<S, A, Q>,
 {
     fn polls(core: &C) -> StdResult<Self>;
-    fn poll(core: &C) -> StdResult<Self>;
+    fn poll(core: &C, id: u64) -> StdResult<Self>;
 }
 impl<S, A, Q, C> IGovernanceResponse<S, A, Q, C> for GovernanceResponse
 where
@@ -214,18 +219,22 @@ where
     fn polls(_core: &C) -> StdResult<Self> {
         Ok(GovernanceResponse::Polls {})
     }
-    fn poll(core: &C) -> StdResult<GovernanceResponse> {
-        Ok(GovernanceResponse::Poll(Poll {
-            creator: core.canonize(HumanAddr::from("test"))?,
-            id: 1,
+    fn poll(core: &C, id: u64) -> StdResult<GovernanceResponse> {
+
+        let meta = Poll::metadata(core, id)?;
+
+        let poll = Poll {
+            creator:  Poll::creator(core, id)?,
+            id,
             metadata: PollMetadata {
                 description: "test".to_string(),
                 poll_type: PollType::Other,
                 title: "test".to_string(),
             },
-            expiration: Expiration::AtTime(42),
-            status: PollStatus::Active,
-        }))
+            expiration: Poll::expiration(core, id)?,
+            status: Poll::status(core, id)?
+        };
+        Ok(GovernanceResponse::Poll(poll))
     }
 }
 
@@ -243,7 +252,7 @@ pub struct Poll {
 impl Poll {
     pub const TOTAL: &'static [u8] = b"/gov/polls/total";
 
-    pub const CREATOR: &'static [u8] = b"/gov/poll/creator";
+    pub const CREATOR: &'static [u8] = b"/gov/poll/creator/";
     pub const EXPIRATION: &'static [u8] = b"/gov/poll/expiration";
     pub const STATUS: &'static [u8] = b"/gov/poll/status";
 }
@@ -312,7 +321,6 @@ where
         let expiration = Self::expiration(core, poll_id)?;
         let status = Self::status(core, poll_id)?;
         let metadata = Self::metadata(core, poll_id)?;
-
         Ok(Self {
             id: poll_id,
             creator,
@@ -569,3 +577,4 @@ impl Expiration {
         }
     }
 }
+
