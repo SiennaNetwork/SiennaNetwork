@@ -250,6 +250,7 @@ pub trait Market {
                     env.message.sender,
                     amount.clamp_u128()?.into(),
                     None,
+                    None,
                     BLOCK_SIZE,
                     underlying_asset.code_hash,
                     underlying_asset.address
@@ -421,6 +422,7 @@ pub trait Market {
                 snip20::transfer_msg(
                     to.unwrap_or(env.message.sender),
                     amount,
+                    None,
                     None,
                     BLOCK_SIZE,
                     underlying_asset.code_hash,

@@ -19,7 +19,7 @@ const CHESTER: &str = "Chester";
 
 impl Lend {
     #[inline]
-    pub fn underlying_balance(
+    pub fn _underlying_balance(
         &self,
         address: impl Into<HumanAddr>,
         market: HumanAddr

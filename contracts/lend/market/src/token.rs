@@ -115,6 +115,7 @@ pub fn redeem<S: Storage, A: Api, Q: Querier>(
             env.message.sender,
             redeem_amount.clamp_u128()?.into(),
             None,
+            None,
             BLOCK_SIZE,
             underlying_asset.code_hash,
             underlying_asset.address
