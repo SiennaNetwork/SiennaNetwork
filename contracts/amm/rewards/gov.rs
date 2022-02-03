@@ -1,4 +1,7 @@
-use crate::auth::Auth;
+use crate::{
+    algo::{self, IAccount, Rewards},
+    auth::Auth,
+};
 use core::fmt;
 use cosmwasm_std::BlockInfo;
 use fadroma::*;
@@ -7,8 +10,9 @@ use serde::{Deserialize, Serialize};
 
 // feature trait ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 pub trait Governance<S: Storage, A: Api, Q: Querier>:
-    Composable<S, A, Q> // to compose with other modules
+    Composable<S, A, Q>  // to compose with other modules
     + Auth<S, A, Q>     // to authenticate txs/queries
+    + Rewards<S,A,Q>
     + Sized             // to pass mutable self-reference to Total and Account
 {
     /// Configure the rewards module
@@ -144,7 +148,23 @@ where
                 Ok(HandleResponse::default())
             }
             GovernanceHandle::Vote { variant, poll_id } => {
-                //here
+                if let Ok(_) = Vote::get(core, env.message.sender.clone(), poll_id) {
+                    return Err(StdError::generic_err(
+                        "Already voted. Did you mean to update vote?",
+                    ));
+                }
+                let account = algo::Account::from_env(core, &env)?;
+
+                let vote_power = account.staked;
+
+                let vote = Vote {
+                    variant,
+                    vote_power,
+                    voter: core.canonize(env.message.sender.clone())?,
+                };
+                
+                vote.store(core, env.message.sender, poll_id)?;
+
                 Ok(HandleResponse::default())
             }
             GovernanceHandle::ChangeVote { variant, poll_id } => Ok(HandleResponse::default()),
@@ -170,10 +190,12 @@ where
 pub enum GovernanceQuery {
     Polls {
         // TODO: add pagination
-        // take: u16, 
-        // page: u16
+    // take: u16,
+    // page: u16
     },
-    Poll { id: u64},
+    Poll {
+        id: u64,
+    },
 }
 impl<S, A, Q, C> QueryDispatch<S, A, Q, C, GovernanceResponse> for GovernanceQuery
 where
@@ -185,11 +207,10 @@ where
     fn dispatch_query(self, core: &C) -> StdResult<GovernanceResponse> {
         match self {
             GovernanceQuery::Polls {} => GovernanceResponse::polls(core),
-            GovernanceQuery::Poll {id} => GovernanceResponse::poll(core, id),
+            GovernanceQuery::Poll { id } => GovernanceResponse::poll(core, id),
         }
     }
 }
-
 
 // response api ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -220,11 +241,10 @@ where
         Ok(GovernanceResponse::Polls {})
     }
     fn poll(core: &C, id: u64) -> StdResult<GovernanceResponse> {
-
         let meta = Poll::metadata(core, id)?;
 
         let poll = Poll {
-            creator:  Poll::creator(core, id)?,
+            creator: Poll::creator(core, id)?,
             id,
             metadata: PollMetadata {
                 description: "test".to_string(),
@@ -232,7 +252,7 @@ where
                 title: "test".to_string(),
             },
             expiration: Poll::expiration(core, id)?,
-            status: Poll::status(core, id)?
+            status: Poll::status(core, id)?,
         };
         Ok(GovernanceResponse::Poll(poll))
     }
@@ -506,7 +526,7 @@ where
     S: Storage,
     A: Api,
     Q: Querier,
-    C: Governance<S, A, Q> + Storage,
+    C: Governance<S, A, Q>,
     Self: Sized,
 {
     fn store(&self, core: &mut C, address: HumanAddr, poll_id: u64) -> StdResult<()> {
@@ -522,10 +542,9 @@ where
         key.extend_from_slice(Self::VOTE);
         key.extend_from_slice(poll_id.as_slice());
 
-        //Requires static lifetime for the slice. 
-        let store = IterableStorage::<Vote>::new(Self::VOTE);
+        let store = IterableStorage::<Vote>::new(&key);
 
-        let votes = store.iter(core)?.map(|vote| vote).collect();
+        let votes = store.iter(core.storage())?.map(|vote| vote).collect();
         votes
     }
     fn get(core: &C, address: HumanAddr, poll_id: u64) -> StdResult<Self> {
@@ -577,4 +596,3 @@ impl Expiration {
         }
     }
 }
-
