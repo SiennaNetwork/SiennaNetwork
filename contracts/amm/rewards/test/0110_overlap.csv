@@ -5,6 +5,7 @@ Time,Sender,Recipient,Data
     amount: ""42798"""
 tx,0110_overlap_addr,LP_TOKEN,"transfer_from:
   amount: ""42798""
+  memo: ~
   owner: Alice
   padding: ~
   recipient: 0110_overlap_addr"
@@ -21,6 +22,7 @@ tx,0110_overlap_addr,LP_TOKEN,"transfer_from:
     amount: ""38861"""
 tx,0110_overlap_addr,LP_TOKEN,"transfer_from:
   amount: ""38861""
+  memo: ~
   owner: Bob
   padding: ~
   recipient: 0110_overlap_addr"

@@ -91,7 +91,7 @@ pub(crate) fn remove_migration_address(storage: &mut impl Storage) {
 }
 
 #[inline]
-pub(crate) fn exchanges_store() -> IterableStorage<Exchange<CanonicalAddr>> {
+pub(crate) fn exchanges_store() -> IterableStorage<'static, Exchange<CanonicalAddr>> {
     IterableStorage::new(NS_EXCHANGES)
 }
 

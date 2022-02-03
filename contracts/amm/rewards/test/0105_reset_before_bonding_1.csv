@@ -9,6 +9,7 @@ Time,Sender,Recipient,Data
     amount: ""85596"""
 tx,0105_reset_addr,LP_TOKEN,"transfer_from:
   amount: ""85596""
+  memo: ~
   owner: Alice
   padding: ~
   recipient: 0105_reset_addr"
@@ -31,6 +32,7 @@ tx,0105_reset_addr,LP_TOKEN,"transfer_from:
     amount: ""85596"""
 tx,0105_reset_addr,LP_TOKEN,"transfer:
   amount: ""85596""
+  memo: ~
   padding: ~
   recipient: Alice"
 24,0105_reset_addr,Alice,account.volume               = 0

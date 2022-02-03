@@ -10,6 +10,7 @@ Time,Sender,Recipient,Data
     amount: ""42798"""
 tx,0114_close_addr,LP_TOKEN,"transfer_from:
   amount: ""42798""
+  memo: ~
   owner: Alice
   padding: ~
   recipient: 0114_close_addr"
@@ -24,6 +25,7 @@ tx,0114_close_addr,LP_TOKEN,"transfer_from:
     amount: ""38861"""
 tx,0114_close_addr,LP_TOKEN,"transfer_from:
   amount: ""38861""
+  memo: ~
   owner: Alice
   padding: ~
   recipient: 0114_close_addr"
@@ -51,10 +53,12 @@ tx,0114_close_addr,LP_TOKEN,"transfer_from:
     amount: ""100"""
 tx,0114_close_addr,LP_TOKEN,"transfer:
   amount: ""81659""
+  memo: ~
   padding: ~
   recipient: Alice"
 tx,0114_close_addr,SIENNA,"transfer:
   amount: ""93561""
+  memo: ~
   padding: ~
   recipient: Alice"
 log,0114_close_addr,,close_time = 258

@@ -5,6 +5,7 @@ Time,Sender,Recipient,Data
     amount: ""42798"""
 tx,0113_single_sided_addr,SIENNA,"transfer_from:
   amount: ""42798""
+  memo: ~
   owner: Alice
   padding: ~
   recipient: 0113_single_sided_addr"
@@ -21,6 +22,7 @@ tx,0113_single_sided_addr,SIENNA,"transfer_from:
   claim: {}"
 tx,0113_single_sided_addr,SIENNA,"transfer:
   amount: ""38861""
+  memo: ~
   padding: ~
   recipient: Alice"
 log,0113_single_sided_addr,,reward = 38861
@@ -32,5 +34,6 @@ log,0113_single_sided_addr,,reward = 38861
     amount: ""42798"""
 tx,0113_single_sided_addr,SIENNA,"transfer:
   amount: ""42798""
+  memo: ~
   padding: ~
   recipient: Alice"

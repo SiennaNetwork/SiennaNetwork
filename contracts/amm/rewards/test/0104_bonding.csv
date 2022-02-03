@@ -23,6 +23,7 @@ Time,Sender,Recipient,Data
     amount: ""42798"""
 tx,0104_bonding_addr,LP_TOKEN,"transfer_from:
   amount: ""42798""
+  memo: ~
   owner: Alice
   padding: ~
   recipient: 0104_bonding_addr"

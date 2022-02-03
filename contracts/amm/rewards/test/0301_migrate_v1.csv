@@ -7,6 +7,7 @@ Time,Sender,Recipient,Data
     amount: ""85596"""
 tx,0301_migrate_v1_addr,LP_TOKEN,"transfer_from:
   amount: ""85596""
+  memo: ~
   owner: Alice
   padding: ~
   recipient: 0301_migrate_v1_addr"
@@ -20,6 +21,7 @@ tx,0301_migrate_v1_addr,LP_TOKEN,"transfer_from:
     amount: ""77722"""
 tx,0301_migrate_v1_addr,LP_TOKEN,"transfer_from:
   amount: ""77722""
+  memo: ~
   owner: Bob
   padding: ~
   recipient: 0301_migrate_v1_addr"
@@ -36,6 +38,7 @@ Migration step 2,,,
   export_state: Alice"
 tx,0301_migrate_v1_addr,LP_TOKEN,"transfer:
   amount: ""85596""
+  memo: ~
   padding: ~
   recipient: 0301_migrate_v2_addr"
 tx,0301_migrate_v1_addr,0301_migrate_v2_addr,"immigration:
@@ -56,6 +59,7 @@ Migration step 2,,,
   export_state: Bob"
 tx,0301_migrate_v1_addr,LP_TOKEN,"transfer:
   amount: ""77722""
+  memo: ~
   padding: ~
   recipient: 0301_migrate_v2_addr"
 tx,0301_migrate_v1_addr,0301_migrate_v2_addr,"immigration:

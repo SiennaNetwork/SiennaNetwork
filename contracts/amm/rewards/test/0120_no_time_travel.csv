@@ -5,6 +5,7 @@ Time,Sender,Recipient,Data
     amount: ""43"""
 tx,0120_no_time_travel_addr,LP_TOKEN,"transfer_from:
   amount: ""43""
+  memo: ~
   owner: Alice
   padding: ~
   recipient: 0120_no_time_travel_addr"

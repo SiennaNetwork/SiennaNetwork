@@ -191,7 +191,8 @@ impl Markets {
     ) -> StdResult<Vec<Market<HumanAddr>>> {
         let limit = pagination.limit.min(PAGINATION_LIMIT);
 
-        let iterator = IterableStorage::new(Self::NS)
+        let storage = IterableStorage::new(Self::NS);
+        let iterator = storage
             .iter(&deps.storage)?
             .skip(pagination.start as usize)
             .take(limit as usize);

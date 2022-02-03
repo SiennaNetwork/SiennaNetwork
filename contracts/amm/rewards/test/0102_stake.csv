@@ -5,6 +5,7 @@ Time,Sender,Recipient,Data
     amount: ""43"""
 tx,0102_stake_addr,LP_TOKEN,"transfer_from:
   amount: ""43""
+  memo: ~
   owner: Alice
   padding: ~
   recipient: 0102_stake_addr"
@@ -36,6 +37,7 @@ tx,0102_stake_addr,LP_TOKEN,"transfer_from:
     amount: ""26"""
 tx,0102_stake_addr,LP_TOKEN,"transfer_from:
   amount: ""26""
+  memo: ~
   owner: Alice
   padding: ~
   recipient: 0102_stake_addr"

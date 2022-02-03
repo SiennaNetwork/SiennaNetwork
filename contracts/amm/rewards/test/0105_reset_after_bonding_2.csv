@@ -9,6 +9,7 @@ Time,Sender,Recipient,Data
     amount: ""85596"""
 tx,0105_reset_addr,LP_TOKEN,"transfer_from:
   amount: ""85596""
+  memo: ~
   owner: Alice
   padding: ~
   recipient: 0105_reset_addr"
@@ -36,6 +37,7 @@ tx,0105_reset_addr,LP_TOKEN,"transfer_from:
     amount: ""42798"""
 tx,0105_reset_addr,LP_TOKEN,"transfer:
   amount: ""42798""
+  memo: ~
   padding: ~
   recipient: Alice"
 211,0105_reset_addr,Alice,account.volume               = 16862412
@@ -50,10 +52,12 @@ tx,0105_reset_addr,LP_TOKEN,"transfer:
     amount: ""42798"""
 tx,0105_reset_addr,SIENNA,"transfer:
   amount: ""38861""
+  memo: ~
   padding: ~
   recipient: Alice"
 tx,0105_reset_addr,LP_TOKEN,"transfer:
   amount: ""42798""
+  memo: ~
   padding: ~
   recipient: Alice"
 log,0105_reset_addr,,reward = 38861
