@@ -241,7 +241,7 @@ pub struct Poll {
 }
 
 impl Poll {
-    pub const TOTAL: &'static [u8] = b"/gov/poll/total";
+    pub const TOTAL: &'static [u8] = b"/gov/polls/total";
 
     pub const CREATOR: &'static [u8] = b"/gov/poll/creator";
     pub const EXPIRATION: &'static [u8] = b"/gov/poll/expiration";
@@ -443,7 +443,7 @@ where
     fn poll_type(core: &C, poll_id: u64) -> StdResult<PollType> {
         core.get_ns(Self::POLL_TYPE, &poll_id.to_be_bytes())?
             .ok_or(StdError::generic_err(
-                "Failed to parse meta poll type from storage",
+                "failed to parse meta poll type from storage",
             ))?
     }
 }
@@ -476,12 +476,10 @@ pub struct Vote {
     pub voter: CanonicalAddr,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
-pub struct Votes(Vec<Vote>);
-impl Votes {
-    pub const VOTES: &'static [u8] = b"/gov/votes/";
+impl Vote {
+    pub const VOTE: &'static [u8] = b"/gov/vote/";
 }
-pub trait IVotes<S, A, Q, C>
+pub trait IVote<S, A, Q, C>
 where
     S: Storage,
     A: Api,
@@ -489,40 +487,62 @@ where
     C: Governance<S, A, Q>,
     Self: Sized,
 {
-    fn new() -> Self;
-    fn store(&self, core: &mut C, address: ) -> StdResult<()>;
+    fn store(&self, core: &mut C, address: HumanAddr, poll_id: u64) -> StdResult<()>;
     fn get(core: &C, address: HumanAddr, poll_id: u64) -> StdResult<Self>;
+    fn build_key(core: &C, address: HumanAddr, poll_id: u64) -> StdResult<Vec<u8>>;
+    fn get_all(core: &C, poll_id: u64) -> StdResult<Vec<Self>>;
 }
 
-impl<S, A, Q, C> IVotes<S, A, Q, C> for Votes
+impl<S, A, Q, C> IVote<S, A, Q, C> for Vote
 where
-    S: Storage ,
+    S: Storage,
     A: Api,
     Q: Querier,
-    C: Governance<S, A, Q> + ReadonlyStorage,
+    C: Governance<S, A, Q> + Storage,
     Self: Sized,
 {
-    fn new() -> Self {
-        Self(vec![])
-    }
-    fn store(&self, core: &mut C, address: HumanAddr) -> StdResult<()> {
-        let address = core.canonize(address)?;
-        core.set_ns(Self::VOTES, address.as_slice(), self.0.clone())?;
+    fn store(&self, core: &mut C, address: HumanAddr, poll_id: u64) -> StdResult<()> {
+        let key = Self::build_key(core, address, poll_id)?;
+
+        core.set_ns(Self::VOTE, &key, self.clone())?;
+
         Ok(())
     }
-    
+    fn get_all<'a>(core: &C, poll_id: u64) -> StdResult<Vec<Self>> {
+        let poll_id = poll_id.to_be_bytes().to_vec();
+        let mut key = Vec::with_capacity(poll_id.as_slice().len() + Self::VOTE.len());
+        key.extend_from_slice(Self::VOTE);
+        key.extend_from_slice(poll_id.as_slice());
+
+        //Requires static lifetime for the slice. 
+        let store = IterableStorage::<Vote>::new(Self::VOTE);
+
+        let votes = store.iter(core)?.map(|vote| vote).collect();
+        votes
+    }
     fn get(core: &C, address: HumanAddr, poll_id: u64) -> StdResult<Self> {
-        //TODO: Better way to combine the slices??
-        let mut key = vec![];
-        key.extend_from_slice(core.canonize(address)?.as_slice());
-        key.extend_from_slice(poll_id.to_be_bytes().to_vec().as_slice());
-        let store = fadroma::ReadonlyPrefixedStorage::multilevel(key, core);
-        let list = core
-            .get_ns::<Vec<Vote>>(Self::VOTES, &key)?
+        let key = Self::build_key(core, address, poll_id)?;
+
+        let vote = core
+            .get_ns::<Vote>(Self::VOTE, &key)?
             .ok_or(StdError::generic_err(
-                "failed to parse meta description from storage",
+                "can't find vote for user on that poll",
             ))?;
-        Ok(Self(list))
+        Ok(vote)
+    }
+
+    fn build_key(core: &C, address: HumanAddr, poll_id: u64) -> StdResult<Vec<u8>> {
+        let address = core.canonize(address)?;
+        let poll_id = poll_id.to_be_bytes().to_vec();
+
+        //TODO: Cleaner way to handle this?
+        let len = address.as_slice().len() + poll_id.as_slice().len();
+
+        let mut key = Vec::with_capacity(len);
+        key.extend_from_slice(poll_id.as_slice());
+        key.extend_from_slice(address.as_slice());
+
+        Ok(key)
     }
 }
 
