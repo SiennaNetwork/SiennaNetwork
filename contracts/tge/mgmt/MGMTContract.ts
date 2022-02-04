@@ -54,7 +54,8 @@ export class MGMTContract extends Scrt_1_2.Contract<
   }) {
     try {
       const progress = await MGMT.q().progress(address)
-      console.debug(`${bold(`MGMT progress`)} of ${bold(address)} in ${MGMT.address}`, progress)
+      console.info(`${bold(`MGMT progress`)} of ${bold(address)} in ${MGMT.address}`)
+      for (const [k,v] of Object.entries(progress)) console.info(' ', bold(k), v)
     } catch (e) {
       console.error(e.message)
     }

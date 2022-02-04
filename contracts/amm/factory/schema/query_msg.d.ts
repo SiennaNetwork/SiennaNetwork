@@ -6,7 +6,7 @@
  */
 
 export type QueryMsg =
-  | ("status" | "get_launchpad_address" | "get_exchange_settings")
+  | ("status" | "get_exchange_settings")
   | {
       get_config: {
         [k: string]: unknown;
@@ -16,13 +16,6 @@ export type QueryMsg =
   | {
       get_exchange_address: {
         pair: TokenPair;
-        [k: string]: unknown;
-      };
-      [k: string]: unknown;
-    }
-  | {
-      list_idos: {
-        pagination: Pagination;
         [k: string]: unknown;
       };
       [k: string]: unknown;

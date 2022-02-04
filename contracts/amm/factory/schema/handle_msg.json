@@ -56,26 +56,6 @@
                 }
               ]
             },
-            "ido_contract": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/ContractInstantiationInfo"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "launchpad_contract": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/ContractInstantiationInfo"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
             "lp_token_contract": {
               "anyOf": [
                 {
@@ -87,16 +67,6 @@
               ]
             },
             "pair_contract": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/ContractInstantiationInfo"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "snip20_contract": {
               "anyOf": [
                 {
                   "$ref": "#/definitions/ContractInstantiationInfo"
@@ -135,96 +105,6 @@
       }
     },
     {
-      "description": "Create the launchpad contract",
-      "type": "object",
-      "required": [
-        "create_launchpad"
-      ],
-      "properties": {
-        "create_launchpad": {
-          "type": "object",
-          "required": [
-            "entropy",
-            "tokens"
-          ],
-          "properties": {
-            "entropy": {
-              "$ref": "#/definitions/Binary"
-            },
-            "tokens": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/TokenSettings"
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "description": "Instantiates an IDO contract",
-      "type": "object",
-      "required": [
-        "create_ido"
-      ],
-      "properties": {
-        "create_ido": {
-          "type": "object",
-          "required": [
-            "entropy",
-            "info"
-          ],
-          "properties": {
-            "entropy": {
-              "$ref": "#/definitions/Binary"
-            },
-            "info": {
-              "$ref": "#/definitions/TokenSaleConfig"
-            },
-            "tokens": {
-              "type": [
-                "array",
-                "null"
-              ],
-              "items": {
-                "anyOf": [
-                  {
-                    "$ref": "#/definitions/HumanAddr"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "description": "Add addresses that are allowed to create IDOs",
-      "type": "object",
-      "required": [
-        "ido_whitelist"
-      ],
-      "properties": {
-        "ido_whitelist": {
-          "type": "object",
-          "required": [
-            "addresses"
-          ],
-          "properties": {
-            "addresses": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/HumanAddr"
-              }
-            }
-          }
-        }
-      }
-    },
-    {
       "description": "Used by a newly instantiated exchange contract to register itself with the factory",
       "type": "object",
       "required": [
@@ -241,46 +121,6 @@
             "pair": {
               "$ref": "#/definitions/TokenPair"
             },
-            "signature": {
-              "$ref": "#/definitions/Binary"
-            }
-          }
-        }
-      }
-    },
-    {
-      "description": "Used by the launchpad to register itself",
-      "type": "object",
-      "required": [
-        "register_launchpad"
-      ],
-      "properties": {
-        "register_launchpad": {
-          "type": "object",
-          "required": [
-            "signature"
-          ],
-          "properties": {
-            "signature": {
-              "$ref": "#/definitions/Binary"
-            }
-          }
-        }
-      }
-    },
-    {
-      "description": "Used by a newly instantiated IDO contract to register itself with the factory",
-      "type": "object",
-      "required": [
-        "register_ido"
-      ],
-      "properties": {
-        "register_ido": {
-          "type": "object",
-          "required": [
-            "signature"
-          ],
-          "properties": {
             "signature": {
               "$ref": "#/definitions/Binary"
             }
@@ -364,49 +204,6 @@
           "properties": {
             "address": {
               "$ref": "#/definitions/HumanAddr"
-            }
-          }
-        }
-      }
-    },
-    {
-      "description": "Adds already created IDO addresses to the registry. Admin only command.",
-      "type": "object",
-      "required": [
-        "add_idos"
-      ],
-      "properties": {
-        "add_idos": {
-          "type": "object",
-          "required": [
-            "idos"
-          ],
-          "properties": {
-            "idos": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/HumanAddr"
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "description": "Adds already existing launchpad contract, admin only command.",
-      "type": "object",
-      "required": [
-        "add_launchpad"
-      ],
-      "properties": {
-        "add_launchpad": {
-          "type": "object",
-          "required": [
-            "launchpad"
-          ],
-          "properties": {
-            "launchpad": {
-              "$ref": "#/definitions/ContractLink"
             }
           }
         }
@@ -581,14 +378,6 @@
     "HumanAddr": {
       "type": "string"
     },
-    "SaleType": {
-      "type": "string",
-      "enum": [
-        "PreLockAndSwap",
-        "PreLockOnly",
-        "SwapOnly"
-      ]
-    },
     "TokenPair": {
       "type": "array",
       "items": [
@@ -601,103 +390,6 @@
       ],
       "maxItems": 2,
       "minItems": 2
-    },
-    "TokenSaleConfig": {
-      "type": "object",
-      "required": [
-        "input_token",
-        "max_allocation",
-        "max_seats",
-        "min_allocation",
-        "rate",
-        "sold_token",
-        "whitelist"
-      ],
-      "properties": {
-        "input_token": {
-          "description": "The token that will be used to buy the SNIP20.",
-          "allOf": [
-            {
-              "$ref": "#/definitions/TokenType"
-            }
-          ]
-        },
-        "max_allocation": {
-          "description": "The total amount that each participant is allowed to buy.",
-          "allOf": [
-            {
-              "$ref": "#/definitions/Uint128"
-            }
-          ]
-        },
-        "max_seats": {
-          "description": "The maximum number of participants allowed.",
-          "type": "integer",
-          "format": "uint32",
-          "minimum": 0.0
-        },
-        "min_allocation": {
-          "description": "The minimum amount that each participant is allowed to buy.",
-          "allOf": [
-            {
-              "$ref": "#/definitions/Uint128"
-            }
-          ]
-        },
-        "rate": {
-          "description": "The price for a single token.",
-          "allOf": [
-            {
-              "$ref": "#/definitions/Uint128"
-            }
-          ]
-        },
-        "sale_type": {
-          "description": "Sale type settings",
-          "anyOf": [
-            {
-              "$ref": "#/definitions/SaleType"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "sold_token": {
-          "$ref": "#/definitions/ContractLink"
-        },
-        "whitelist": {
-          "description": "The addresses that are eligible to participate in the sale.",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/HumanAddr"
-          }
-        }
-      },
-      "additionalProperties": false
-    },
-    "TokenSettings": {
-      "description": "Configuration for single token that can be locked into the launchpad",
-      "type": "object",
-      "required": [
-        "bounding_period",
-        "segment",
-        "token_type"
-      ],
-      "properties": {
-        "bounding_period": {
-          "type": "integer",
-          "format": "uint64",
-          "minimum": 0.0
-        },
-        "segment": {
-          "$ref": "#/definitions/Uint128"
-        },
-        "token_type": {
-          "$ref": "#/definitions/TokenType"
-        }
-      },
-      "additionalProperties": false
     },
     "TokenType": {
       "anyOf": [
@@ -744,9 +436,6 @@
           }
         }
       ]
-    },
-    "Uint128": {
-      "type": "string"
     }
   }
 }

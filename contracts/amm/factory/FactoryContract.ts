@@ -53,17 +53,15 @@ export class AMMFactoryContract extends Scrt_1_2.Contract<FactoryTransactions, F
   static upgradeAMM = async function upgradeAMM ({
     run, chain, agent, deployment, prefix,
     oldVersion = 'v1',
-    FACTORY = deployment.getThe(
-      `AMM[${oldVersion}].Factory`, 
-      new AMMFactoryContract({agent, version: oldVersion})
-    ),
     newVersion = 'v2',
   }) {
+    const name = `AMM[${oldVersion}].Factory`
+    const FACTORY = deployment.getThe(name, new AMMFactoryContract({agent, name, version: oldVersion}))
     console.log()
     console.info(bold('Current factory:'))
     printContract(FACTORY)
     const EXCHANGES: ExchangeInfo[] = await FACTORY.exchanges
-    await printExchanges(EXCHANGES)
+    //await printExchanges(EXCHANGES)
     const { FACTORY: NEW_FACTORY } = await run(deployAMMFactory, { version: newVersion, copyFrom: FACTORY })
     printContract(NEW_FACTORY)
     const NEW_EXCHANGES = []
@@ -78,7 +76,7 @@ export class AMMFactoryContract extends Scrt_1_2.Contract<FactoryTransactions, F
           await NEW_FACTORY.getContracts(),
           await NEW_FACTORY.createExchange(TOKEN_0, TOKEN_1)))
       }
-      await printExchanges(NEW_EXCHANGES)
+      //await printExchanges(NEW_EXCHANGES)
     }
     return { FACTORY: NEW_FACTORY, EXCHANGES: NEW_EXCHANGES }
   }

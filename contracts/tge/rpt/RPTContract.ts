@@ -54,7 +54,7 @@ export class RPTContract extends Scrt_1_2.Contract<RPTTransactions, RPTQueries> 
       bold(`Configuring RPT`), RPT.address
     )
     for (const [address, amount] of RPT_CONFIG) {
-      console.info(`- ${address} ${amount}`)
+      console.info(` `, bold(amount), address)
     }
     await RPT.tx(agent).configure(RPT_CONFIG)
     return { RPT_CONFIG }

@@ -44,11 +44,8 @@ export type QueryResponse =
   | {
       config: {
         exchange_settings: ExchangeSettings;
-        ido_contract: ContractInstantiationInfo;
-        launchpad_contract: ContractInstantiationInfo;
         lp_token_contract: ContractInstantiationInfo;
         pair_contract: ContractInstantiationInfo;
-        snip20_contract: ContractInstantiationInfo;
         [k: string]: unknown;
       };
       [k: string]: unknown;
