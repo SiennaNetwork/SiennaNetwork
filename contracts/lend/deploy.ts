@@ -39,7 +39,7 @@ export async function deployLend({
   ORACLE: LendOracleContract;
   MOCK_ORACLE: MockOracleContract;
 }> {
-  let mock_oracle = { address: null, codeHash: null };
+  console.log(chain.isLocalnet);
   let [INTEREST_MODEL, ORACLE, MARKET, OVERSEER, MOCK_ORACLE] =
     await chain.buildAndUpload(agent, [
       new InterestModelContract({ workspace }),
@@ -58,12 +58,12 @@ export async function deployLend({
     multiplier_year: "200000000000000000",
   });
 
-  if (chain.isLocalnet) {
-    let contract = await deployment.init(agent, MOCK_ORACLE, {});
-
-    mock_oracle.address = contract.initTx.contractAddress;
-    mock_oracle.codeHash = contract.codeHash;
-  }
+  let mock_oracle = await deployment.getOrInit(
+    agent,
+    MOCK_ORACLE,
+    MOCK_ORACLE.label,
+    {}
+  );
 
   await deployment.getOrInit(agent, OVERSEER, OVERSEER.label, {
     close_factor: "500000000000000000",
@@ -73,13 +73,12 @@ export async function deployLend({
       id: MARKET.codeId,
     },
     oracle_contract: {
-      code_hash: MARKET.codeHash,
-      id: MARKET.codeId,
+      code_hash: ORACLE.codeHash,
+      id: ORACLE.codeId,
     },
-    // TODO: add band oracle address and hash
     oracle_source: {
-      address: chain.isLocalnet ? mock_oracle.address : "",
-      code_hash: chain.isLocalnet ? mock_oracle.codeHash : "",
+      address: mock_oracle.address,
+      code_hash: mock_oracle.codeHash,
     },
     premium: "1080000000000000000",
     prng_seed: randomHex(36),

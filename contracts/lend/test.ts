@@ -29,7 +29,6 @@ export async function testLend({
   deployment,
   prefix,
 }: MigrationContext) {
-  // console.log(chain.identities.load("ALICE"))
   async function withGasReport(agent: Agent, contract: any, msg: any) {
     let op = Object.keys(msg)[0];
     let res = await agent.execute(contract, msg);
@@ -56,16 +55,6 @@ export async function testLend({
     agent,
     INTEREST_MODEL,
     INTEREST_MODEL.label
-  );
-  const deployedOracle = await deployment.getOrInit(
-    agent,
-    ORACLE,
-    ORACLE.label
-  );
-  const deployedMarket = await deployment.getOrInit(
-    agent,
-    MARKET,
-    MARKET.label
   );
   const deployedOverseer = await deployment.getOrInit(
     agent,
