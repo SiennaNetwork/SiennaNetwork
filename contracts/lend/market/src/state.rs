@@ -283,7 +283,7 @@ impl Account {
                     Ok(borrow_info)
                 })?;
             }
-        } else {
+        } else if !borrow_info.info.principal.is_zero() {
             let index = borrowers.push(storage, &borrow_info)?;
             ns_save(storage, Self::NS_BORROW_INFO, self.0.as_slice(), &index)?;
         }
@@ -418,5 +418,79 @@ impl TryFrom<Vec<u8>> for BorrowerId {
             Ok(data) => Ok(Self(data)),
             Err(_) => Err(StdError::generic_err("Couldn't create BorrowerId from bytes."))
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use lend_shared::fadroma::testing::mock_dependencies;
+
+    fn load_index(storage: &impl Storage, account: &Account) -> Option<u64> {
+        ns_load(storage, Account::NS_BORROW_INFO, account.0.as_slice()).unwrap()
+    }
+
+    #[test]
+    fn snapshots() {
+        let ref mut deps = mock_dependencies(20, &[]);
+
+        let dave = HumanAddr::from("dave");
+        let dave = Account(dave.canonize(&deps.api).unwrap());
+
+        let mut snapshot = dave.get_borrow_snapshot(&deps.storage).unwrap();
+        assert!(load_index(&deps.storage, &dave).is_none());
+
+        snapshot.info.principal = Uint256::from(1);
+        snapshot.info.interest_index = Decimal256::one();
+
+        dave.save_borrow_snapshot(&mut deps.storage, snapshot).unwrap();
+        assert_eq!(load_index(&deps.storage, &dave).unwrap(), 0);
+
+        let nancy = HumanAddr::from("nancy");
+        let nancy = Account(nancy.canonize(&deps.api).unwrap());
+
+        let mut snapshot = nancy.get_borrow_snapshot(&deps.storage).unwrap();
+        snapshot.info.principal = Uint256::from(2);
+        snapshot.info.interest_index = Decimal256::from_uint256(Uint256::from(2)).unwrap();
+
+        nancy.save_borrow_snapshot(&mut deps.storage, snapshot).unwrap();
+        assert_eq!(load_index(&deps.storage, &nancy).unwrap(), 1);
+
+        let mut snapshot = dave.get_borrow_snapshot(&deps.storage).unwrap();
+        snapshot.info.principal = Uint256::from(3);
+
+        dave.save_borrow_snapshot(&mut deps.storage, snapshot).unwrap();
+
+        let snapshot = nancy.get_borrow_snapshot(&deps.storage).unwrap();
+        assert_eq!(snapshot.info.principal, Uint256::from(2));
+        assert_eq!(snapshot.info.interest_index, Decimal256::from_uint256(Uint256::from(2)).unwrap());
+        assert_eq!(snapshot.address, nancy.0);
+
+        let mut snapshot = dave.get_borrow_snapshot(&deps.storage).unwrap();
+        assert_eq!(snapshot.info.principal, Uint256::from(3));
+        assert_eq!(snapshot.info.interest_index, Decimal256::one());
+        assert_eq!(snapshot.address, dave.0);
+
+        let ryan = HumanAddr::from("ryan");
+        let ryan = Account(ryan.canonize(&deps.api).unwrap());
+
+        ryan.save_borrow_snapshot(&mut deps.storage, BorrowSnapshot {
+            address: ryan.0.clone(),
+            info: BorrowerInfo::default()
+        }).unwrap();
+
+        assert_eq!(load_index(&deps.storage, &dave).unwrap(), 0);
+        assert_eq!(load_index(&deps.storage, &nancy).unwrap(), 1);
+
+        snapshot.info.principal = Uint256::zero();
+        dave.save_borrow_snapshot(&mut deps.storage, snapshot).unwrap();
+
+        assert!(load_index(&deps.storage, &dave).is_none());
+        assert_eq!(load_index(&deps.storage, &nancy).unwrap(), 0);
+
+        let snapshot = nancy.get_borrow_snapshot(&deps.storage).unwrap();
+        assert_eq!(snapshot.info.principal, Uint256::from(2));
+        assert_eq!(snapshot.info.interest_index, Decimal256::from_uint256(Uint256::from(2)).unwrap());
+        assert_eq!(snapshot.address, nancy.0);
     }
 }
