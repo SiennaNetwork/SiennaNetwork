@@ -19,8 +19,10 @@ import {
 } from "@sienna/api";
 
 import settings, { workspace } from "@sienna/settings";
+import { random } from "../../frontends/dashboard/helpers";
 
 const console = Console("@sienna/amm/upgrade");
+import { InitMsg as MarketInitMsg } from "./market/schema/init_msg";
 
 export async function deployLend({
   chain,
@@ -32,10 +34,13 @@ export async function deployLend({
   deployment: Deployment;
   prefix: string;
   OVERSEER: LendOverseerContract;
+  MARKET: LendMarketContract;
   INTEREST_MODEL: InterestModelContract;
+  ORACLE: LendOracleContract;
+  MOCK_ORACLE: MockOracleContract;
 }> {
   let mock_oracle = { address: null, codeHash: null };
-  const [INTEREST_MODEL, ORACLE, MARKET, OVERSEER, MOCK_ORACLE] =
+  let [INTEREST_MODEL, ORACLE, MARKET, OVERSEER, MOCK_ORACLE] =
     await chain.buildAndUpload(agent, [
       new InterestModelContract({ workspace }),
       new LendOracleContract({ workspace }),
@@ -60,7 +65,7 @@ export async function deployLend({
     mock_oracle.codeHash = contract.codeHash;
   }
 
-  let overseer = await deployment.getOrInit(agent, OVERSEER, OVERSEER.label, {
+  await deployment.getOrInit(agent, OVERSEER, OVERSEER.label, {
     close_factor: "500000000000000000",
     entropy: randomHex(36),
     market_contract: {
@@ -85,6 +90,9 @@ export async function deployLend({
     deployment,
     prefix,
     OVERSEER,
+    MARKET,
     INTEREST_MODEL,
+    ORACLE,
+    MOCK_ORACLE,
   };
 }
