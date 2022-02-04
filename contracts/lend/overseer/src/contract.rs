@@ -251,7 +251,7 @@ pub trait Overseer {
             )));
         }
 
-        account.remove_market(&mut deps.storage, id);
+        account.remove_market(&mut deps.storage, id)?;
 
         Ok(HandleResponse {
             messages: vec![],

@@ -4,9 +4,8 @@ use lend_shared::{
         cosmwasm_std::{
             HumanAddr, CanonicalAddr, Extern,
             StdResult, Api, Storage, Querier,
-            StdError, Order
+            StdError, ReadonlyStorage
         },
-        cosmwasm_storage::{Bucket, ReadonlyBucket},
         storage::{load, save, ns_load, ns_save, IterableStorage},
         Canonize, Humanize, ContractLink,
         ContractInstantiationInfo, Decimal256
@@ -33,6 +32,8 @@ pub struct Whitelisting;
 
 #[derive(Clone)]
 pub struct Account(pub CanonicalAddr);
+
+type UserMarkets = Vec<u64>;
 
 impl Constants {
     const KEY: &'static [u8] = b"constants";
@@ -232,34 +233,35 @@ impl Account {
         storage: &mut S,
         ids: Vec<u64>
     ) -> StdResult<()> {
-        let mut storage: Bucket<'_, S, u64> =
-            Bucket::new(&self.create_key(), storage);
+        let mut markets = self.load_markets(storage)?;
 
-        let count = storage.range(None, None, Order::Ascending).count();
-
-        if count + ids.len() > MAX_MARKETS_ENTERED {
+        if markets.len() + ids.len() > MAX_MARKETS_ENTERED {
             return Err(StdError::generic_err(format!(
-                "Cannot enter more than {} at a time.",
+                "Cannot enter more than {} markets at a time.",
                 MAX_MARKETS_ENTERED
             )));
         }
 
         for id in ids {
-            storage.save(&id.to_be_bytes(), &id)?;
+            markets.push(id);
         }
 
-        Ok(())
+        self.save_markets(storage, &markets)
     }
 
     pub fn remove_market<S: Storage>(
         &self,
         storage: &mut S,
         id: u64
-    ) {
-        let mut storage: Bucket<'_, S, u64> =
-            Bucket::new(&self.create_key(), storage);
+    ) -> StdResult<()> {
+        let mut markets = self.load_markets(storage)?;
 
-        storage.remove(&id.to_be_bytes())
+        if let Some(index) = markets.iter().position(|x| *x == id) {
+            markets.swap_remove(index);
+            self.save_markets(storage, &markets)
+        } else {
+            Ok(())
+        }
     }
 
     pub fn get_market<S: Storage, A: Api, Q: Querier>(
@@ -269,10 +271,9 @@ impl Account {
     ) -> StdResult<(u64, Market<HumanAddr>)> {
         let (id, market) = Markets::get_by_addr(deps, address)?;
 
-        let storage: ReadonlyBucket<'_, S, u64> =
-            ReadonlyBucket::new(&self.create_key(), &deps.storage);
+        let markets = self.load_markets(&deps.storage)?;
 
-        match storage.may_load(&id.to_be_bytes())? {
+        match markets.into_iter().position(|x| x == id) {
             Some(_) => Ok((id, market)),
             None => Err(StdError::generic_err("Not entered in market."))
         }
@@ -282,15 +283,12 @@ impl Account {
         &self,
         deps: &Extern<S, A, Q>
     ) -> StdResult<Vec<Market<HumanAddr>>> {
-        let storage: ReadonlyBucket<'_, S, u64> =
-            ReadonlyBucket::new(&self.create_key(), &deps.storage);
+        let markets = self.load_markets(&deps.storage)?;
 
-        // Bucket iterator doesn't implement len() :(
-        let mut result = Vec::new();
+        let mut result = Vec::with_capacity(markets.len());
 
-        for item in storage.range(None, None, Order::Ascending) {
-            let (_, value) = item?;
-            let market = Markets::get_by_id(deps, value)?.unwrap();
+        for id in markets {
+            let market = Markets::get_by_id(deps, id)?.unwrap();
 
             result.push(market);
         }
@@ -298,8 +296,18 @@ impl Account {
         Ok(result)
     }
 
-    fn create_key(&self) -> Vec<u8> {
-        [ Self::NS, self.0.as_slice() ].concat()
+    #[inline]
+    fn save_markets(
+        &self,
+        storage: &mut impl Storage,
+        markets: &UserMarkets
+    ) -> StdResult<()> {
+        ns_save(storage, Self::NS, self.0.as_slice(), markets)
+    }
+
+    #[inline]
+    fn load_markets(&self, storage: &impl ReadonlyStorage) -> StdResult<UserMarkets> {
+        Ok(ns_load(storage, Self::NS, self.0.as_slice())?.unwrap_or_default())
     }
 }
 
