@@ -1,4 +1,8 @@
 extern crate fadroma; pub use fadroma::*;
+use gov::governance::Governance;
+use gov::handle::GovernanceHandle;
+use gov::query::GovernanceQuery;
+use gov::response::GovernanceResponse;
 
 pub mod algo;      use crate::algo::{*, RewardsResponse};
 pub mod auth;      use crate::auth::{*, Auth};
@@ -6,7 +10,7 @@ pub mod drain;     use crate::drain::Drain;
 pub mod keplr;     use crate::keplr::*;
 pub mod migration; use crate::migration::*;
 
-pub mod gov;       use crate::gov::*;
+pub mod gov;       // use crate::gov::*;
 
 pub mod errors;
 
@@ -159,7 +163,7 @@ pub enum Response {
 
         impl<S: Storage, A: Api, Q: Querier> crate::algo::Rewards<S, A, Q> for $Core {}
 
-        impl<S: Storage, A: Api, Q: Querier> crate::gov::Governance<S, A, Q> for $Core {}
+        impl<S: Storage, A: Api, Q: Querier> Governance<S, A, Q> for $Core {}
 
         impl<S: Storage, A: Api, Q: Querier> crate::keplr::KeplrCompat<S, A, Q> for $Core {
             fn token_info (&self) -> StdResult<Response> {
