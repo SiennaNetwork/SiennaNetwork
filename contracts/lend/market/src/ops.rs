@@ -28,13 +28,13 @@ pub struct LatestInterest {
 
 impl BorrowSnapshot {
     pub fn current_balance(&self, borrow_index: Decimal256) -> StdResult<Uint256> {
-        if self.0.principal.is_zero() {
+        if self.info.principal.is_zero() {
             return Ok(Uint256::zero());
         }
 
-        self.0.principal
+        self.info.principal
             .decimal_mul(borrow_index)?
-            .decimal_div(self.0.interest_index)
+            .decimal_div(self.info.interest_index)
     }
 
     pub fn add_balance(
@@ -44,8 +44,8 @@ impl BorrowSnapshot {
     ) -> StdResult<()> {
         let balance = self.current_balance(borrow_index)?;
 
-        self.0.principal = (balance + amount)?;
-        self.0.interest_index = borrow_index;
+        self.info.principal = (balance + amount)?;
+        self.info.interest_index = borrow_index;
 
         Ok(())
     }
@@ -57,8 +57,8 @@ impl BorrowSnapshot {
     ) -> StdResult<()> {
         let balance = self.current_balance(borrow_index)?;
 
-        self.0.principal = balance.0.saturating_sub(amount.0).into();
-        self.0.interest_index = borrow_index;
+        self.info.principal = balance.0.saturating_sub(amount.0).into();
+        self.info.interest_index = borrow_index;
 
         Ok(())
     }

@@ -1,5 +1,3 @@
-use std::fmt::Display;
-
 use fadroma::{
     admin,
     cosmwasm_std,
@@ -137,7 +135,7 @@ pub trait Market {
     #[query]
     fn borrowers(
         block: u64,
-        start_after: Option<Binary>,
+        start_after: Option<u64>,
         limit: Option<u8>
     ) -> StdResult<Vec<Borrower>>;
 }
@@ -222,12 +220,6 @@ pub enum ReceiverCallbackMsg {
     Liquidate {
         borrower: Binary,
         collateral: HumanAddr
-    }
-}
-
-impl Display for BorrowerInfo {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "total_balance: {}, global_index: {}", self.principal, self.interest_index)
     }
 }
 
