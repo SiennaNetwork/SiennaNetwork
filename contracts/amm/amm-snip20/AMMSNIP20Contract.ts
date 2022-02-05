@@ -49,8 +49,11 @@ export async function deployPlaceholders ({ chain, agent, deployment, prefix }) 
         await deployment.init(agent, TOKEN, { ...initMsg, name: initMsg.symbol })
         const amount = "100000000000000000000000"
         console.info("Minting", bold(amount), 'to', bold(agent.address))
-        await TOKEN.tx().setMinters([agent.address])
-        await TOKEN.tx().mint(amount, agent.address)
+        const {address} = agent
+        await agent.bundle(async agent=>{
+          await TOKEN.tx(agent).setMinters([address])
+          await TOKEN.tx(agent).mint(amount, address)
+        })
       } else {
         console.error(e)
         throw new Error(

@@ -233,6 +233,7 @@ const integrationTest = {
     scheduleMod.pools[5].accounts[0].address = address
     console.warn('Changing RPT to vest every 10 seconds. Only run this on localnet.')
     scheduleMod.pools[5].accounts[1].interval = 10
+    console.warn('Setting viewing key of agent to empty string.')
     return { schedule: scheduleMod }
   },
   claim: async function integrationTestClaim ({
@@ -249,14 +250,19 @@ const integrationTest = {
     SSCRT   = deployment.getThe('Placeholder.sSCRT', new AMMSNIP20Contract({agent, name: 'sSCRT'})),
   }) {
     const { EXCHANGE, LP_TOKEN } = await FACTORY.getExchange(SIENNA.asCustomToken, SSCRT.asCustomToken)
-    await LP_TOKEN.tx().setViewingKey("")
+    await agent.bundle(async agent=>{
+      await SIENNA.tx(agent).setViewingKey("")
+      await LP_TOKEN.tx(agent).setViewingKey("")
+    })
     console.info(bold('Initial LP token balance:'), await LP_TOKEN.q().balance(agent.address, ""))
-    await SIENNA.tx().increaseAllowance("1000", EXCHANGE.address)
-    await SSCRT.tx().increaseAllowance("1000", EXCHANGE.address)
-    await EXCHANGE.tx().add_liquidity({
-      token_0: SIENNA.asCustomToken,
-      token_1: SSCRT.asCustomToken
-    }, "1000", "1000")
+    await agent.bundle(async agent=>{
+      await SIENNA.tx(agent).increaseAllowance("1000", EXCHANGE.address)
+      await SSCRT.tx(agent).increaseAllowance("1000", EXCHANGE.address)
+      await EXCHANGE.tx(agent).add_liquidity({
+        token_0: SIENNA.asCustomToken,
+        token_1: SSCRT.asCustomToken
+      }, "1000", "1000")
+    })
     console.info(bold('New LP token balance:'), await LP_TOKEN.q().balance(agent.address, ""))
     return { EXCHANGE, LP_TOKEN, SIENNA }
   },
@@ -267,16 +273,20 @@ const integrationTest = {
     SSSSS   = deployment.getThe(`Rewards[${v}].SSSSS`,        new RewardsContract[v]({agent})),
     REWARDS = deployment.getThe(`Rewards[${v}].SIENNA-SSCRT`, new RewardsContract[v]({agent}))
   }) {
-    await SIENNA.tx(agent).setViewingKey("")
     console.info(bold('Initial SIENNA balance:'), await SIENNA.q().balance(agent.address, ""))
     const LP_TOKEN = await REWARDS.lpToken()
-    await LP_TOKEN.tx(agent).increaseAllowance("100", REWARDS.address)
-    await REWARDS.tx(agent).lock("100")
-    await SIENNA.tx(agent).increaseAllowance("100", SSSSS.address)
-    await SSSSS.tx(agent).lock("100")
+    await agent.bundle(async agent=>{
+      await LP_TOKEN.tx(agent).increaseAllowance("100", REWARDS.address)
+      await REWARDS.tx(agent).lock("100")
+      await SIENNA.tx(agent).increaseAllowance("100", SSSSS.address)
+      await SSSSS.tx(agent).lock("100")
+    })
     console.info(bold('SIENNA balance after staking:'), await SIENNA.q().balance(agent.address, ""))
-    await RPT.tx(agent).vest()
-    await SSSSS.tx(agent).set_viewing_key("")
+    await agent.bundle(async agent=>{
+      await RPT.tx(agent).vest()
+      await SSSSS.tx(agent).set_viewing_key("")
+      await REWARDS.tx(agent).set_viewing_key("")
+    })
     console.log(await SSSSS.q(agent).pool_info())
     console.log(await SSSSS.q(agent).user_info())
     try {
@@ -284,7 +294,6 @@ const integrationTest = {
     } catch (e) {
       console.error(bold(`Could not claim from SSSSS ${v}:`, e.message))
     }
-    await REWARDS.tx(agent).set_viewing_key("")
     console.log(await REWARDS.q(agent).pool_info())
     console.log(await REWARDS.q(agent).user_info())
     try {
@@ -297,77 +306,60 @@ const integrationTest = {
   vestV3: async function integrationTestVestV3 ({
     agent, deployment,
     RPT     = deployment.getThe('RPT',new RPTContract({agent})),
-    SSSSS   = deployment.getThe(`Rewards[v3].SSSSS`,        new RewardsContract[v]({agent})),
-    REWARDS = deployment.getThe(`Rewards[v3].SIENNA-SSCRT`, new RewardsContract[v]({agent}))
+    SSSSS   = deployment.getThe(`Rewards[v3].SSSSS`,        new RewardsContract['v3']({agent})),
+    REWARDS = deployment.getThe(`Rewards[v3].SIENNA-SSCRT`, new RewardsContract['v3']({agent}))
   }) {
     console.info('Before vest')
-    console.log(await SSSSS.q(agent).pool_info())
+    console.log(await SSSSS.q(agent).user_info())
     console.log(await REWARDS.q(agent).user_info())
     await RPT.tx(agent).vest()
     console.info('After vest')
-    console.log(await SSSSS.q(agent).pool_info())
+    console.log(await SSSSS.q(agent).user_info())
     console.log(await REWARDS.q(agent).user_info())
-    await SSSSS.tx(agent).epoch()
-    await SSSSS.q(agent).epoch()
+    await agent.bundle(async agent=>{
+      await SSSSS.tx(agent).epoch()
+      await REWARDS.tx(agent).epoch()
+    })
     console.info('After epoch')
-    console.log(await SSSSS.q(agent).pool_info())
+    console.log(await SSSSS.q(agent).user_info())
     console.log(await REWARDS.q(agent).user_info())
-    await SSSSS.tx(agent).claim()
-    await SSSSS.q(agent).claim()
+    await agent.bundle(async agent=>{
+      await SSSSS.tx(agent).claim()
+      await REWARDS.tx(agent).claim()
+    })
+    console.info('After claim')
+    console.log(await SSSSS.q(agent).user_info())
+    console.log(await REWARDS.q(agent).user_info())
   }
 }
+
 const integrationTests = {
-  1: [
-    // Start in a blank deployment
-    Deployments.new,
-    // Add the user to the MGMT schedule so that they
-    // get an initial SIENNA balance without having to vest RPT.
-    integrationTest.setup,
-    // Deploy the TGE as normal
-    deployTGE,
-    // User's progress before claiming
-    MGMTContract.progress,
-    // Try to claim
-    integrationTest.claim,
-    // User's progress after claiming
-    MGMTContract.progress
-  ],
-  2: [
-    // Use the current deployment
-    Deployments.activate,
-    // Deploy AMM v1
-    AMMFactoryContract['v1'].deployAMM,
-    // Deploy Rewards v2
-    RewardsContract['v2'].deploy
-  ],
-  3: [
-    // Use the current deployment
-    Deployments.activate,
-    // Stake SIENNA and SSCRT to get LP tokens
-    integrationTest.getLPTokens('v1')
-    // Stake LP tokens to get SIENNA
-    integrationTest.stakeLPTokens('v2')
-  ],
-  4: [
-    // Use the current deployment
-    Deployments.activate,
-    // Upgrade AMM v1 to v2
-    AMMFactoryContract['v1'].upgradeAMM.to_v2,
-    // Upgrade Rewards from v2 to v3
-    RewardsContract['v2'].upgrade.to_v3,
-    // Stake SIENNA and SSCRT to get LP tokens
-    integrationTest.getLPTokens('v2')
-    // Stake LP tokens to get SIENNA
-    integrationTest.stakeLPTokens('v3')
-  ],
-  5: [
-    // Use the current deployment
-    Deployments.activate,
-    // Upgrade Rewards from v3 to another v3 to test user migrations
-    RewardsContract['v3'].upgrade.to_v3,
-    // Vest and call epoch
-    integrationTest.vestV3
-  ]
+
+  1: [ Deployments.new,                           // Start in a blank deployment
+       integrationTest.setup,                     // Add test user to MGMT schedule
+       deployTGE,                                 // Deploy the TGE as normal
+       MGMTContract.progress,                     // User's progress before claiming
+       integrationTest.claim,                     // Try to claim
+       MGMTContract.progress ],                   // User's progress after claiming
+
+  2: [ Deployments.activate,                      // Use the current deployment
+       AMMFactoryContract['v1'].deployAMM,        // Deploy AMM v1
+       RewardsContract['v2'].deploy ],            // Deploy Rewards v2
+
+  3: [ Deployments.activate,                      // Use the current deployment
+       integrationTest.getLPTokens('v1'),         // Stake SIENNA and SSCRT to get LP tokens
+       integrationTest.stakeLPTokens('v2') ],     // Stake LP tokens to get SIENNA
+
+  4: [ Deployments.activate,                      // Use the current deployment
+       AMMFactoryContract['v1'].upgradeAMM.to_v2, // Upgrade AMM v1 to v2
+       RewardsContract['v2'].upgrade.to_v3,       // Upgrade Rewards from v2 to v3
+       integrationTest.getLPTokens('v2'),         // Stake SIENNA and SSCRT to get LP tokens
+       integrationTest.stakeLPTokens('v3') ],     // Stake LP tokens to get SIENNA
+
+  5: [ Deployments.activate,                      // Use the current deployment
+       RewardsContract['v3'].upgrade.to_v3,       // Upgrade Rewards from v3 to another v3 to test user migrations
+       integrationTest.vestV3 ]                   // Vest and call epoch
+
 }
 
 Fadroma.command('integration test 1', ...integrationTests[1])

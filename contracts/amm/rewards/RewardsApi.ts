@@ -58,7 +58,8 @@ export class RewardsQueries_v3 extends QueryExecutor {
 
 export class RewardsTransactions_v3 extends TransactionExecutor {
   async epoch () {
-    const { pool_info: { clock: { number } } } = await this.contract.q(this.agent).pool_info()
+    const result = await this.contract.q(this.agent).pool_info()
+    const { clock: { number } } = result
     return this.execute({ rewards: { begin_epoch: number + 1 } })
   }
 
