@@ -31,19 +31,14 @@ export class AMMSNIP20Contract extends SNIP20Contract_1_2 {
 export async function deployPlaceholders ({ chain, agent, deployment, prefix }) {
   const PLACEHOLDERS = {}
   const { placeholderTokens } = getSettings(chain.id)
-  console.info(
-    bold(`Deploying placeholder tokens`), Object.keys(placeholderTokens).join(' ')
-  )
   type TokenConfig = { label: string, initMsg: any }
   const placeholders: Record<string, TokenConfig> = placeholderTokens
   for (const [_, {label, initMsg}] of Object.entries(placeholders)) {
     const name = `Placeholder.${label}`
     try {
       PLACEHOLDERS[initMsg.symbol] = deployment.getThe(name, new AMMSNIP20Contract({}))
-      console.info(bold('Found, not redeploying:'), initMsg.symbol)
     } catch (e) {
       if (e.message.startsWith('@fadroma/ops: no contract')) {
-        console.info(bold('Deploying placeholder:'), initMsg.symbol)
         const TOKEN = PLACEHOLDERS[initMsg.symbol] = new AMMSNIP20Contract({ prefix, name })
         await chain.buildAndUpload(agent, [TOKEN])
         await deployment.init(agent, TOKEN, { ...initMsg, name: initMsg.symbol })

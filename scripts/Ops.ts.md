@@ -91,9 +91,9 @@ Fadroma.command('deploy legacy',
   Deployments.new,
   deployTGE,
   Deployments.status,
-  AMMFactoryContract.v1.deployAMM,
+  AMMFactoryContract['v1'].deploy,
   Deployments.status,
-  RewardsContract.v2.deploy,
+  RewardsContract['v2'].deploy,
   Deployments.status)
 Fadroma.command('test legacy',
   Deployments.activate)
@@ -104,11 +104,11 @@ Fadroma.command('test legacy',
 ```typescript
 Fadroma.command('upgrade amm v1_to_v2',
   Deployments.activate,
-  AMMFactoryContract.v1.upgradeAMM.to_v2)
+  AMMFactoryContract['v1'].upgrade['v2'])
 
 Fadroma.command('upgrade rewards v2_to_v3',
   Deployments.activate,
-  RewardsContract.v2.upgrade.to_v3)
+  RewardsContract['v2'].upgrade['v3'])
 ```
 
 ### Full up-to-date deployment
@@ -122,11 +122,26 @@ temporal dependencies in contracts.
 Fadroma.command('deploy all',
   Deployments.new,
   deployTGE,
-  AMMFactoryContract.v1.deployAMM,
-  RewardsContract.v2.deploy,
+  AMMFactoryContract['v1'].deploy,
+  RewardsContract['v2'].deploy,
   Deployments.status,
-  AMMFactoryContract.v1.upgradeAMM.to_v2,
-  RewardsContract.v2.upgrade.to_v3,
+  AMMFactoryContract['v1'].upgrade['v2'],
+  RewardsContract['v2'].upgrade['v3'],
+  Deployments.status)
+```
+
+### Everything but the TGE
+
+Used to shave off ~20s off the test of the Factory+Rewards migration:
+
+```typescript
+Fadroma.command('deploy sans-tge',
+  Deployments.activate,
+  AMMFactoryContract['v1'].deploy,
+  RewardsContract['v2'].deploy,
+  Deployments.status,
+  AMMFactoryContract['v1'].upgrade['v2'],
+  RewardsContract['v2'].upgrade['v3'],
   Deployments.status)
 ```
 
@@ -144,7 +159,9 @@ Fadroma.command('deploy tge',
 
 ```typescript
 import { deployLend } from "@sienna/lend"
-Fadroma.command("deploy lend", Deployments.new, deployLend)
+Fadroma.command("deploy lend",
+  Deployments.new,
+  deployLend)
 ```
 
 ### Add the AMM and Rewards to the TGE
@@ -155,7 +172,7 @@ to which it adds the contracts for Sienna Swap.
 ```typescript
 Fadroma.command('deploy amm',
   Deployments.activate,
-  AMMFactoryContract.v2.deployAMM)
+  AMMFactoryContract['v2'].deploy)
 ```
 
 ### Deploying Rewards v2 and v3 side-by-side
@@ -165,15 +182,15 @@ Used to test the migration from v2 to v3 pools.
 ```typescript
 Fadroma.command('deploy rewards v2',
   Deployments.activate,
-  RewardsContract.v2.deploy)
+  RewardsContract['v2'].deploy)
 
 Fadroma.command('deploy rewards v3',
   Deployments.activate,
-  RewardsContract.v3.deploy)
+  RewardsContract['v3'].deploy)
 
-Fadroma.command('deploy rewards v2_and_v3',
+Fadroma.command('deploy rewards v2+v3',
   Deployments.activate,
-  RewardsContract.deploy_v2_v3)
+  RewardsContract['v2+v3'].deploy)
 ```
 
 ### Deploying a v1 factory
@@ -186,7 +203,7 @@ built from `main`.
 import { deployAMMFactory } from '@sienna/amm'
 Fadroma.command('deploy factory v1',
   Deployments.activate,
-  deployAMMFactory.v1)
+  AMMFactoryContract['v1'].deploy)
 ```
 
 ## Helper commands for auditing the contract logic
@@ -287,15 +304,13 @@ const integrationTest = {
       await SSSSS.tx(agent).set_viewing_key("")
       await REWARDS.tx(agent).set_viewing_key("")
     })
-    console.log(await SSSSS.q(agent).pool_info())
-    console.log(await SSSSS.q(agent).user_info())
+    console.info(await Promise.all([SSSSS.q(agent).pool_info(), SSSSS.q(agent).user_info()]))
     try {
       await SSSSS.tx(agent).claim()
     } catch (e) {
       console.error(bold(`Could not claim from SSSSS ${v}:`, e.message))
     }
-    console.log(await REWARDS.q(agent).pool_info())
-    console.log(await REWARDS.q(agent).user_info())
+    console.info(await Promise.all([REWARDS.q(agent).pool_info(), REWARDS.q(agent).user_info()]))
     try {
       await REWARDS.tx(agent).claim()
     } catch (e) {
@@ -309,27 +324,13 @@ const integrationTest = {
     SSSSS   = deployment.getThe(`Rewards[v3].SSSSS`,        new RewardsContract['v3']({agent})),
     REWARDS = deployment.getThe(`Rewards[v3].SIENNA-SSCRT`, new RewardsContract['v3']({agent}))
   }) {
-    console.info('Before vest')
-    console.log(await SSSSS.q(agent).user_info())
-    console.log(await REWARDS.q(agent).user_info())
+    console.info('Before vest', await Promise.all([SSSSS.q(agent).user_info(), REWARDS.q(agent).user_info()])
     await RPT.tx(agent).vest()
-    console.info('After vest')
-    console.log(await SSSSS.q(agent).user_info())
-    console.log(await REWARDS.q(agent).user_info())
-    await agent.bundle(async agent=>{
-      await SSSSS.tx(agent).epoch()
-      await REWARDS.tx(agent).epoch()
-    })
-    console.info('After epoch')
-    console.log(await SSSSS.q(agent).user_info())
-    console.log(await REWARDS.q(agent).user_info())
-    await agent.bundle(async agent=>{
-      await SSSSS.tx(agent).claim()
-      await REWARDS.tx(agent).claim()
-    })
-    console.info('After claim')
-    console.log(await SSSSS.q(agent).user_info())
-    console.log(await REWARDS.q(agent).user_info())
+    console.info('After vest', await Promise.all([SSSSS.q(agent).user_info(), REWARDS.q(agent).user_info()])
+    await agent.bundle(async agent=>{ await SSSSS.tx(agent).epoch() await REWARDS.tx(agent).epoch()})
+    console.info('After epoch', await Promise.all([SSSSS.q(agent).user_info(), REWARDS.q(agent).user_info()]))
+    await agent.bundle(async agent=>{await SSSSS.tx(agent).claim() await REWARDS.tx(agent).claim()})
+    console.info('After claim', await Promise.all([SSSSS.q(agent).user_info(), REWARDS.q(agent).user_info()]))
   }
 }
 
@@ -343,7 +344,7 @@ const integrationTests = {
        MGMTContract.progress ],                   // User's progress after claiming
 
   2: [ Deployments.activate,                      // Use the current deployment
-       AMMFactoryContract['v1'].deployAMM,        // Deploy AMM v1
+       AMMFactoryContract['v1'].deploy,           // Deploy AMM v1
        RewardsContract['v2'].deploy ],            // Deploy Rewards v2
 
   3: [ Deployments.activate,                      // Use the current deployment
@@ -351,13 +352,13 @@ const integrationTests = {
        integrationTest.stakeLPTokens('v2') ],     // Stake LP tokens to get SIENNA
 
   4: [ Deployments.activate,                      // Use the current deployment
-       AMMFactoryContract['v1'].upgradeAMM.to_v2, // Upgrade AMM v1 to v2
-       RewardsContract['v2'].upgrade.to_v3,       // Upgrade Rewards from v2 to v3
+       AMMFactoryContract['v1'].upgrade['v2'],    // Upgrade AMM v1 to v2
+       RewardsContract['v2'].upgrade['v3'],        // Upgrade Rewards from v2 to v3
        integrationTest.getLPTokens('v2'),         // Stake SIENNA and SSCRT to get LP tokens
        integrationTest.stakeLPTokens('v3') ],     // Stake LP tokens to get SIENNA
 
   5: [ Deployments.activate,                      // Use the current deployment
-       RewardsContract['v3'].upgrade.to_v3,       // Upgrade Rewards from v3 to another v3 to test user migrations
+       RewardsContract['v3'].upgrade['v3'],       // Upgrade Rewards from v3 to another v3 to test user migrations
        integrationTest.vestV3 ]                   // Vest and call epoch
 
 }

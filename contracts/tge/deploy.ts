@@ -3,7 +3,7 @@ import {
   bold, Console, randomHex, timestamp
 } from '@hackbg/fadroma'
 
-const console = Console('@sienna/amm/upgrade')
+const console = Console('@sienna/tge/deploy')
 
 import type { Schedule } from '@sienna/mgmt/schema/handle.d'
 import {

@@ -1,10 +1,13 @@
 import { randomHex, Scrt_1_2, Agent } from "@hackbg/fadroma"
+import { workspace } from '@sienna/settings'
 
 // @ts-ignore
 const decoder = new TextDecoder();
 const decode = (buffer: any) => decoder.decode(buffer).trim();
 
 export class LaunchpadContract extends Scrt_1_2.Contract<any, any> {
+
+  workspace = workspace
 
   crate = 'launchpad'
 

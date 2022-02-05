@@ -30,14 +30,16 @@ export abstract class RewardsContract<T, Q> extends Scrt_1_2.Contract<T, Q> {
   abstract version: RewardsAPIVersion
 
   /** Instance representing the reward token. */
-  rewardToken: SNIP20Contract
-  lpToken:     SNIP20Contract
+  abstract rewardToken (): Promise<SNIP20Contract>
+  abstract lpToken     (): Promise<SNIP20Contract>
 
-  static v2 = class RewardsContract_v2 extends RewardsContract<RewardsTransactions_v2, RewardsQueries_v2> {
-
-    version = 'v2' as RewardsAPIVersion
+  static "v2" = class RewardsContract_v2 extends RewardsContract<
+    RewardsTransactions_v2,
+    RewardsQueries_v2
+  > {
+    version = "v2" as RewardsAPIVersion
     name    = `Rewards[${this.version}]`
-    ref     = 'rewards-2.1.2'
+    ref     = "rewards-2.1.2"
     initMsg?: any // TODO v2 init type
     Transactions = RewardsTransactions_v2
     Queries      = RewardsQueries_v2
@@ -78,7 +80,7 @@ export abstract class RewardsContract<T, Q> extends Scrt_1_2.Contract<T, Q> {
 
     /** Command. Replace v2 reward pools with v3. */
     static upgrade = {
-      to_v3: function upgradeRewards_v2_to_v3 (input) {
+      "v3": function upgradeRewards_v2_to_v3 (input) {
         return RewardsContract.upgradeRewards({
           ...input,
           oldVersion: 'v2', OldRewardsContract: RewardsContract.v3,
@@ -86,12 +88,13 @@ export abstract class RewardsContract<T, Q> extends Scrt_1_2.Contract<T, Q> {
         })
       }
     }
-
   }
 
-  static v3 = class RewardsContract_v3 extends RewardsContract<RewardsTransactions_v3, RewardsQueries_v3> {
-
-    version = 'v3' as RewardsAPIVersion
+  static "v3" = class RewardsContract_v3 extends RewardsContract<
+    RewardsTransactions_v3,
+    RewardsQueries_v3
+  > {
+    version = "v3" as RewardsAPIVersion
     name    = `Rewards[${this.version}]`
     initMsg?: Init
     Transactions = RewardsTransactions_v3
@@ -133,13 +136,33 @@ export abstract class RewardsContract<T, Q> extends Scrt_1_2.Contract<T, Q> {
 
     /** Command. v3 to v3 upgrade tests user migration. */
     static upgrade = {
-      to_v3: function upgradeRewards_v2_to_v3 (input) {
+      "v3": function upgradeRewards_v2_to_v3 (input) {
         return RewardsContract.upgradeRewards({
           ...input,
           oldVersion: 'v3', OldRewardsContract: RewardsContract.v3,
           newVersion: 'v3', NewRewardsContract: RewardsContract.v3,
         })
       }
+    }
+  }
+
+  static "v2+v3" = {
+    /** Command. Deploy both versions simultaneously,
+      * splitting the balance evenly in the RPT config. */
+    deploy: async function deployRewards_v2_and_v3 ({run}) {
+      const [V2, V3] = await Promise.all([
+        run(RewardsContract.deployAll, { version: 'v2' }),
+        run(RewardsContract.deployAll, { version: 'v3' })
+      ])
+      const REWARD_POOLS = [ ...V2.REWARD_POOLS, ...V3.REWARD_POOLS ]
+      console.table(REWARD_POOLS.reduce(
+        (table, {label, address, codeId, codeHash})=>
+          Object.assign(table, {
+            [label]: { address: address, codeId: codeId, codeHash: codeHash }
+          }), {}))
+      const RPT_CONFIG  = [ ...V2.RPT_CONFIG,   ...V3.RPT_CONFIG   ]
+      return await run(RPTContract.adjustConfig, { RPT_CONFIG })
+      return { RPT_CONFIG, REWARD_POOLS }
     }
   }
 
@@ -152,9 +175,6 @@ export abstract class RewardsContract<T, Q> extends Scrt_1_2.Contract<T, Q> {
     version     = 'v3',
   }) {
     name = `Rewards[${version}].${name}`
-    console.info(bold(`Staked token:`))
-    console.info(' ', lpToken.address)
-    console.info(' ', lpToken.codeHash)
     const REWARDS = new RewardsContract[version]({ lpToken, rewardToken, agent })
     await chain.buildAndUpload(agent, [REWARDS])
     REWARDS.name = name
@@ -178,24 +198,6 @@ export abstract class RewardsContract<T, Q> extends Scrt_1_2.Contract<T, Q> {
       REWARD_POOLS: [ SSSSS_POOL, ...REWARD_POOLS ],
       RPT_CONFIG:   [ ...RPT_CONFIG_SSSSS, ...RPT_CONFIG_SWAP_REWARDS ]
     }
-  }
-
-  /** Command. Deploy both versions simultaneously,
-    * splitting the balance evenly in the RPT config. */
-  static deploy_v2_v3 = async function deployRewards_v2_and_v3 ({run}) {
-    const [V2, V3] = await Promise.all([
-      run(RewardsContract.deployAll, { version: 'v2' }),
-      run(RewardsContract.deployAll, { version: 'v3' })
-    ])
-    const REWARD_POOLS = [ ...V2.REWARD_POOLS, ...V3.REWARD_POOLS ]
-    console.table(REWARD_POOLS.reduce(
-      (table, {label, address, codeId, codeHash})=>
-        Object.assign(table, {
-          [label]: { address: address, codeId: codeId, codeHash: codeHash }
-        }), {}))
-    const RPT_CONFIG  = [ ...V2.RPT_CONFIG,   ...V3.RPT_CONFIG   ]
-    return await run(RPTContract.adjustConfig, { RPT_CONFIG })
-    return { RPT_CONFIG, REWARD_POOLS }
   }
 
   static async upgradeRewards ({

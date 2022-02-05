@@ -1,4 +1,5 @@
 import { Agent, randomHex, SNIP20Contract_1_2 } from "@hackbg/fadroma"
+import { workspace } from '@sienna/settings'
 import { InitMsg } from "./schema/init_msg.d"
 
 export type LPTokenOptions = {
@@ -9,8 +10,8 @@ export type LPTokenOptions = {
 
 export class LPTokenContract extends SNIP20Contract_1_2 {
 
-  crate = 'lp-token'
-
+  workspace = workspace
+  crate     = 'lp-token'
   initMsg: InitMsg = {
     name:     "Liquidity Provision Token",
     symbol:   "LPTOKEN",

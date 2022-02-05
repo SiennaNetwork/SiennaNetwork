@@ -1,4 +1,4 @@
-import { Console, bold, timestamp, randomHex, Scrt_1_2, SNIP20Contract } from "@hackbg/fadroma"
+import { Agent, Console, bold, timestamp, randomHex, Scrt_1_2, SNIP20Contract } from "@hackbg/fadroma"
 import { InitMsg } from './schema/init_msg.d'
 import { AMMTransactions, AMMQueries } from './ExchangeClient'
 import { TokenType, TokenPair, ContractLink } from './schema/query_msg_response.d'
@@ -26,49 +26,9 @@ export type ExchangeInfo = {
 
 export class AMMExchangeContract extends Scrt_1_2.Contract<AMMTransactions, AMMQueries> {
 
-  /** Command. Deploy a new exchange.
-    * If the exchange already exists, do nothing.
-    * Factory doesn't allow 2 identical exchanges to exist anyway.
-    * (as compared by TOKEN0 and TOKEN1). */
-  static deploy = async function deployAMMExchange ({
-    agent, deployment,
-    FACTORY, TOKENS, name, version
-  }) {
-    console.info(bold(`Deploying AMM exchange`), name)
-    const [tokenName0, tokenName1] = name.split('-')
-
-    if (!TOKENS[tokenName0]) throw new Error(
-      `Missing token ${tokenName0}; available: ${Object.keys(TOKENS).join(' ')}`
-    )
-    const token0 = TOKENS[tokenName0].asCustomToken
-
-    if (!TOKENS[tokenName1]) throw new Error(
-      `Missing token ${tokenName1}; available: ${Object.keys(TOKENS).join(' ')}`
-    )
-    const token1 = TOKENS[tokenName1].asCustomToken
-
-    try {
-      const { EXCHANGE, LP_TOKEN } = await FACTORY.getExchange(token0, token1)
-      EXCHANGE.prefix = LP_TOKEN.prefix = deployment.prefix
-      console.info(`${bold(name)}: Already exists.`)
-      return { EXCHANGE, LP_TOKEN }
-    } catch (e) {
-      if (e.message.includes("Address doesn't exist in storage")) {
-        return saveExchange(
-          { deployment, version },
-          await FACTORY.getContracts(),
-          await FACTORY.createExchange(token0, token1)
-        )
-      } else {
-        console.error(e)
-        throw new Error(`${bold(`Factory::GetExchange(${name})`)}: not found (${e.message})`)
-      }
-    }
-  }
-
   workspace = workspace
   crate     = 'exchange'
-  name      = 'AMMExchange'
+  name      = 'AMM.Exchange'
   initMsg?: InitMsg = {
     callback:          { contract: null, msg: null },
     entropy:           null,
@@ -97,16 +57,108 @@ export class AMMExchangeContract extends Scrt_1_2.Contract<AMMTransactions, AMMQ
   get info (): Promise<any/*ExchangeInfo*/> {
     throw new Error('todo')
   }
-  //async populate () {
-    //const pairInfo = await this.pairInfo()
-    //const { pair: { token_0, token_1 }, liquidity_token } = pairInfo
-    //this.token_0  = token_0
-    //this.token_1  = token_1
-    //this.lpToken = new SNIP20Contract(liquidity_token)
-    //return this
-  //}
   pairInfo = (): Promise<{ pair: TokenPair, liquidity_token: ContractLink }> => {
     return this.q().pair_info()
+  }
+
+  /** Command. Deploy a new exchange.
+    * If the exchange already exists, do nothing.
+    * Factory doesn't allow 2 identical exchanges to exist anyway.
+    * (as compared by TOKEN0 and TOKEN1). */
+  static deploy = async function deployAMMExchange ({
+    agent, deployment,
+    FACTORY, TOKENS, name, ammVersion
+  }) {
+    console.info(bold(`Deploying AMM exchange`), name)
+    const [tokenName0, tokenName1] = name.split('-')
+
+    if (!TOKENS[tokenName0]) throw new Error(
+      `Missing token ${tokenName0}; available: ${Object.keys(TOKENS).join(' ')}`
+    )
+    const token0 = TOKENS[tokenName0].asCustomToken
+
+    if (!TOKENS[tokenName1]) throw new Error(
+      `Missing token ${tokenName1}; available: ${Object.keys(TOKENS).join(' ')}`
+    )
+    const token1 = TOKENS[tokenName1].asCustomToken
+
+    const factory = FACTORY.client(agent)
+    try {
+      const { EXCHANGE, LP_TOKEN } = await factory.getExchange(token0, token1)
+      EXCHANGE.prefix = LP_TOKEN.prefix = deployment.prefix
+      console.info(`${bold(name)}: Already exists.`)
+      return { EXCHANGE, LP_TOKEN }
+    } catch (e) {
+      if (e.message.includes("Address doesn't exist in storage")) {
+        return saveExchange(
+          { deployment, ammVersion },
+          await factory.getContracts(),
+          await factory.createExchange(token0, token1)
+        )
+      } else {
+        console.error(e)
+        throw new Error(`${bold(`Factory::GetExchange(${name})`)}: not found (${e.message})`)
+      }
+    }
+  }
+
+  static async getExchange (
+    agent:   Agent,
+    address: string,
+    token_0: SNIP20Contract|TokenType,
+    token_1: SNIP20Contract|TokenType
+  ): Promise<ExchangeInfo> {
+
+    const EXCHANGE = new AMMExchangeContract({
+      chain: agent.chain,
+      agent,
+      address,
+      codeHash: await agent.getCodeHash(address),
+      codeId:   await agent.getCodeId(address),
+    })
+
+    const getTokenName = async TOKEN => {
+      let TOKEN_NAME: string
+      if (TOKEN instanceof SNIP20Contract) {
+        const TOKEN_INFO = await TOKEN.q(agent).tokenInfo()
+        return TOKEN_INFO.symbol
+      } else {
+        return 'SCRT'
+      }
+    }
+
+    const TOKEN_0      = SNIP20Contract.fromTokenSpec(agent, token_0)
+    const TOKEN_0_NAME = await getTokenName(TOKEN_0)
+
+    const TOKEN_1      = SNIP20Contract.fromTokenSpec(agent, token_1)
+    const TOKEN_1_NAME = await getTokenName(TOKEN_1)
+
+    const name = `${TOKEN_0_NAME}-${TOKEN_1_NAME}`
+
+    const { liquidity_token } = await EXCHANGE.pairInfo()
+
+    const LP_TOKEN = new LPTokenContract({
+      chain: agent.chain,
+      agent,
+      address:  liquidity_token.address,
+      codeHash: liquidity_token.code_hash,
+      codeId:   await agent.getCodeId(liquidity_token.address),
+    })
+
+    return {
+      raw: { // no methods, just data
+        exchange: { address: EXCHANGE.address },
+        lp_token: { address: LP_TOKEN.address, code_hash: LP_TOKEN.codeHash },
+        token_0,
+        token_1,
+      },
+      name,     // The human-friendly name of the exchange
+      EXCHANGE, // The exchange contract
+      LP_TOKEN, // The LP token contract
+      TOKEN_0,  // One token of the pair
+      TOKEN_1,  // The other token of the pair
+    }
+
   }
 }
 
@@ -114,19 +166,19 @@ export class AMMExchangeContract extends Scrt_1_2.Contract<AMMTransactions, AMMQ
   * and not though Fadroma Deploy, we need to manually save their
   * addresses in the Deployment. */ 
 export function saveExchange (
-  { deployment, version },
+  { deployment, ammVersion },
   { pair_contract: { id: ammId, code_hash: ammHash }, lp_token_contract: { id: lpId } },
   { name, raw, EXCHANGE, LP_TOKEN, TOKEN_0, TOKEN_1 }
 ) {
   console.info(bold(`Deployed AMM exchange`), EXCHANGE.address)
-  deployment.add(`AMM[${version}].${name}`, {
+  deployment.add(`AMM[${ammVersion}].${name}`, {
     ...raw,
     codeId:   ammId,
     codeHash: ammHash,
     address:  raw.exchange.address,
   })
   console.info(bold(`Deployed LP token`), LP_TOKEN.address)
-  deployment.add(`AMM[${version}].${name}.LP`, {
+  deployment.add(`AMM[${ammVersion}].${name}.LP`, {
     ...raw,
     codeId:   lpId,
     codeHash: raw.lp_token.code_hash,
