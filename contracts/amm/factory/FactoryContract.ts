@@ -8,7 +8,7 @@ const console = Console('@sienna/factory')
 
 import getSettings, { workspace } from '@sienna/settings'
 
-import { AMMExchangeContract, ExchangeInfo, saveExchange, printExchanges } from '@sienna/exchange'
+import { AMMExchangeContract, ExchangeInfo, printExchanges } from '@sienna/exchange'
 import { AMMSNIP20Contract, deployPlaceholders } from '@sienna/amm-snip20'
 import { LPTokenContract } from '@sienna/lp-token'
 import { IDOContract } from '@sienna/ido'
@@ -28,6 +28,76 @@ export class AMMFactoryContract extends Scrt_1_2.Contract<any, any> {
 
   client (agent: Agent): FactoryClient {
     return new FactoryClient(agent, this.address, this.codeHash)
+  }
+
+  /** Command. Take the active TGE deployment, add the AMM Factory to it, use it to
+    * create the configured AMM Exchange liquidity pools and their LP tokens. */
+  protected static deployImpl = async function deployAMM ({
+    run, suffix = `+${timestamp()}`,
+    ammVersion
+  }) {
+
+    const { FACTORY } = await run(deployAMMFactory, { version: ammVersion, suffix })
+    const { TOKENS, EXCHANGES, LP_TOKENS } = await run(deployAMMExchanges, { FACTORY, ammVersion })
+
+    return {
+      FACTORY,   // The deployed AMM Factory.
+      TOKENS,    // Tokens supported by the AMM.
+      EXCHANGES, // Exchanges that were created as part of the deployment
+      LP_TOKENS  // LP tokens that were created as part of the deployment
+    }
+
+  }
+
+  /** Command. Take an existing AMM and create a new one with the same
+    * contract templates. Recreate all the exchanges from the old exchange
+    * in the new one. */
+  protected static upgradeImpl = async function upgradeAMM ({
+    run, chain, agent, deployment, prefix, suffix = `+${timestamp()}`,
+    oldVersion = 'v1',
+    newVersion = 'v2',
+  }) {
+
+    const name = `AMM[${oldVersion}].Factory`
+    const FACTORY = deployment.getThe(name, new AMMFactoryContract({
+      agent, name, version: oldVersion
+    }))
+
+    const EXCHANGES = await FACTORY.client(agent).exchanges
+
+    const { FACTORY: NEW_FACTORY } = await run(deployAMMFactory, {
+      version: newVersion, copyFrom: FACTORY, suffix
+    })
+
+    const NEW_EXCHANGES = []
+
+    if (!EXCHANGES || EXCHANGES.length === 0) console.warn('No exchanges in old factory.')
+
+    const factory = NEW_FACTORY.client(agent)
+    const inventory = await factory.getContracts()
+    const ammVersion = newVersion
+    await agent.bundle(async agent=>{
+      const factory = NEW_FACTORY.client(agent)
+      for (const { name, TOKEN_0, TOKEN_1 } of (EXCHANGES||[])) {
+        const exchange = await factory.createExchange(TOKEN_0, TOKEN_1)
+        NEW_EXCHANGES.push([TOKEN_0, TOKEN_1])
+      }
+    })
+
+    return {
+
+      // The AMM factory that was created as a result of the upgrade.
+      FACTORY: NEW_FACTORY,
+
+      // The AMM exchanges that were created as a result of the upgrade.
+      EXCHANGES: await Promise.all(NEW_EXCHANGES.map(async ([TOKEN_0, TOKEN_1])=>{
+        const exchange = await factory.getExchange(TOKEN_0, TOKEN_1)
+        console.log({exchange})
+        return AMMExchangeContract.save({ deployment, ammVersion, inventory, exchange })
+      }))
+
+    }
+
   }
 
   /** Subclass. Sienna AMM Factory v1 */
@@ -51,54 +121,6 @@ export class AMMFactoryContract extends Scrt_1_2.Contract<any, any> {
     name    = `AMM[${this.version}].Factory`
     static deploy = async function deployAMMFactory_v2 (input) {
       return AMMFactoryContract.deployImpl({ ...input, ammVersion: 'v2'})
-    }
-  }
-
-  /** Command. Take the active TGE deployment, add the AMM Factory to it, use it to
-    * create the configured AMM Exchange liquidity pools and their LP tokens. */
-  protected static deployImpl = async function deployAMM ({
-    run, suffix = `+${timestamp()}`,
-    ammVersion
-  }) {
-    const { FACTORY } = await run(deployAMMFactory, { version: ammVersion, suffix })
-    const { TOKENS, EXCHANGES, LP_TOKENS } = await run(deployAMMExchanges, { FACTORY, ammVersion })
-    return {
-      FACTORY,   // The deployed AMM Factory.
-      TOKENS,    // Tokens supported by the AMM.
-      EXCHANGES, // Exchanges that were created as part of the deployment
-      LP_TOKENS  // LP tokens that were created as part of the deployment
-    }
-  }
-
-  /** Command. Take an existing AMM and create a new one with the same
-    * contract templates. Recreate all the exchanges from the old exchange
-    * in the new one. */
-  protected static upgradeImpl = async function upgradeAMM ({
-    run, chain, agent, deployment, prefix,
-    oldVersion = 'v1',
-    newVersion = 'v2',
-  }) {
-    const name = `AMM[${oldVersion}].Factory`
-    const FACTORY = deployment.getThe(name, new AMMFactoryContract({agent, name, version: oldVersion}))
-    const EXCHANGES: ExchangeInfo[] = await FACTORY.client(agent).exchanges
-    //await printExchanges(EXCHANGES)
-    const { FACTORY: NEW_FACTORY } = await run(deployAMMFactory, { version: newVersion, copyFrom: FACTORY })
-    const NEW_EXCHANGES = []
-    if (!EXCHANGES) {
-      console.warn('No exchanges in old factory.')
-    } else {
-      let newFactory = NEW_FACTORY.client(agent)
-      for (const { name, TOKEN_0, TOKEN_1 } of EXCHANGES) {
-        NEW_EXCHANGES.push(saveExchange(
-          { deployment, ammVersion: newVersion },
-          await newFactory.getContracts(),
-          await newFactory.createExchange(TOKEN_0, TOKEN_1)
-        ))
-      }
-    }
-    return {
-      FACTORY:   NEW_FACTORY,  // The AMM factory that was created as a result of the upgrade.
-      EXCHANGES: NEW_EXCHANGES // The AMM exchanges that were created as a result of the upgrade.
     }
   }
 
@@ -169,6 +191,7 @@ export async function deployAMMExchanges ({
   LP_TOKENS = [],
   settings: { swapTokens, swapPairs } = getSettings(chain.id),
 }) {
+
   // Collect referenced tokens, and created exchanges/LPs
   if (chain.isLocalnet) {
     // On localnet, deploy some placeholder tokens corresponding to the config.
@@ -197,6 +220,7 @@ export async function deployAMMExchanges ({
     }
     Object.assign(TOKENS, tokens)
   }
+
   // If there are any initial swap pairs defined in the config...
   for (const name of swapPairs) {
     // ...call the factory to deploy an EXCHANGE for each...
@@ -207,5 +231,10 @@ export async function deployAMMExchanges ({
     EXCHANGES.push(EXCHANGE)
     LP_TOKENS.push(LP_TOKEN)
   }
-  return { TOKENS, LP_TOKENS, EXCHANGES }
+
+  return {
+    TOKENS,    // Tokens supported by the AMM
+    EXCHANGES, // Newly created AMM Exchange contracts
+    LP_TOKENS, // Newly created AMM LP Token contracts
+  }
 }

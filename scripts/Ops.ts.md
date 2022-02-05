@@ -353,7 +353,7 @@ const integrationTests = {
 
   4: [ Deployments.activate,                      // Use the current deployment
        AMMFactoryContract['v1'].upgrade['v2'],    // Upgrade AMM v1 to v2
-       RewardsContract['v2'].upgrade['v3'],        // Upgrade Rewards from v2 to v3
+       RewardsContract['v2'].upgrade['v3'],       // Upgrade Rewards from v2 to v3
        integrationTest.getLPTokens('v2'),         // Stake SIENNA and SSCRT to get LP tokens
        integrationTest.stakeLPTokens('v3') ],     // Stake LP tokens to get SIENNA
 

@@ -15,13 +15,18 @@ amm: {
 
 placeholderTokens: {
   "sSCRT": {"label":  "sSCRT", "initMsg": { "name": "SecretSCRT", "symbol": "SSCRT", "decimals": 6}},
+  "sETH":  {"label":  "sETH",  "initMsg": { "name": "SecretETH",  "symbol": "SETH",  "decimals": 8}},
 }
 
 rewardPairs: {
-  "SIENNA":       1250,
-  "SIENNA-SSCRT": 1250,
+  "SIENNA":       1000,
+  "SIENNA-SSCRT": 500,
+  "SIENNA-SETH":  500,
+  "SETH-SSCRT":   500,
 }
 
 swapPairs: [
   "SIENNA-SSCRT",
+  "SIENNA-SETH",
+  "SETH-SSCRT",
 ]

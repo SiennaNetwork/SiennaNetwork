@@ -29,10 +29,13 @@ export class AMMSNIP20Contract extends SNIP20Contract_1_2 {
 
 /** On localnet, the AMM exchanges use these tokens. */
 export async function deployPlaceholders ({ chain, agent, deployment, prefix }) {
-  const PLACEHOLDERS = {}
+
   const { placeholderTokens } = getSettings(chain.id)
   type TokenConfig = { label: string, initMsg: any }
   const placeholders: Record<string, TokenConfig> = placeholderTokens
+
+  const PLACEHOLDERS = {}
+
   for (const [_, {label, initMsg}] of Object.entries(placeholders)) {
     const name = `Placeholder.${label}`
     try {
@@ -42,13 +45,6 @@ export async function deployPlaceholders ({ chain, agent, deployment, prefix }) 
         const TOKEN = PLACEHOLDERS[initMsg.symbol] = new AMMSNIP20Contract({ prefix, name })
         await chain.buildAndUpload(agent, [TOKEN])
         await deployment.init(agent, TOKEN, { ...initMsg, name: initMsg.symbol })
-        const amount = "100000000000000000000000"
-        console.info("Minting", bold(amount), 'to', bold(agent.address))
-        const {address} = agent
-        await agent.bundle(async agent=>{
-          await TOKEN.tx(agent).setMinters([address])
-          await TOKEN.tx(agent).mint(amount, address)
-        })
       } else {
         console.error(e)
         throw new Error(
@@ -57,5 +53,18 @@ export async function deployPlaceholders ({ chain, agent, deployment, prefix }) 
       }
     }
   }
+
+  await agent.bundle(async agent=>{
+    for (const [_, {label, initMsg}] of Object.entries(placeholders)) {
+      const name = `Placeholder.${label}`
+      const amount = "100000000000000000000000"
+      console.warn("Minting", bold(amount), name, 'to', bold(agent.address))
+      const {address} = agent
+      const token = PLACEHOLDERS[initMsg.symbol].tx(agent)
+      await token.setMinters([address])
+      await token.mint(amount, address)
+    }
+  })
+
   return { PLACEHOLDERS }
 }

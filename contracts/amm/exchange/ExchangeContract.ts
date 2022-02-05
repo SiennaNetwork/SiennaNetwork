@@ -69,7 +69,7 @@ export class AMMExchangeContract extends Scrt_1_2.Contract<AMMTransactions, AMMQ
     agent, deployment,
     FACTORY, TOKENS, name, ammVersion
   }) {
-    console.info(bold(`Deploying AMM exchange`), name)
+    //console.info(bold(`Deploying AMM exchange`), name)
     const [tokenName0, tokenName1] = name.split('-')
 
     if (!TOKENS[tokenName0]) throw new Error(
@@ -83,6 +83,7 @@ export class AMMExchangeContract extends Scrt_1_2.Contract<AMMTransactions, AMMQ
     const token1 = TOKENS[tokenName1].asCustomToken
 
     const factory = FACTORY.client(agent)
+    const inventory = await factory.getContracts()
     try {
       const { EXCHANGE, LP_TOKEN } = await factory.getExchange(token0, token1)
       EXCHANGE.prefix = LP_TOKEN.prefix = deployment.prefix
@@ -90,16 +91,44 @@ export class AMMExchangeContract extends Scrt_1_2.Contract<AMMTransactions, AMMQ
       return { EXCHANGE, LP_TOKEN }
     } catch (e) {
       if (e.message.includes("Address doesn't exist in storage")) {
-        return saveExchange(
-          { deployment, ammVersion },
-          await factory.getContracts(),
-          await factory.createExchange(token0, token1)
-        )
+        await factory.createExchange(token0, token1)
+        const exchange = await factory.getExchange(token0, token1)
+        return AMMExchangeContract.save({ deployment, ammVersion, inventory, exchange })
       } else {
         console.error(e)
         throw new Error(`${bold(`Factory::GetExchange(${name})`)}: not found (${e.message})`)
       }
     }
+  }
+
+  /** Since exchange and LP token are deployed through the factory
+    * and not though Fadroma Deploy, we need to manually save their
+    * addresses in the Deployment. */ 
+  static save ({
+    deployment,
+    ammVersion,
+    inventory: {
+      pair_contract: { id: ammId, code_hash: ammHash },
+      lp_token_contract: { id: lpId }
+    },
+    exchange: { name, raw, EXCHANGE, LP_TOKEN, TOKEN_0, TOKEN_1 }
+  }) {
+    //console.info(bold(`Deployed AMM exchange`), EXCHANGE.address)
+    deployment.add(`AMM[${ammVersion}].${name}`, {
+      ...raw,
+      codeId:   ammId,
+      codeHash: ammHash,
+      address:  raw.exchange.address,
+    })
+    //console.info(bold(`Deployed LP token`), LP_TOKEN.address)
+    deployment.add(`AMM[${ammVersion}].${name}.LP`, {
+      ...raw,
+      codeId:   lpId,
+      codeHash: raw.lp_token.code_hash,
+      address:  raw.lp_token.address
+    })
+    EXCHANGE.prefix = LP_TOKEN.prefix = deployment.prefix
+    return { name, raw, EXCHANGE, LP_TOKEN, TOKEN_0, TOKEN_1 }
   }
 
   static async getExchange (
@@ -162,31 +191,6 @@ export class AMMExchangeContract extends Scrt_1_2.Contract<AMMTransactions, AMMQ
   }
 }
 
-/** Since exchange and LP token are deployed through the factory
-  * and not though Fadroma Deploy, we need to manually save their
-  * addresses in the Deployment. */ 
-export function saveExchange (
-  { deployment, ammVersion },
-  { pair_contract: { id: ammId, code_hash: ammHash }, lp_token_contract: { id: lpId } },
-  { name, raw, EXCHANGE, LP_TOKEN, TOKEN_0, TOKEN_1 }
-) {
-  console.info(bold(`Deployed AMM exchange`), EXCHANGE.address)
-  deployment.add(`AMM[${ammVersion}].${name}`, {
-    ...raw,
-    codeId:   ammId,
-    codeHash: ammHash,
-    address:  raw.exchange.address,
-  })
-  console.info(bold(`Deployed LP token`), LP_TOKEN.address)
-  deployment.add(`AMM[${ammVersion}].${name}.LP`, {
-    ...raw,
-    codeId:   lpId,
-    codeHash: raw.lp_token.code_hash,
-    address:  raw.lp_token.address
-  })
-  EXCHANGE.prefix = LP_TOKEN.prefix = deployment.prefix
-  return { name, raw, EXCHANGE, LP_TOKEN, TOKEN_0, TOKEN_1 }
-}
 
 import { colors, printToken } from '@hackbg/fadroma'
 export async function printExchanges (EXCHANGES?: any[]) {

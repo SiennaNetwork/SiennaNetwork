@@ -174,7 +174,7 @@ export abstract class RewardsContract<T, Q> extends Scrt_1_2.Contract<T, Q> {
     name        = 'UNKNOWN',
     version     = 'v3',
   }) {
-    name = `Rewards[${version}].${name}`
+    name = `${name}.Rewards[${version}]`
     const REWARDS = new RewardsContract[version]({ lpToken, rewardToken, agent })
     await chain.buildAndUpload(agent, [REWARDS])
     REWARDS.name = name
@@ -219,18 +219,20 @@ export abstract class RewardsContract<T, Q> extends Scrt_1_2.Contract<T, Q> {
       const {symbol} = await LP_TOKEN.info
       let name
       if (symbol === 'SIENNA') {
-        name = 'SSSSS'
+        name = 'SIENNA'
       } else {
         const [LP, TOKEN0, TOKEN1] = (await LP_TOKEN.friendlyName).split('-')
-        name = `${TOKEN0}-${TOKEN1}`
+        name = `AMM[v2].${TOKEN0}-${TOKEN1}.LP`
       }
-      console.log()
-      console.info(bold('Upgrading reward pool'), name)
-      const options = {
-        version, name, suffix,
-        lpToken: LP_TOKEN, rewardToken: SIENNA
-      }
-      NEW_REWARD_POOLS.push((await run(RewardsContract.deployOne, options)).REWARDS)
+      //console.log()
+      //console.info(bold('Upgrading reward pool'), name)
+      const { REWARDS: NEW_REWARDS } = await run(RewardsContract.deployOne, {
+        version,
+        name,
+        lpToken: LP_TOKEN,
+        rewardToken: SIENNA
+      })
+      NEW_REWARD_POOLS.push(NEW_REWARDS)
     }
     console.info(`Deployed`, bold(String(NEW_REWARD_POOLS.length)), version, `reward pools.`)
     return { REWARD_POOLS: NEW_REWARD_POOLS }
@@ -253,10 +255,13 @@ export async function deploySSSSS ({
   if (!rewardPairs || rewardPairs.length === 1) {
     throw new Error(`@sienna/rewards: needs rewardPairs setting for ${chain.id}`)
   }
-  const name        = 'SSSSS'
   const lpToken     = SIENNA
   const rewardToken = SIENNA
-  const { REWARDS } = await run(RewardsContract.deployOne, { version, name, lpToken: SIENNA })
+  const { REWARDS } = await run(RewardsContract.deployOne, {
+    version,
+    name: 'SIENNA',
+    lpToken: SIENNA
+  })
   return {
     SSSSS_POOL: REWARDS, RPT_CONFIG_SSSSS: [
       [
@@ -288,7 +293,7 @@ export async function deployRewardPools ({
     const lpTokenName = `AMM[${ammVersion}].${name}.LP`
     const lpToken = deployment.getThe(lpTokenName, new LPTokenContract({ agent }))
     // create a reward pool
-    const options = { version, name, lpToken }
+    const options = { version, name: lpTokenName, lpToken }
     console.info('Deploying', bold(name), version, 'for', bold(lpTokenName))
     const { REWARDS } = await run(RewardsContract.deployOne, options)
     REWARD_POOLS.push(REWARDS)

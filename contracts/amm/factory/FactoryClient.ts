@@ -58,7 +58,6 @@ export class FactoryClient {
         entropy: b64encode(EnigmaUtils.GenerateNewSeed().toString())
       }
     })
-    return await this.getExchange(token_0, token_1)
   }
 
   /** Get info about an exchange. */
