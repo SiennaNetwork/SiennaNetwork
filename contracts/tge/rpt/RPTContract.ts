@@ -10,6 +10,7 @@ export type RPTRecipient = string
 export type RPTAmount    = string
 export type RPTConfig    = [RPTRecipient, RPTAmount][]
 
+export { RPTClient } from './RPTClient'
 import { RPTClient } from './RPTClient'
 export class RPTContract extends Scrt_1_2.Contract<RPTClient> {
   name = 'RPT'
