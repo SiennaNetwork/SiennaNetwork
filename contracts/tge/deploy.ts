@@ -7,7 +7,7 @@ const console = Console('@sienna/tge/deploy')
 
 import type { Schedule } from '@sienna/mgmt/schema/handle.d'
 import {
-  SiennaSNIP20Contract,
+  SiennaSnip20Contract,
   MGMTContract,
   RPTContract
 } from '@sienna/api'
@@ -30,56 +30,69 @@ export function getLPFAccount (schedule: Schedule) {
     .filter((x:any)=>x.name==='MintingPool')[0].accounts
     .filter((x:any)=>x.name==='LPF')[0] }
 
-export async function deployTGE ({
-  chain, agent, deployment, prefix,
-  schedule = settings.schedule
-}: MigrationContext & {
+export async function deployTGE (context: MigrationContext & {
   /** Input: The schedule for the new MGMT.
     * Defaults to production schedule. */
-  schedule?: typeof settings.schedule
+  schedule?: typeof settings.schedule,
 }): Promise<{
-  /** Output: The newly created deployment. */
-  deployment: Deployment
-  /** Output: The identifier of the deployment on- and off-chain. */
-  prefix:     string
-  /** Output: The deployed SIENNA SNIP20 token contract. */
-  SIENNA:     SiennaSNIP20Contract
+  /** Output: The deployed SIENNA Snip20 token contract. */
+  SIENNA:     SiennaSnip20Contract
   /** Output: The deployed MGMT contract. */
   MGMT:       MGMTContract
   /** Output: The deployed RPT contract. */
   RPT:        RPTContract
 }> {
-  const [SIENNA, MGMT, RPT] = await chain.buildAndUpload(agent, [
-    new SiennaSNIP20Contract(),
-    new MGMTContract(),
-    new RPTContract()
-  ])
+
+  const {
+    agent, deployment, prefix,
+    schedule = settings.schedule,
+  } = context
+
+  const SIENNA = new SiennaSnip20Contract()
+  const MGMT   = new MGMTContract()
+  const RPT    = new RPTContract()
+  await agent.chain.buildAndUpload(agent, [SIENNA, MGMT, RPT])
+
   const admin = agent.address
-  await deployment.init(agent, SIENNA, {
-    name:      "Sienna",
-    symbol:    "SIENNA",
-    decimals:  18,
-    config:    { public_total_supply: true },
-    prng_seed: randomHex(36)
-  })
+  await agent.bundle()
+    .init(SIENNA.template, `${deployment.prefix}/Sienna`, {
+      name:      "Sienna",
+      symbol:    "SIENNA",
+      decimals:  18,
+      config:    { public_total_supply: true },
+      prng_seed: randomHex(36)
+    })
+    .run()
+
   const RPTAccount = getRPTAccount(schedule)
   RPTAccount.address = admin // mutate schedule
   const portion = RPTAccount.portion_size
-  await deployment.init(agent, MGMT, {
-    admin: admin,
-    token: [SIENNA.address, SIENNA.codeHash],
-    schedule
-  })
-  await deployment.init(agent, RPT, {
-    token:   [SIENNA.address, SIENNA.codeHash],
-    mgmt:    [MGMT.address, MGMT.codeHash],
-    portion,
-    config:  [[admin, portion]]
-  })
+
+  await agent.bundle()
+    .init(MGMT.template, `${deployment.prefix}/Sienna.MGMT`, {
+      admin: admin,
+      token: [SIENNA.address, SIENNA.codeHash],
+      schedule
+    })
+    .run()
+
+  await agent.bundle()
+    .init(RPT.template, `${deployment.prefix}/Sienna.RPT`, {
+      token:   [SIENNA.address, SIENNA.codeHash],
+      mgmt:    [MGMT.address, MGMT.codeHash],
+      portion,
+      config:  [[admin, portion]]
+    })
+    .run()
+
   RPTAccount.address = RPT.address
-  await agent.bundle(async agent=>{ // once async always async
-    const sienna = SIENNA.tx(agent)
-    if (chain.isTestnet || chain.isLocalnet) {
+
+  const { isTestnet, isLocalnet } = agent.chain
+  const configBundle = agent.bundle().wrap(async bundle=>{
+
+    const sienna = SIENNA.client(bundle)
+
+    if (isTestnet||isLocalnet) {
       console.warn(
         'Minting some test tokens for the admin and other testers. Only for testnet and localnet.'
       )
@@ -95,20 +108,14 @@ export async function deployTGE ({
         await sienna.mint(amount, admin)
       }
     }
-    const mgmt = MGMT.tx(agent)
-    await mgmt.acquire(SIENNA)
+
+    const mgmt = MGMT.client(agent)
+    await mgmt.acquire(sienna)
     await mgmt.configure(schedule)
     await mgmt.launch()
-  })
-  // not needed
-  //console.info(bold('Vesting RPT'))
-  //await RPT.tx().vest()
 
-  return {
-    deployment,
-    prefix,
-    SIENNA,
-    MGMT,
-    RPT
-  }
+  })
+
+  return { SIENNA, MGMT, RPT }
+
 }

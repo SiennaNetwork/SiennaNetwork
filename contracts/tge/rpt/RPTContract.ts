@@ -1,4 +1,4 @@
-import { Console, Agent, Scrt_1_2, SNIP20Contract_1_2, bold } from '@hackbg/fadroma'
+import { Console, Agent, Scrt_1_2, Snip20Contract_1_2, bold } from '@hackbg/fadroma'
 import { workspace } from '@sienna/settings'
 import { MGMTContract } from '@sienna/mgmt'
 import { LinearMapAnd_Uint128 as LinearMap, Uint128 } from './schema/init'
@@ -11,52 +11,61 @@ export type RPTConfig    = [RPTRecipient, RPTAmount][]
 
 const console = Console('@sienna/rpt')
 
-export class RPTContract extends Scrt_1_2.Contract<RPTTransactions, RPTQueries> {
-  workspace = workspace
-  crate = 'sienna-rpt'
-  name  = 'RPT'
+import { RPTClient } from './RPTClient'
+export class RPTContract extends Scrt_1_2.Contract {
 
-  Transactions = RPTTransactions
-  Queries      = RPTQueries
+  name = 'RPT'
 
-  /** Query contract status */
-  get status () {
-    return this.q().status().then(({status})=>status)
-  }
+  source = { workspace, crate: 'sienna-rpt' }
+
+  Client = RPTClient
 
   /** Command. Print the status of the current deployment's RPT contract. */
-  static status = async function rptStatus ({
-    deployment, agent,
-    RPT = deployment.getThe('RPT', new RPTContract({ agent }))
-  }) {
-    const status = await RPT.q().status()
-    console.debug(`RPT status of ${bold(agent.address)}`, status)
-  }
+  static status = rptStatus
 
   /** Command. After deploying reward pools, set their addresses
     * in the RPT for them to receive funding from the daily vesting. */
-  static adjustConfig = async function adjustRPTConfig ({
+  static adjustConfig = adjustRPTConfig
+}
+
+async function rptStatus (context) {
+
+  const {
+    deployment, agent,
+    RPT = deployment.get('RPT', RPTContract)
+  } = context
+
+  const status = await RPT.q().status()
+  console.debug(`RPT status of ${bold(agent.address)}`, status)
+
+}
+
+async function adjustRPTConfig (context) {
+
+  const {
     deployment, chain, agent,
-    RPT = deployment.getThe('RPT', new RPTContract({ agent })),
+    RPT = deployment.get('RPT', RPTContract),
     RPT_CONFIG,
-  }) {
-    // on mainnet we use a multisig
-    // so we can't run the transaction from here
-    if (chain.isMainnet) {
-      deployment.save({config: RPT_CONFIG}, 'RPTConfig.json')
-      console.info(
-        `\n\nWrote RPT config to deployment ${deployment.prefix}. `+
-        `You should use this file as the basis of a multisig transaction.`
-      )
-      return
-    }
+  } = context
+
+  // on mainnet we use a multisig
+  // so we can't run the transaction from here
+  if (chain.isMainnet) {
+    deployment.save({config: RPT_CONFIG}, 'RPTConfig.json')
     console.info(
-      bold(`Configuring RPT`), RPT.address
+      `\n\nWrote RPT config to deployment ${deployment.prefix}. `+
+      `You should use this file as the basis of a multisig transaction.`
     )
-    for (const [address, amount] of RPT_CONFIG) {
-      console.info(` `, bold(amount), address)
-    }
-    await RPT.tx(agent).configure(RPT_CONFIG)
-    return { RPT_CONFIG }
+    return
   }
+
+  console.info(bold(`Configuring RPT`), RPT.address)
+  for (const [address, amount] of RPT_CONFIG) {
+    console.info(` `, bold(amount), address)
+  }
+
+  await RPT.tx(agent).configure(RPT_CONFIG)
+
+  return { RPT_CONFIG }
+
 }

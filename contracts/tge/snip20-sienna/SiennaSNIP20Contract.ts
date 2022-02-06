@@ -1,23 +1,31 @@
-import { SNIP20Contract_1_0, Console, bold } from '@hackbg/fadroma'
-import { workspace } from '@sienna/settings'
-import { InitMsg } from './schema/init_msg.d'
+import { Console, bold } from '@hackbg/fadroma'
 
 const console = Console('@sienna/snip20-sienna')
 
-export class SiennaSNIP20Contract extends SNIP20Contract_1_0 {
-  workspace = workspace
-  crate = 'snip20-sienna'
-  name  = 'SIENNA'
-  initMsg: InitMsg
+import { Snip20Contract_1_0, Source } from '@hackbg/fadroma'
+import { workspace } from '@sienna/settings'
+export class SiennaSnip20Contract extends Snip20Contract_1_0 {
 
-  static status = async function siennaStatus ({
+  name = 'SIENNA'
+
+  source = {
+    workspace,
+    crate: 'snip20-sienna'
+  }
+
+  static status = siennaStatus
+
+}
+
+async function siennaStatus (context) {
+  const {
     deployment, agent,
-    SIENNA = deployment.getThe('SIENNA', new SiennaSNIP20Contract({ agent }))
-  }) {
-    try {
-      console.info(`SIENNA balance of ${bold(agent.address)}: ${await SIENNA.q().balance(agent.address, '')}`)
-    } catch (e) {
-      console.error(e.message)
-    }
+    sienna = deployment.get('SIENNA', SiennaSnip20Contract).client(agent)
+  } = context
+  try {
+    const balance = await sienna.balance(agent.address, '')
+    console.info(`SIENNA balance of ${bold(agent.address)}: ${balance}`)
+  } catch (e) {
+    console.error(e.message)
   }
 }

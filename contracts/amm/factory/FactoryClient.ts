@@ -1,5 +1,5 @@
-import { Agent, Contract, SNIP20Contract, QueryExecutor, TransactionExecutor } from '@hackbg/fadroma'
-import { b64encode }   from "@waiting/base64"
+import { Agent, Contract } from '@hackbg/fadroma'
+import { b64encode } from "@waiting/base64"
 import { EnigmaUtils } from "secretjs"
 import { AMMExchangeContract, ExchangeInfo } from '@sienna/exchange'
 
@@ -28,8 +28,6 @@ export class FactoryClient {
     }
   }
 
-  // shims for dual executors:
-
   /** Return the collection of contract templates
     * (`{ id, code_hash }` structs) that the factory
     * uses to instantiate contracts. */
@@ -47,11 +45,9 @@ export class FactoryClient {
   /** Create a liquidity pool, i.e. an instance of the exchange contract,
     * and return info about it from getExchange. */
   async createExchange (
-    token_0: SNIP20Contract|TokenType,
-    token_1: SNIP20Contract|TokenType
+    token_0: TokenType,
+    token_1: TokenType
   ): Promise<ExchangeInfo> {
-    if (token_0 instanceof SNIP20Contract) token_0 = token_0.asCustomToken
-    if (token_1 instanceof SNIP20Contract) token_1 = token_1.asCustomToken
     await this.agent.execute(this, {
       create_exchange: {
         pair:    { token_0, token_1 },
@@ -62,11 +58,9 @@ export class FactoryClient {
 
   /** Get info about an exchange. */
   async getExchange (
-    token_0: SNIP20Contract|TokenType,
-    token_1: SNIP20Contract|TokenType
+    token_0: TokenType,
+    token_1: TokenType
   ): Promise<ExchangeInfo> {
-    if (token_0 instanceof SNIP20Contract) token_0 = token_0.asCustomToken
-    if (token_1 instanceof SNIP20Contract) token_1 = token_1.asCustomToken
     const {get_exchange_address:{address}} =
       await this.agent.query(this, {
         get_exchange_address: {
@@ -76,7 +70,7 @@ export class FactoryClient {
           }
         }
       })
-    return await AMMExchangeContract.getExchange(
+    return await AMMExchangeContract.get(
       this.agent,
       address,
       token_0,
@@ -115,13 +109,4 @@ export class FactoryClient {
     })
   }
 
-}
-
-export class FactoryTransactions extends TransactionExecutor {
-  create_exchange (token_0: TokenType, token_1: TokenType) {
-    return this.execute({ create_exchange: { pair: { token_0, token_1 }, entropy } })
-  }
-  create_launchpad (tokens: object[]) {
-    return this.execute({ create_launchpad: { tokens } })
-  }
 }

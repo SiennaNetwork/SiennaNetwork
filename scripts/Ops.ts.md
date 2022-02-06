@@ -58,10 +58,10 @@ such contracts is called a `Deployment`.
 
 ```typescript
 import { Deployments } from '@hackbg/fadroma'
-import { SiennaSNIP20Contract, MGMTContract, RPTContract } from '@sienna/api'
+import { SiennaSnip20Contract, MGMTContract, RPTContract } from '@sienna/api'
 Fadroma.command('status',
   Deployments.activate,
-  SiennaSNIP20Contract.status,
+  SiennaSnip20Contract.status,
   MGMTContract.status,
   RPTContract.status)
 Fadroma.command('select', Deployments.select)
@@ -263,7 +263,7 @@ const integrationTest = {
   getLPTokens: v => async function integrationTestGetLPTokens ({
     agent, deployment,
     FACTORY = deployment.getThe(`AMM[${v}].Factory`, new AMMFactoryContract[v]({agent}))
-    SIENNA  = deployment.getThe('SIENNA',            new SiennaSNIP20Contract({agent})),
+    SIENNA  = deployment.getThe('SIENNA',            new SiennaSnip20Contract({agent})),
     SSCRT   = deployment.getThe('Placeholder.sSCRT', new AMMSNIP20Contract({agent, name: 'sSCRT'})),
   }) {
     const { EXCHANGE, LP_TOKEN } = await FACTORY.getExchange(SIENNA.asCustomToken, SSCRT.asCustomToken)
@@ -285,7 +285,7 @@ const integrationTest = {
   },
   stakeLPTokens: v => async function integrationTestStakeLPTokens ({
     agent, deployment,
-    SIENNA  = deployment.getThe('SIENNA', new SiennaSNIP20Contract({agent})),
+    SIENNA  = deployment.getThe('SIENNA', new SiennaSnip20Contract({agent})),
     RPT     = deployment.getThe('RPT',    new RPTContract({agent})),
     SSSSS   = deployment.getThe(`Rewards[${v}].SSSSS`,        new RewardsContract[v]({agent})),
     REWARDS = deployment.getThe(`Rewards[${v}].SIENNA-SSCRT`, new RewardsContract[v]({agent}))

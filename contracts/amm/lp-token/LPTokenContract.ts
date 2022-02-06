@@ -1,4 +1,4 @@
-import { Agent, randomHex, SNIP20Contract_1_2 } from "@hackbg/fadroma"
+import { Agent, randomHex, Snip20Contract_1_2 } from "@hackbg/fadroma"
 import { workspace } from '@sienna/settings'
 import { InitMsg } from "./schema/init_msg.d"
 
@@ -8,7 +8,7 @@ export type LPTokenOptions = {
   prefix?: string,
 }
 
-export class LPTokenContract extends SNIP20Contract_1_2 {
+export class LPTokenContract extends Snip20Contract_1_2 {
 
   workspace = workspace
   crate     = 'lp-token'
@@ -40,8 +40,8 @@ export class LPTokenContract extends SNIP20Contract_1_2 {
     return this.info.then(async ({name})=>{
       const fragments = name.split(' ')
       const [t0addr, t1addr] = fragments[fragments.length-1].split('-')
-      const t0 = new SNIP20Contract_1_2({ chain, agent, address: t0addr })
-      const t1 = new SNIP20Contract_1_2({ chain, agent, address: t1addr })
+      const t0 = new Snip20Contract_1_2({ chain, agent, address: t0addr })
+      const t1 = new Snip20Contract_1_2({ chain, agent, address: t1addr })
       const [t0info, t1info] = await Promise.all([t0.info, t1.info])
       return `LP-${t0info.symbol}-${t1info.symbol}`
     })

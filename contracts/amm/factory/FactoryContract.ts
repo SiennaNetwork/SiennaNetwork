@@ -4,12 +4,9 @@ import {
   printContract, printToken, printContracts
 } from '@hackbg/fadroma'
 
-const console = Console('@sienna/factory')
-
 import getSettings, { workspace } from '@sienna/settings'
-
 import { AMMExchangeContract, ExchangeInfo, printExchanges } from '@sienna/exchange'
-import { AMMSNIP20Contract, deployPlaceholders } from '@sienna/amm-snip20'
+import { AMMSNIP20Contract } from '@sienna/amm-snip20'
 import { LPTokenContract } from '@sienna/lp-token'
 import { IDOContract } from '@sienna/ido'
 import { LaunchpadContract } from '@sienna/launchpad'
@@ -18,8 +15,10 @@ import { SiennaSNIP20Contract } from '@sienna/snip20-sienna'
 import { InitMsg, ExchangeSettings, ContractInstantiationInfo } from './schema/init_msg.d'
 import { TokenType } from './schema/handle_msg.d'
 import { QueryResponse, Exchange } from './schema/query_response.d'
-
 import { FactoryClient } from './FactoryClient'
+
+const console = Console('@sienna/factory')
+
 export class AMMFactoryContract extends Scrt_1_2.Contract<any, any> {
 
   workspace = workspace
@@ -30,87 +29,17 @@ export class AMMFactoryContract extends Scrt_1_2.Contract<any, any> {
     return new FactoryClient(agent, this.address, this.codeHash)
   }
 
-  /** Command. Take the active TGE deployment, add the AMM Factory to it, use it to
-    * create the configured AMM Exchange liquidity pools and their LP tokens. */
-  protected static deployImpl = async function deployAMM ({
-    run, suffix = `+${timestamp()}`,
-    ammVersion
-  }) {
-
-    const { FACTORY } = await run(deployAMMFactory, { version: ammVersion, suffix })
-    const { TOKENS, EXCHANGES, LP_TOKENS } = await run(deployAMMExchanges, { FACTORY, ammVersion })
-
-    return {
-      FACTORY,   // The deployed AMM Factory.
-      TOKENS,    // Tokens supported by the AMM.
-      EXCHANGES, // Exchanges that were created as part of the deployment
-      LP_TOKENS  // LP tokens that were created as part of the deployment
-    }
-
-  }
-
-  /** Command. Take an existing AMM and create a new one with the same
-    * contract templates. Recreate all the exchanges from the old exchange
-    * in the new one. */
-  protected static upgradeImpl = async function upgradeAMM ({
-    run, chain, agent, deployment, prefix, suffix = `+${timestamp()}`,
-    oldVersion = 'v1',
-    newVersion = 'v2',
-  }) {
-
-    const name = `AMM[${oldVersion}].Factory`
-    const FACTORY = deployment.getThe(name, new AMMFactoryContract({
-      agent, name, version: oldVersion
-    }))
-
-    const EXCHANGES = await FACTORY.client(agent).exchanges
-
-    const { FACTORY: NEW_FACTORY } = await run(deployAMMFactory, {
-      version: newVersion, copyFrom: FACTORY, suffix
-    })
-
-    const NEW_EXCHANGES = []
-
-    if (!EXCHANGES || EXCHANGES.length === 0) console.warn('No exchanges in old factory.')
-
-    const factory = NEW_FACTORY.client(agent)
-    const inventory = await factory.getContracts()
-    const ammVersion = newVersion
-    await agent.bundle(async agent=>{
-      const factory = NEW_FACTORY.client(agent)
-      for (const { name, TOKEN_0, TOKEN_1 } of (EXCHANGES||[])) {
-        const exchange = await factory.createExchange(TOKEN_0, TOKEN_1)
-        NEW_EXCHANGES.push([TOKEN_0, TOKEN_1])
-      }
-    })
-
-    return {
-
-      // The AMM factory that was created as a result of the upgrade.
-      FACTORY: NEW_FACTORY,
-
-      // The AMM exchanges that were created as a result of the upgrade.
-      EXCHANGES: await Promise.all(NEW_EXCHANGES.map(async ([TOKEN_0, TOKEN_1])=>{
-        const exchange = await factory.getExchange(TOKEN_0, TOKEN_1)
-        console.log({exchange})
-        return AMMExchangeContract.save({ deployment, ammVersion, inventory, exchange })
-      }))
-
-    }
-
-  }
-
   /** Subclass. Sienna AMM Factory v1 */
   static v1 = class AMMFactoryContract_v1 extends AMMFactoryContract {
     version = 'v1'
     name    = `AMM[${this.version}].Factory`
     ref     = 'a99d8273b4'
     static deploy = function deployAMMFactory_v1 (input) {
-      return AMMFactoryContract.deployImpl({ ...input, ammVersion: 'v1'})
+      return AMMFactoryContract.deployAMM({ ...input, ammVersion: 'v1'})
     }
     static upgrade = {
       v2: function upgradeAMMFactory_v1_to_v2 (input) {
-        return AMMFactoryContract.upgradeImpl({...input, oldVersion:'v1', newVersion:'v2'})
+        return AMMFactoryContract.upgradeAMM({...input, oldVersion: 'v1', newVersion: 'v2'})
       }
     }
   }
@@ -120,8 +49,83 @@ export class AMMFactoryContract extends Scrt_1_2.Contract<any, any> {
     version = 'v2'
     name    = `AMM[${this.version}].Factory`
     static deploy = async function deployAMMFactory_v2 (input) {
-      return AMMFactoryContract.deployImpl({ ...input, ammVersion: 'v2'})
+      return AMMFactoryContract.deployAMM({ ...input, ammVersion: 'v2'})
     }
+  }
+
+  /** Command. Take the active TGE deployment, add the AMM Factory to it, use it to
+    * create the configured AMM Exchange liquidity pools and their LP tokens. */
+  protected static deployAMM = deployAMM
+
+  /** Command. Take an existing AMM and create a new one with the same
+    * contract templates. Recreate all the exchanges from the old exchange
+    * in the new one. */
+  protected static upgradeAMM = upgradeAMM
+
+}
+
+async function deployAMM ({
+  run, suffix = `+${timestamp()}`,
+  ammVersion
+}) {
+  const { FACTORY } = await run(deployAMMFactory, {
+    version: ammVersion,
+    suffix
+  })
+  const { EXCHANGES, LP_TOKENS } = await run(AMMExchangeContract.deployMany, {
+    FACTORY,
+    ammVersion
+  })
+  return {
+    FACTORY,   // The deployed AMM Factory.
+    EXCHANGES, // Exchanges that were created as part of the deployment
+    LP_TOKENS  // LP tokens that were created as part of the deployment
+  }
+}
+
+async function upgradeAMM ({
+  run, chain, agent, deployment, prefix, suffix = `+${timestamp()}`,
+  oldVersion = 'v1',
+  newVersion = 'v2',
+}) {
+
+  const name = `AMM[${oldVersion}].Factory`
+  const FACTORY = deployment.getThe(name, new AMMFactoryContract({
+    agent, name, version: oldVersion
+  }))
+
+  const EXCHANGES = await FACTORY.client(agent).exchanges
+
+  const { FACTORY: NEW_FACTORY } = await run(deployAMMFactory, {
+    version: newVersion, copyFrom: FACTORY, suffix
+  })
+
+  const NEW_EXCHANGES = []
+
+  if (!EXCHANGES || EXCHANGES.length === 0) console.warn('No exchanges in old factory.')
+
+  const factory = NEW_FACTORY.client(agent)
+  const inventory = await factory.getContracts()
+  const ammVersion = newVersion
+  await agent.bundle(async agent=>{
+    const factory = NEW_FACTORY.client(agent)
+    for (const { name, TOKEN_0, TOKEN_1 } of (EXCHANGES||[])) {
+      const exchange = await factory.createExchange(TOKEN_0, TOKEN_1)
+      NEW_EXCHANGES.push([TOKEN_0, TOKEN_1])
+    }
+  })
+
+  return {
+
+    // The AMM factory that was created as a result of the upgrade.
+    FACTORY: NEW_FACTORY,
+
+    // The AMM exchanges that were created as a result of the upgrade.
+    EXCHANGES: await Promise.all(NEW_EXCHANGES.map(async ([TOKEN_0, TOKEN_1])=>{
+      const exchange = await factory.getExchange(TOKEN_0, TOKEN_1)
+      return AMMExchangeContract.save({ deployment, ammVersion, inventory, exchange })
+    }))
+
   }
 
 }
@@ -181,60 +185,4 @@ export async function deployAMMFactory ({
   //)
   //printContract(FACTORY)
   return { FACTORY }
-}
-
-export async function deployAMMExchanges ({
-  run, chain, agent, deployment,
-  TOKENS    = { SIENNA: deployment.getThe('SIENNA', new SiennaSNIP20Contract({agent})) },
-  FACTORY,
-  EXCHANGES = [],
-  LP_TOKENS = [],
-  settings: { swapTokens, swapPairs } = getSettings(chain.id),
-}) {
-
-  // Collect referenced tokens, and created exchanges/LPs
-  if (chain.isLocalnet) {
-    // On localnet, deploy some placeholder tokens corresponding to the config.
-    const { PLACEHOLDERS } = await run(deployPlaceholders)
-    Object.assign(TOKENS, PLACEHOLDERS)
-  } else {
-    // On testnet and mainnet, talk to preexisting token contracts from the config.
-    console.info(`Not running on localnet, using tokens from config:`)
-    const tokens = {}
-    // Make sure the correct code hash is being used for each token:
-    for (
-      let [name, {address, codeHash}] of
-      Object.entries(swapTokens as Record<string, { address: string, codeHash: string }>)
-    ) {
-      // Soft code hash checking for now
-      const realCodeHash = await agent.getCodeHash(address)
-      if (codeHash !== realCodeHash) {
-        console.warn(bold('Code hash mismatch for'), address, `(${name})`)
-        console.warn(bold('  Config:'), codeHash)
-        console.warn(bold('  Chain: '), realCodeHash)
-      } else {
-        console.info(bold(`Code hash of ${address}:`), realCodeHash)
-      }
-      // Always use real code hash - TODO bring settings up to date
-      tokens[name] = new AMMSNIP20Contract({address, codeHash: realCodeHash, agent})
-    }
-    Object.assign(TOKENS, tokens)
-  }
-
-  // If there are any initial swap pairs defined in the config...
-  for (const name of swapPairs) {
-    // ...call the factory to deploy an EXCHANGE for each...
-    const { EXCHANGE, LP_TOKEN } = await run(AMMExchangeContract.deploy, {
-      FACTORY, TOKENS, name, ammVersion: FACTORY.version
-    })
-    // ...and collect the results
-    EXCHANGES.push(EXCHANGE)
-    LP_TOKENS.push(LP_TOKEN)
-  }
-
-  return {
-    TOKENS,    // Tokens supported by the AMM
-    EXCHANGES, // Newly created AMM Exchange contracts
-    LP_TOKENS, // Newly created AMM LP Token contracts
-  }
 }
