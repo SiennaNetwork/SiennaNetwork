@@ -1,7 +1,7 @@
-import { Agent, Contract } from '@hackbg/fadroma'
+import { Agent, Contract, Client } from '@hackbg/fadroma'
 import { b64encode } from "@waiting/base64"
 import { EnigmaUtils } from "secretjs"
-import { AMMExchangeContract, ExchangeInfo } from '@sienna/exchange'
+import { AMMExchangeClient, ExchangeInfo } from '@sienna/exchange'
 
 import { ContractInstantiationInfo } from './schema/init_msg.d'
 import { TokenType } from './schema/handle_msg.d'
@@ -16,23 +16,13 @@ export type FactoryInventory = {
   router_contract?:    ContractInstantiationInfo
 }
 
-export class FactoryClient {
-
-  constructor (
-    readonly agent:    Agent,
-    readonly address:  string,
-    readonly codeHash: string
-  ) {
-    if (!agent) {
-      throw new Error('@sienna/amm/FactoryClient: no agent')
-    }
-  }
+export class FactoryClient extends Client {
 
   /** Return the collection of contract templates
     * (`{ id, code_hash }` structs) that the factory
     * uses to instantiate contracts. */
   async getContracts (): Promise<FactoryInventory> {
-    const { config } = await this.agent.query(this, { get_config: {} })
+    const { config } = await this.query({ get_config: {} })
     return {
       snip20_contract:    config.snip20_contract,
       pair_contract:      config.pair_contract,
@@ -47,8 +37,8 @@ export class FactoryClient {
   async createExchange (
     token_0: TokenType,
     token_1: TokenType
-  ): Promise<ExchangeInfo> {
-    await this.agent.execute(this, {
+  ) {
+    await this.execute({
       create_exchange: {
         pair:    { token_0, token_1 },
         entropy: b64encode(EnigmaUtils.GenerateNewSeed().toString())
@@ -62,7 +52,7 @@ export class FactoryClient {
     token_1: TokenType
   ): Promise<ExchangeInfo> {
     const {get_exchange_address:{address}} =
-      await this.agent.query(this, {
+      await this.query({
         get_exchange_address: {
           pair: {
             token_0,
@@ -70,7 +60,7 @@ export class FactoryClient {
           }
         }
       })
-    return await AMMExchangeContract.get(
+    return await AMMExchangeClient.get(
       this.agent,
       address,
       token_0,
@@ -84,7 +74,7 @@ export class FactoryClient {
     const limit = 30
     let start = 0
     while (true) {
-      const {list_exchanges: {exchanges: list}} = await this.agent.query(this, {
+      const {list_exchanges: {exchanges: list}} = await this.query({
         list_exchanges: {
           pagination: { start, limit }
         }

@@ -1,21 +1,16 @@
 import { Console, bold } from '@hackbg/fadroma'
-
 const console = Console('@sienna/mgmt')
 
 import { Agent, Scrt_1_2 } from '@hackbg/fadroma'
 import { workspace, schedule } from '@sienna/settings'
 import type { Init, Schedule } from './schema/init'
 import { MGMTClient } from './MGMTClient'
-
+export { MGMTClient }
 export class MGMTContract extends Scrt_1_2.Contract<MGMTClient> {
-
-  name   = 'MGMT'
-
+  name = 'MGMT'
   source = { workspace, crate: 'sienna-mgmt' }
-
-  initMsg?: Init
-
   Client = MGMTClient
+  initMsg?: Init
 
   /** Command. Print the current status of a deployed MGMT contract. */
   static status = mgmtStatus

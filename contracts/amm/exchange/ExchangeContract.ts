@@ -1,36 +1,22 @@
-import { Agent, Console, bold, timestamp, randomHex, Scrt_1_2, Snip20Contract } from "@hackbg/fadroma"
-import { InitMsg } from './schema/init_msg.d'
-import { AMMTransactions, AMMQueries } from './ExchangeClient'
-import { TokenType, TokenPair, ContractLink } from './schema/query_msg_response.d'
-import { AMMSNIP20Contract, deployPlaceholders } from '@sienna/amm-snip20'
-import { LPTokenContract } from '@sienna/lp-token'
-import getSettings, { workspace } from '@sienna/settings'
+import { Console, bold, timestamp, randomHex } from "@hackbg/fadroma"
 
 const console = Console('@sienna/exchange')
 
-/** An exchange is an interaction between 4 contracts. */
-export type ExchangeInfo = {
-  /** Shorthand to refer to the whole group. */
-  name?: string
-  /** One token. */
-  TOKEN_0:  Snip20Contract|string,
-  /** Another token. */
-  TOKEN_1:  Snip20Contract|string,
-  /** The automated market maker/liquidity pool for the token pair. */
-  EXCHANGE: AMMExchangeContract,
-  /** The liquidity provision token, which is minted to stakers of the 2 tokens. */
-  LP_TOKEN: LPTokenContract,
-  /** The bare-bones data needed to retrieve the above. */
-  raw:      any
-}
+import { InitMsg } from './schema/init_msg.d'
+import { TokenType, TokenPair, ContractLink } from './schema/query_msg_response.d'
+import { AMMSNIP20Contract } from '@sienna/amm-snip20'
+import { LPTokenContract } from '@sienna/lp-token'
+import getSettings, { workspace } from '@sienna/settings'
 
+import { Scrt_1_2 } from "@hackbg/fadroma"
+import type { AMMVersion, ExchangeInfo } from './ExchangeClient'
 import { AMMExchangeClient } from './ExchangeClient'
-export class AMMExchangeContract extends Scrt_1_2.Contract<AMMExchangeClient> {
+export { AMMExchangeClient, AMMVersion, ExchangeInfo }
+export abstract class AMMExchangeContract extends Scrt_1_2.Contract<AMMExchangeClient> {
 
   name   = 'AMM.Exchange'
-
+  abstract readonly version: AMMVersion
   source = { workspace, crate: 'exchange' }
-
   Client = AMMExchangeClient
 
   initMsg?: InitMsg = {
@@ -42,20 +28,16 @@ export class AMMExchangeContract extends Scrt_1_2.Contract<AMMExchangeClient> {
     prng_seed:         randomHex(36),
   }
 
-  constructor (options) {
-    super(options)
-    const { version } = options||{}
-    if (version === 'v1') {
-      this.ref    = 'a99d8273b4'
-      this.suffix = `@v1+${timestamp()}`
-    } else if (version === 'v2') {
-      this.suffix = `@v2+${timestamp()}`
-    } else {
-      /* nop */
-    }
+  static "v1" = class AMMExchangeContract_v1 extends AMMExchangeContract {
+    name   = 'AMM[v1].Exchange'
+    version = "v1" as AMMVersion
+    source  = { workspace, crate: 'exchange', ref: 'a99d8273b4' }
   }
 
-  static get = getExchange
+  static "v2" = class AMMExchangeContract_v1 extends AMMExchangeContract {
+    name   = 'AMM[v2].Exchange'
+    version = "v2" as AMMVersion
+  }
 
   /** Procedure. Deploy a new exchange.
     * If the exchange already exists, do nothing.
@@ -96,7 +78,6 @@ export async function printExchanges (EXCHANGES?: any[]) {
 }
 
 async function deployAMMExchange (options) {
-
   const {
     agent, deployment, run,
     TOKENS = await run(AMMSNIP20Contract.getSupportedTokens),
@@ -107,7 +88,7 @@ async function deployAMMExchange (options) {
 
   const factory   = FACTORY.client(agent)
   const inventory = await factory.getContracts()
-  const { token0, token1 } = await run(AMMSNIP20Contract.tokensFromName, { name })
+  const { token0, token1 } = await run(AMMSNIP20Contract.tokensFromName, { TOKENS, name })
 
   try {
     const { EXCHANGE, LP_TOKEN } = await factory.getExchange(token0, token1)
@@ -127,8 +108,14 @@ async function deployAMMExchange (options) {
 
 }
 
-async function deployAMMExchanges (options) {
-
+import { MigrationContext } from '@hackbg/fadroma'
+import { FactoryClient } from '@sienna/api'
+async function deployAMMExchanges (options: MigrationContext & {
+  settings: { swapPairs: string[] }
+  TOKENS:     any,
+  FACTORY:    FactoryClient,
+  ammVersion: AMMVersion
+}) {
   const {
     run, agent, deployment,
     settings: { swapPairs } = getSettings(agent.chain.id),
@@ -136,32 +123,23 @@ async function deployAMMExchanges (options) {
     FACTORY,
     ammVersion
   } = options
-
-  // If there are any initial swap pairs defined in the config,
-  // call the factory to deploy an EXCHANGE for each, and collect the results
   if (swapPairs.length > 0) {
 
     const createdPairs = []
-    await agent.bundle(async agent=>{
-      const factory = FACTORY.client(agent)
+
+    await agent.bundle().wrap(async bundle=>{
+      const agent = FACTORY.agent
+      FACTORY.agent = bundle
+      const factory = new FactoryClient({...FACTORY})
       for (const name of swapPairs) {
-        const { token0, token1 } = await run(AMMSNIP20Contract.tokensFromName, { name })
+        const { token0, token1 } = await run(AMMSNIP20Contract.tokensFromName, { TOKENS, name })
         await factory.createExchange(token0, token1)
         createdPairs.push([token0, token1])
       }
+      FACTORY.agent = agent
     })
 
-    const factory = FACTORY.client(agent)
-    const inventory = await factory.getContracts()
-    const EXCHANGES = await Promise.all(createdPairs.map(async ([token0, token1])=>{
-      const exchange = await factory.getExchange(token0, token1)
-      return AMMExchangeContract.save({
-        deployment,
-        ammVersion,
-        inventory,
-        exchange
-      })
-    }))
+    const { EXCHANGES } = await run(saveCreatedPairs, { FACTORY, ammVersion, createdPairs })
 
     return {
       EXCHANGES: EXCHANGES.map(EXCHANGE=>EXCHANGE.EXCHANGE),
@@ -169,7 +147,20 @@ async function deployAMMExchanges (options) {
     }
 
   }
+}
 
+async function saveCreatedPairs ({ FACTORY, deployment, ammVersion, createdPairs }) {
+  const inventory = await FACTORY.getContracts()
+  const EXCHANGES = await Promise.all(createdPairs.map(async ([token0, token1])=>{
+    const exchange = await FACTORY.getExchange(token0, token1)
+    return AMMExchangeContract.save({
+      deployment,
+      ammVersion,
+      inventory,
+      exchange
+    })
+  }))
+  return { EXCHANGES }
 }
 
 async function redeployAMMExchanges (options) {
@@ -228,63 +219,4 @@ async function saveAMMExchange ({
   })
   EXCHANGE.prefix = LP_TOKEN.prefix = deployment.prefix
   return { name, raw, EXCHANGE, LP_TOKEN, TOKEN_0, TOKEN_1 }
-}
-
-async function getExchange (
-  agent:   Agent,
-  address: string,
-  token_0: Snip20Contract|TokenType,
-  token_1: Snip20Contract|TokenType
-): Promise<ExchangeInfo> {
-
-  const EXCHANGE = new AMMExchangeContract({
-    chain: agent.chain,
-    agent,
-    address,
-    codeHash: await agent.getCodeHash(address),
-    codeId:   await agent.getCodeId(address),
-  })
-
-  const getTokenName = async TOKEN => {
-    let TOKEN_NAME: string
-    if (TOKEN instanceof Snip20Contract) {
-      const TOKEN_INFO = await TOKEN.q(agent).tokenInfo()
-      return TOKEN_INFO.symbol
-    } else {
-      return 'SCRT'
-    }
-  }
-
-  const TOKEN_0      = Snip20Contract.fromTokenSpec(agent, token_0)
-  const TOKEN_0_NAME = await getTokenName(TOKEN_0)
-
-  const TOKEN_1      = Snip20Contract.fromTokenSpec(agent, token_1)
-  const TOKEN_1_NAME = await getTokenName(TOKEN_1)
-
-  const name = `${TOKEN_0_NAME}-${TOKEN_1_NAME}`
-
-  const { liquidity_token } = await EXCHANGE.pairInfo()
-
-  const LP_TOKEN = new LPTokenContract({
-    chain: agent.chain,
-    agent,
-    address:  liquidity_token.address,
-    codeHash: liquidity_token.code_hash,
-    codeId:   await agent.getCodeId(liquidity_token.address),
-  })
-
-  return {
-    raw: { // no methods, just data
-      exchange: { address: EXCHANGE.address },
-      lp_token: { address: LP_TOKEN.address, code_hash: LP_TOKEN.codeHash },
-      token_0,
-      token_1,
-    },
-    name,     // The human-friendly name of the exchange
-    EXCHANGE, // The exchange contract
-    LP_TOKEN, // The LP token contract
-    TOKEN_0,  // One token of the pair
-    TOKEN_1,  // The other token of the pair
-  }
-
 }

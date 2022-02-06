@@ -7,9 +7,9 @@ const console = Console('@sienna/tge/deploy')
 
 import type { Schedule } from '@sienna/mgmt/schema/handle.d'
 import {
-  SiennaSnip20Contract,
-  MGMTContract,
-  RPTContract
+  SiennaSnip20Contract, Snip20Client,
+  MGMTContract,         MGMTClient,
+  RPTContract,          RPTClient
 } from '@sienna/api'
 
 import * as settings from '@sienna/settings'
@@ -36,11 +36,11 @@ export async function deployTGE (context: MigrationContext & {
   schedule?: typeof settings.schedule,
 }): Promise<{
   /** Output: The deployed SIENNA Snip20 token contract. */
-  SIENNA:     SiennaSnip20Contract
+  SIENNA:     Snip20Client
   /** Output: The deployed MGMT contract. */
-  MGMT:       MGMTContract
+  MGMT:       MGMTClient
   /** Output: The deployed RPT contract. */
-  RPT:        RPTContract
+  RPT:        RPTClient
 }> {
 
   const {
@@ -71,11 +71,11 @@ export async function deployTGE (context: MigrationContext & {
   const portion = RPTAccount.portion_size
 
   const mgmtInitMsg = { admin: admin, token: siennaLink, schedule }
-  await deployment.instantiate(agent, [MGMT, mgmtInitMsg, 'SIENNA.MGMT'])
+  await deployment.instantiate(agent, [MGMT, mgmtInitMsg, 'MGMT'])
   const mgmtLink = [MGMT.instance.address, MGMT.instance.codeHash]
 
   const rptInitMsg = { token: siennaLink, mgmt: mgmtLink, portion, config: [[admin, portion]] } 
-  await deployment.instantiate(agent, [RPT, rptInitMsg, 'SIENNA.RPT'])
+  await deployment.instantiate(agent, [RPT, rptInitMsg, 'RPT'])
 
   RPTAccount.address = RPT.instance.address
 
@@ -98,7 +98,11 @@ export async function deployTGE (context: MigrationContext & {
     await mgmt.launch()
   })
 
-  return { SIENNA, MGMT, RPT }
+  return {
+    SIENNA: SIENNA.client(agent),
+    MGMT:   MGMT.client(agent),
+    RPT:    RPT.client(agent)
+  }
 
 }
 

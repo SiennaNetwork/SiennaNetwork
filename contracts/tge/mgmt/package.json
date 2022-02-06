@@ -2,7 +2,8 @@
   "name": "@sienna/mgmt",
   "version": "2.0.0",
   "type": "module",
-  "main": "./MGMTContract.ts",
+  "main":    "./MGMTContract.ts",
+  "browser": "./MGMTClient.ts",
   "dependencies": {
     "@hackbg/fadroma":  "workspace:../../../deps/fadroma",
     "@sienna/settings": "workspace:^1.0.0"

@@ -27,8 +27,8 @@ export class MGMTClient extends Client {
 
   /** take over a SNIP20 token */
   async acquire (token: Snip20Client) {
-    const tx1 = await token.setMinters([this.address]);
-    const tx2 = await token.changeAdmin(this.address);
+    const tx1 = await token.setMinters([this.address])
+    const tx2 = await token.changeAdmin(this.address)
     return [tx1, tx2]
   }
 
@@ -58,20 +58,3 @@ export class MGMTClient extends Client {
   }
 
 }
-
-  /** query current schedule */
-  //get schedule (): Promise<Schedule> {
-    //if (this.address) {
-      //return this.q().schedule()
-    //} else {
-      //return Promise.resolve(this.initMsg.schedule)
-    //}
-  //}
-
-  //set schedule (schedule: Schedule|Promise<Schedule>) {
-    //if (this.address) {
-      //throw new Error('Use the configure method to set the schedule of a deployed contract.')
-    //} else {
-      //Promise.resolve(schedule).then(schedule=>this.initMsg.schedule = schedule)
-    //}
-  //}
