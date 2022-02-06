@@ -5,13 +5,11 @@ import { workspace } from '@sienna/settings'
 const decoder = new TextDecoder();
 const decode = (buffer: any) => decoder.decode(buffer).trim();
 
-export class LaunchpadContract extends Scrt_1_2.Contract<any, any> {
+export class LaunchpadContract extends Scrt_1_2.Contract<any> {
 
-  workspace = workspace
+  name   = 'SiennaAMMLaunchpad'
 
-  crate = 'launchpad'
-
-  name  = 'SiennaAMMLaunchpad'
+  source = { workspace, crate: 'launchpad' }
 
   /**
    * This action will remove the token from the contract

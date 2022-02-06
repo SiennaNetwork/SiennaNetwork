@@ -10,8 +10,8 @@ export type LPTokenOptions = {
 
 export class LPTokenContract extends Snip20Contract_1_2 {
 
-  workspace = workspace
-  crate     = 'lp-token'
+  source = { workspace, crate: 'lp-token' }
+
   initMsg: InitMsg = {
     name:     "Liquidity Provision Token",
     symbol:   "LPTOKEN",

@@ -6,9 +6,11 @@ import { InitMsg } from './schema/init_msg.d'
 const console = Console('@sienna/amm-snip20')
 
 export class AMMSNIP20Contract extends Snip20Contract_1_2 {
-  workspace = workspace
-  crate = 'amm-snip20'
-  name  = 'AMMSnip20'
+
+  name  = 'AMM.SNIP20'
+
+  source = { workspace, crate: 'amm-snip20' }
+
   initMsg: InitMsg = {
     prng_seed: randomHex(36),
     name:      "",
@@ -19,15 +21,9 @@ export class AMMSNIP20Contract extends Snip20Contract_1_2 {
       enable_mint:         true
     },
   }
-  constructor (options) {
-    super(options)
-    const { name, agent } = options||{}
-    if (name) this.name = name // why
-    if (agent) this.agent = agent // why
-  }
 
   /** Procedure. Convert token name to token descriptor. */
-  static tokenFromName       = tokensFromName
+  static tokenFromName        = tokensFromName
   /** Procedure. Convert pair in format TOKEN0-TOKEN1 to token pair descriptor. */
   static tokensFromName       = tokensFromName
   /** Procedure. Get a collection of all supported tokens, including placeholders if localnet. */

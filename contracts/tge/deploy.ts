@@ -51,71 +51,59 @@ export async function deployTGE (context: MigrationContext & {
   const SIENNA = new SiennaSnip20Contract()
   const MGMT   = new MGMTContract()
   const RPT    = new RPTContract()
+
   await agent.chain.buildAndUpload(agent, [SIENNA, MGMT, RPT])
 
   const admin = agent.address
-  await agent.bundle()
-    .init(SIENNA.template, `${deployment.prefix}/Sienna`, {
-      name:      "Sienna",
-      symbol:    "SIENNA",
-      decimals:  18,
-      config:    { public_total_supply: true },
-      prng_seed: randomHex(36)
-    })
-    .run()
+
+  const siennaInitMsg = {
+    name:      "Sienna",
+    symbol:    "SIENNA",
+    decimals:  18,
+    config:    { public_total_supply: true },
+    prng_seed: randomHex(36)
+  }
+  await deployment.instantiate(agent, [SIENNA, siennaInitMsg])
+  const siennaLink = [SIENNA.instance.address, SIENNA.instance.codeHash] 
 
   const RPTAccount = getRPTAccount(schedule)
   RPTAccount.address = admin // mutate schedule
   const portion = RPTAccount.portion_size
 
-  await agent.bundle()
-    .init(MGMT.template, `${deployment.prefix}/Sienna.MGMT`, {
-      admin: admin,
-      token: [SIENNA.address, SIENNA.codeHash],
-      schedule
-    })
-    .run()
+  const mgmtInitMsg = { admin: admin, token: siennaLink, schedule }
+  await deployment.instantiate(agent, [MGMT, mgmtInitMsg, 'SIENNA.MGMT'])
+  const mgmtLink = [MGMT.instance.address, MGMT.instance.codeHash]
 
-  await agent.bundle()
-    .init(RPT.template, `${deployment.prefix}/Sienna.RPT`, {
-      token:   [SIENNA.address, SIENNA.codeHash],
-      mgmt:    [MGMT.address, MGMT.codeHash],
-      portion,
-      config:  [[admin, portion]]
-    })
-    .run()
+  const rptInitMsg = { token: siennaLink, mgmt: mgmtLink, portion, config: [[admin, portion]] } 
+  await deployment.instantiate(agent, [RPT, rptInitMsg, 'SIENNA.RPT'])
 
-  RPTAccount.address = RPT.address
+  RPTAccount.address = RPT.instance.address
 
   const { isTestnet, isLocalnet } = agent.chain
-  const configBundle = agent.bundle().wrap(async bundle=>{
-
+  await agent.bundle().wrap(async bundle=>{
     const sienna = SIENNA.client(bundle)
-
+    const mgmt   = MGMT.client(bundle)
     if (isTestnet||isLocalnet) {
-      console.warn(
-        'Minting some test tokens for the admin and other testers. Only for testnet and localnet.'
-      )
+      console.warn('Minting some test tokens for the admin and other testers. '+
+                   'Only for testnet and localnet.')
       await sienna.setMinters([admin])
-      for (const addr of [
-        admin,
-        "secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy",
-        "secret13nkfwfp8y9n226l9sy0dfs0sls8dy8f0zquz0y",
-        "secret1xcywp5smmmdxudc7xgnrezt6fnzzvmxqf7ldty",
-      ]) {
+      for (const addr of [ admin, ...testers ]) {
         const amount = "5000000000000000000000"
-        console.warn(bold('Minting'), amount, 'to', bold(addr))
+        console.warn(bold('Minting'), amount, bold('SIENNA'), 'to', bold(addr))
         await sienna.mint(amount, admin)
       }
     }
-
-    const mgmt = MGMT.client(agent)
     await mgmt.acquire(sienna)
     await mgmt.configure(schedule)
     await mgmt.launch()
-
   })
 
   return { SIENNA, MGMT, RPT }
 
 }
+
+const testers = [
+  "secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy",
+  "secret13nkfwfp8y9n226l9sy0dfs0sls8dy8f0zquz0y",
+  "secret1xcywp5smmmdxudc7xgnrezt6fnzzvmxqf7ldty",
+]

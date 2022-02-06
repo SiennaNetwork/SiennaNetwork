@@ -7,7 +7,7 @@ import { workspace, schedule } from '@sienna/settings'
 import type { Init, Schedule } from './schema/init'
 import { MGMTClient } from './MGMTClient'
 
-export class MGMTContract extends Scrt_1_2.Contract {
+export class MGMTContract extends Scrt_1_2.Contract<MGMTClient> {
 
   name   = 'MGMT'
 

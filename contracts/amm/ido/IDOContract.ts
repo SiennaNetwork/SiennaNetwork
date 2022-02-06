@@ -1,13 +1,11 @@
 import { Agent, ContractAPIOptions, Scrt_1_2 } from '@hackbg/fadroma'
 import { workspace } from '@sienna/settings'
 
-export class IDOContract extends Scrt_1_2.Contract<any, any> {
-
-  workspace = workspace
-
-  crate = 'ido'
+export class IDOContract extends Scrt_1_2.Contract<any> {
 
   name = 'SiennaIDO'
+
+  source = { workspace, crate: 'ido' }
 
   /**
    * Check if the address can participate in an IDO

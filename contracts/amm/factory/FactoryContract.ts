@@ -1,5 +1,5 @@
 import {
-  Scrt_1_2, SNIP20Contract, ContractInfo, Agent, MigrationContext,
+  Scrt_1_2, Snip20Contract, ContractInfo, Agent, MigrationContext,
   randomHex, colors, bold, Console, timestamp,
   printContract, printToken, printContracts
 } from '@hackbg/fadroma'
@@ -10,7 +10,7 @@ import { AMMSNIP20Contract } from '@sienna/amm-snip20'
 import { LPTokenContract } from '@sienna/lp-token'
 import { IDOContract } from '@sienna/ido'
 import { LaunchpadContract } from '@sienna/launchpad'
-import { SiennaSNIP20Contract } from '@sienna/snip20-sienna'
+import { SiennaSnip20Contract } from '@sienna/snip20-sienna'
 
 import { InitMsg, ExchangeSettings, ContractInstantiationInfo } from './schema/init_msg.d'
 import { TokenType } from './schema/handle_msg.d'
@@ -19,21 +19,19 @@ import { FactoryClient } from './FactoryClient'
 
 const console = Console('@sienna/factory')
 
-export class AMMFactoryContract extends Scrt_1_2.Contract<any, any> {
+export abstract class AMMFactoryContract extends Scrt_1_2.Contract<FactoryClient> {
 
-  workspace = workspace
+  abstract name: string
 
-  crate     = 'factory'
+  source = { workspace, crate: 'factory' }
 
-  client (agent: Agent): FactoryClient {
-    return new FactoryClient(agent, this.address, this.codeHash)
-  }
+  Client = FactoryClient
 
   /** Subclass. Sienna AMM Factory v1 */
   static v1 = class AMMFactoryContract_v1 extends AMMFactoryContract {
     version = 'v1'
     name    = `AMM[${this.version}].Factory`
-    ref     = 'a99d8273b4'
+    source  = { workspace, crate: 'factory', ref: 'a99d8273b4' }
     static deploy = function deployAMMFactory_v1 (input) {
       return AMMFactoryContract.deployAMM({ ...input, ammVersion: 'v1'})
     }
@@ -90,9 +88,10 @@ async function upgradeAMM ({
 }) {
 
   const name = `AMM[${oldVersion}].Factory`
-  const FACTORY = deployment.getThe(name, new AMMFactoryContract({
-    agent, name, version: oldVersion
-  }))
+  const FACTORY = deployment.getThe(
+    name,
+    new AMMFactoryContract[oldVersion]({ agent, name, version: oldVersion })
+  )
 
   const EXCHANGES = await FACTORY.client(agent).exchanges
 
@@ -134,55 +133,62 @@ async function upgradeAMM ({
   * It needs to be passed code ids and code hashes for
   * the different kinds of contracts that it can instantiate.
   * So build and upload versions of those contracts too. */
-export async function deployAMMFactory ({
-  prefix, agent, chain, deployment, suffix,
-  version = 'v2',
-  copyFrom,
-  initMsg = {
-    admin:             agent.address,
-    prng_seed:         randomHex(36),
-    exchange_settings: getSettings(chain.id).amm.exchange_settings,
-  }
-}) {
+export async function deployAMMFactory (context) {
+
+  const {
+    agent, deployment, prefix, suffix,
+    version = 'v2',
+    copyFrom,
+    initMsg = {
+      admin:             agent.address,
+      prng_seed:         randomHex(36),
+      exchange_settings: getSettings(agent.chain.id).amm.exchange_settings,
+    },
+    FACTORY = new AMMFactoryContract[version]({ prefix, suffix })
+  } = context
+
   const options = { prefix, agent }
-  const FACTORY   = new AMMFactoryContract[version]({ ...options, suffix })
-  const LAUNCHPAD = new LaunchpadContract({ ...options })
-  // launchpad is new to v2 so we build/upload it every time...
-  await chain.buildAndUpload(agent, [FACTORY, LAUNCHPAD])
-  const template = contract => ({ id: contract.codeId, code_hash: contract.codeHash })
+
+  await agent.chain.buildAndUpload(agent, [FACTORY])
+
   if (copyFrom) {
     const contracts = await copyFrom.client(agent).getContracts()
     if (version === 'v2') {
       delete contracts.snip20_contract
       delete contracts.ido_contract
     }
-    await deployment.init(agent, FACTORY, { ...initMsg, ...contracts })
-  } else {
-    const [EXCHANGE, AMMTOKEN, LPTOKEN, IDO] = await chain.buildAndUpload(agent, [
-      new AMMExchangeContract({ ...options, version }),
-      new AMMSNIP20Contract({   ...options }),
-      new LPTokenContract({     ...options }),
-      new IDOContract({         ...options }),
-    ])
-    const contracts = {
-      snip20_contract:    template(AMMTOKEN),
-      pair_contract:      template(EXCHANGE),
-      lp_token_contract:  template(LPTOKEN),
-      ido_contract:       template(IDO),
-    }
-    if (version === 'v2') {
-      delete contracts.snip20_contract
-      delete contracts.ido_contract
-      delete contracts.launchpad_contract
-    }
-    await deployment.getOrInit(agent, FACTORY, 'SiennaAMMFactory', {
+    await deployment.init(agent, FACTORY, {
       ...initMsg,
-      ...contracts
+      ...contracts 
     })
+    return { FACTORY }
   }
-  //console.info(
-    //bold(`Deployed factory ${version}`), FACTORY.label
-  //)
-  //printContract(FACTORY)
+
+  const EXCHANGE = new AMMExchangeContract({ ...options, version })
+  const AMMTOKEN = new AMMSNIP20Contract({   ...options })
+  const LPTOKEN  = new LPTokenContract({     ...options })
+  const IDO      = new IDOContract({         ...options })
+  await agent.chain.buildAndUpload(agent, [EXCHANGE, AMMTOKEN, LPTOKEN, IDO])
+
+  const template = contract => ({ id: contract.template.codeId, code_hash: contract.template.codeHash })
+
+  const contracts = {
+    snip20_contract:    template(AMMTOKEN),
+    pair_contract:      template(EXCHANGE),
+    lp_token_contract:  template(LPTOKEN),
+    ido_contract:       template(IDO),
+  }
+
+  if (version === 'v2') {
+    delete contracts.snip20_contract
+    delete contracts.ido_contract
+    delete contracts.launchpad_contract
+  }
+
+  await deployment.init(agent, FACTORY, {
+    ...initMsg,
+    ...contracts
+  })
+
   return { FACTORY }
 }

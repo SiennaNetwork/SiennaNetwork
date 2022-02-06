@@ -20,19 +20,25 @@ const {
 export abstract class RewardsContract extends Scrt_1_2.Contract {
 
   name   = 'Rewards'
+
   source = { workspace, crate: 'sienna-rewards' }
-  abstract version: RewardsAPIVersion
+
+  abstract version:        RewardsAPIVersion
 
   abstract rewardToken (): Promise<Snip20Contract>
+
   abstract lpToken     (): Promise<Snip20Contract>
 
   static "v2" = class RewardsContract_v2 extends RewardsContract {
 
     name    = `Rewards[${this.version}]`
+
     source = { workspace, crate: 'sienna-rewards', ref: 'rewards-2.1.2' }
+
     version = "v2" as RewardsAPIVersion
 
     initMsg?: any // TODO v2 init type
+
     Client = RewardsClient['v2']
 
     constructor (input) {
@@ -58,6 +64,7 @@ export abstract class RewardsContract extends Scrt_1_2.Contract {
       const {address, code_hash} = pool_info.lp_token
       return new T({ address, codeHash: code_hash, agent: this.agent }) as T
     }
+
     async rewardToken <T extends Snip20Contract> (T = Snip20Contract): Promise<T> {
       throw new Error('not implemented')
     }
@@ -83,10 +90,15 @@ export abstract class RewardsContract extends Scrt_1_2.Contract {
   }
 
   static "v3" = class RewardsContract_v3 extends RewardsContract {
+
     version = "v3" as RewardsAPIVersion
+
     name    = `Rewards[${this.version}]`
+
     initMsg?: Init
+
     Client = RewardsClient['v3']
+
     constructor (input) {
       super(input)
       const { lpToken, rewardToken, agent } = input
@@ -109,9 +121,11 @@ export abstract class RewardsContract extends Scrt_1_2.Contract {
       const { lp_token: { address, code_hash } } = await this.q().config()
       return new T({ address, codeHash: code_hash, agent: this.agent }) as T
     }
+
     async rewardToken <T extends Snip20Contract> (T = Snip20Contract): Promise<T> {
       throw new Error('not implemented')
     }
+
     get epoch (): Promise<number> {
       return this.q().pool_info().then(pool_info=>pool_info.clock.number)
     }

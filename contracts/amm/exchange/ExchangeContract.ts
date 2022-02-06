@@ -25,7 +25,7 @@ export type ExchangeInfo = {
 }
 
 import { AMMExchangeClient } from './ExchangeClient'
-export class AMMExchangeContract extends Scrt_1_2.Contract<AMMTransactions, AMMQueries> {
+export class AMMExchangeContract extends Scrt_1_2.Contract<AMMExchangeClient> {
 
   name   = 'AMM.Exchange'
 

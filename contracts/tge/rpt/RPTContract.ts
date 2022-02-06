@@ -12,7 +12,7 @@ export type RPTConfig    = [RPTRecipient, RPTAmount][]
 const console = Console('@sienna/rpt')
 
 import { RPTClient } from './RPTClient'
-export class RPTContract extends Scrt_1_2.Contract {
+export class RPTContract extends Scrt_1_2.Contract<RPTClient> {
 
   name = 'RPT'
 
@@ -35,7 +35,7 @@ async function rptStatus (context) {
     RPT = deployment.get('RPT', RPTContract)
   } = context
 
-  const status = await RPT.q().status()
+  const status = await RPT.client().status()
   console.debug(`RPT status of ${bold(agent.address)}`, status)
 
 }
