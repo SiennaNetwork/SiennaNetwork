@@ -4,13 +4,11 @@ use lend_shared::{
     fadroma::{
         cosmwasm_std::{
             Api, Binary, CanonicalAddr, Extern,
-            HumanAddr, Querier, StdResult, Storage,
-            Order
+            HumanAddr, Querier, StdResult, Storage
         },
-        cosmwasm_storage::{Bucket, ReadonlyBucket},
         schemars,
         schemars::JsonSchema,
-        storage::{load, save, ns_load, ns_save},
+        storage::{IterableStorage, load, save, ns_load, ns_save, ns_remove},
         crypto::sha_256,
         Canonize, ContractLink, Decimal256, Humanize, StdError, Uint256,
     },
@@ -29,8 +27,11 @@ pub struct Constants;
 #[derive(PartialEq, Debug)]
 pub struct Account(CanonicalAddr);
 
-#[derive(Serialize, Deserialize, JsonSchema, Default, Debug)]
-pub struct BorrowSnapshot(pub BorrowerInfo);
+#[derive(Serialize, Deserialize, JsonSchema, Debug)]
+pub struct BorrowSnapshot {
+    pub info: BorrowerInfo,
+    address: CanonicalAddr,
+}
 
 #[derive(Serialize, Deserialize, JsonSchema, PartialEq, Clone, Debug)]
 pub struct BorrowerId([u8; 32]);
@@ -176,6 +177,7 @@ impl Global {
 impl Account {
     const NS_BALANCES: &'static [u8] = b"balances";
     const NS_BORROWERS: &'static [u8] = b"borrowers";
+    const NS_BORROW_INFO: &'static [u8] = b"borrow_info";
     const NS_ID_TO_ADDR: &'static [u8] = b"ids";
     const NS_ADDR_TO_ID: &'static [u8] = b"addr";
 
@@ -262,24 +264,47 @@ impl Account {
     pub fn save_borrow_snapshot<S: Storage>(
         &self,
         storage: &mut S,
-        borrow_info: &BorrowSnapshot,
+        borrow_info: BorrowSnapshot,
     ) -> StdResult<()> {
-        let mut borrower_bucket: Bucket<'_, S, BorrowSnapshot> =
-            Bucket::new(Self::NS_BORROWERS, storage);
+        let mut borrowers = IterableStorage::<BorrowSnapshot>::new(Self::NS_BORROWERS);
 
-        if borrow_info.0.principal.is_zero() {
-            borrower_bucket.remove(&self.0.as_slice());
+        let index = ns_load(storage, Self::NS_BORROW_INFO, self.0.as_slice())?;
 
-            Ok(())
-        } else {
-            borrower_bucket.save(&self.0.as_slice(), borrow_info)
+        if let Some(index) = index {
+            if borrow_info.info.principal.is_zero() {
+                // If a swap occurred, update the stored borrower index to the new one. 
+                if let Some(swapped) = borrowers.swap_remove(storage, index)? {
+                    ns_save(storage, Self::NS_BORROW_INFO, swapped.address.as_slice(), &index)?;
+                }
+
+                ns_remove(storage, Self::NS_BORROW_INFO, self.0.as_slice());
+            } else {
+                borrowers.update_at(storage, index, |_| {
+                    Ok(borrow_info)
+                })?;
+            }
+        } else if !borrow_info.info.principal.is_zero() {
+            let index = borrowers.push(storage, &borrow_info)?;
+            ns_save(storage, Self::NS_BORROW_INFO, self.0.as_slice(), &index)?;
         }
+
+        Ok(())
     }
 
     pub fn get_borrow_snapshot(&self, storage: &impl Storage) -> StdResult<BorrowSnapshot> {
-        let borrower_bucket = ReadonlyBucket::new(Self::NS_BORROWERS, storage);
+        let index = ns_load(storage, Self::NS_BORROW_INFO, self.0.as_slice())?;
 
-        Ok(borrower_bucket.may_load(self.0.as_slice())?.unwrap_or_default())
+        match index {
+            Some(index) => {
+                let borrowers = IterableStorage::new(Self::NS_BORROWERS);
+                
+                Ok(borrowers.get_at(storage, index)?.unwrap())
+            }
+            None => Ok(BorrowSnapshot {
+                address: self.0.clone(),
+                info: BorrowerInfo::default()
+            })
+        }
     }
 
     #[inline]
@@ -318,42 +343,30 @@ impl AuthenticatedUser for Account {
 
 pub fn load_borrowers<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
-    start_after: Option<Binary>,
+    start_after: Option<u64>,
     limit: Option<u8>
 ) -> StdResult<Vec<BorrowerRecord>> {
-    let collaterals_bucket: ReadonlyBucket<'_, S, BorrowSnapshot> =
-        ReadonlyBucket::new(Account::NS_BORROWERS, &deps.storage);
+    let borrowers = IterableStorage::<BorrowSnapshot>::new(Account::NS_BORROWERS);
 
     let limit = limit.unwrap_or(PAGINATION_LIMIT).min(PAGINATION_LIMIT) as usize;
-    let start = calc_range_start(start_after);
 
-    collaterals_bucket
-        .range(start.as_deref(), None, Order::Ascending)
+    borrowers
+        .iter(&deps.storage)?
+        .skip(start_after.unwrap_or(0) as usize)
         .take(limit)
-        .map(|elem| {
-            let (k, v) = elem?;
-            let address = CanonicalAddr::from(k);
-
-            let id = Account::load_id(&deps.storage, &address)?
+        .map(|item| {
+            let item = item?;
+            let id = Account::load_id(&deps.storage, &item.address)?
                 .unwrap()
                 .into();
 
             Ok(BorrowerRecord {
                 id,
-                address: address.humanize(&deps.api)?,
-                info: v.0
+                address: item.address.humanize(&deps.api)?,
+                info: item.info
             })
         })
         .collect()
-}
-
-// this will set the first key after the provided key, by appending a byte
-fn calc_range_start(start_after: Option<Binary>) -> Option<Vec<u8>> {
-    start_after.map(|addr| {
-        let mut v = addr.as_slice().to_vec();
-        v.push(1);
-        v
-    })
 }
 
 impl BorrowerId {
@@ -405,5 +418,79 @@ impl TryFrom<Vec<u8>> for BorrowerId {
             Ok(data) => Ok(Self(data)),
             Err(_) => Err(StdError::generic_err("Couldn't create BorrowerId from bytes."))
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use lend_shared::fadroma::testing::mock_dependencies;
+
+    fn load_index(storage: &impl Storage, account: &Account) -> Option<u64> {
+        ns_load(storage, Account::NS_BORROW_INFO, account.0.as_slice()).unwrap()
+    }
+
+    #[test]
+    fn snapshots() {
+        let ref mut deps = mock_dependencies(20, &[]);
+
+        let dave = HumanAddr::from("dave");
+        let dave = Account(dave.canonize(&deps.api).unwrap());
+
+        let mut snapshot = dave.get_borrow_snapshot(&deps.storage).unwrap();
+        assert!(load_index(&deps.storage, &dave).is_none());
+
+        snapshot.info.principal = Uint256::from(1);
+        snapshot.info.interest_index = Decimal256::one();
+
+        dave.save_borrow_snapshot(&mut deps.storage, snapshot).unwrap();
+        assert_eq!(load_index(&deps.storage, &dave).unwrap(), 0);
+
+        let nancy = HumanAddr::from("nancy");
+        let nancy = Account(nancy.canonize(&deps.api).unwrap());
+
+        let mut snapshot = nancy.get_borrow_snapshot(&deps.storage).unwrap();
+        snapshot.info.principal = Uint256::from(2);
+        snapshot.info.interest_index = Decimal256::from_uint256(Uint256::from(2)).unwrap();
+
+        nancy.save_borrow_snapshot(&mut deps.storage, snapshot).unwrap();
+        assert_eq!(load_index(&deps.storage, &nancy).unwrap(), 1);
+
+        let mut snapshot = dave.get_borrow_snapshot(&deps.storage).unwrap();
+        snapshot.info.principal = Uint256::from(3);
+
+        dave.save_borrow_snapshot(&mut deps.storage, snapshot).unwrap();
+
+        let snapshot = nancy.get_borrow_snapshot(&deps.storage).unwrap();
+        assert_eq!(snapshot.info.principal, Uint256::from(2));
+        assert_eq!(snapshot.info.interest_index, Decimal256::from_uint256(Uint256::from(2)).unwrap());
+        assert_eq!(snapshot.address, nancy.0);
+
+        let mut snapshot = dave.get_borrow_snapshot(&deps.storage).unwrap();
+        assert_eq!(snapshot.info.principal, Uint256::from(3));
+        assert_eq!(snapshot.info.interest_index, Decimal256::one());
+        assert_eq!(snapshot.address, dave.0);
+
+        let ryan = HumanAddr::from("ryan");
+        let ryan = Account(ryan.canonize(&deps.api).unwrap());
+
+        ryan.save_borrow_snapshot(&mut deps.storage, BorrowSnapshot {
+            address: ryan.0.clone(),
+            info: BorrowerInfo::default()
+        }).unwrap();
+
+        assert_eq!(load_index(&deps.storage, &dave).unwrap(), 0);
+        assert_eq!(load_index(&deps.storage, &nancy).unwrap(), 1);
+
+        snapshot.info.principal = Uint256::zero();
+        dave.save_borrow_snapshot(&mut deps.storage, snapshot).unwrap();
+
+        assert!(load_index(&deps.storage, &dave).is_none());
+        assert_eq!(load_index(&deps.storage, &nancy).unwrap(), 0);
+
+        let snapshot = nancy.get_borrow_snapshot(&deps.storage).unwrap();
+        assert_eq!(snapshot.info.principal, Uint256::from(2));
+        assert_eq!(snapshot.info.interest_index, Decimal256::from_uint256(Uint256::from(2)).unwrap());
+        assert_eq!(snapshot.address, nancy.0);
     }
 }

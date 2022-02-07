@@ -240,7 +240,7 @@ pub trait Market {
 
         let mut snapshot = account.get_borrow_snapshot(&deps.storage)?;
         snapshot.add_balance(latest.borrow_index(&deps.storage)?, amount)?;
-        account.save_borrow_snapshot(&mut deps.storage, &snapshot)?;
+        account.save_borrow_snapshot(&mut deps.storage, snapshot)?;
 
         TotalBorrows::increase(&mut deps.storage, amount)?;
 
@@ -258,7 +258,6 @@ pub trait Market {
             ],
             log: vec![
                 log("action", "borrow"),
-                log("borrow_info", snapshot.0)
             ],
             data: None
         })
@@ -679,7 +678,7 @@ pub trait Market {
     #[query]
     fn borrowers(
         block: u64,
-        start_after: Option<Binary>,
+        start_after: Option<u64>,
         limit: Option<u8>
     ) -> StdResult<Vec<Borrower>> {
         let borrowers = load_borrowers(deps, start_after, limit)?;
@@ -735,7 +734,7 @@ fn repay<S: Storage, A: Api, Q: Querier>(
 
     let mut snapshot = borrower.get_borrow_snapshot(&deps.storage)?;
     snapshot.subtract_balance(latest.borrow_index(&deps.storage)?, amount)?;
-    borrower.save_borrow_snapshot(&mut deps.storage, &snapshot)?;
+    borrower.save_borrow_snapshot(&mut deps.storage, snapshot)?;
 
     TotalBorrows::decrease(&mut deps.storage, amount)?;
 
@@ -785,7 +784,7 @@ fn liquidate<S: Storage, A: Api, Q: Querier>(
 
     // Do repay
     snapshot.subtract_balance(borrow_index, amount)?;
-    borrower.save_borrow_snapshot(&mut deps.storage, &snapshot)?;
+    borrower.save_borrow_snapshot(&mut deps.storage, snapshot)?;
 
     TotalBorrows::decrease(&mut deps.storage, amount)?;
 
