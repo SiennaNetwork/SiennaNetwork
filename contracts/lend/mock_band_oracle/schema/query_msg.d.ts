@@ -7,7 +7,7 @@
 
 export type QueryMsg =
   | {
-      price: {
+      get_reference_data: {
         base_symbol: string;
         quote_symbol: string;
         [k: string]: unknown;
@@ -15,7 +15,7 @@ export type QueryMsg =
       [k: string]: unknown;
     }
   | {
-      prices: {
+      get_reference_data_bulk: {
         base_symbols: string[];
         quote_symbols: string[];
         [k: string]: unknown;

@@ -9,8 +9,7 @@ import {
   randomHex,
   timestamp,
 } from "@hackbg/fadroma";
-
-import { Snip20 } from "../../frontends/siennajs/lib/snip20";
+import { b64encode } from "@waiting/base64";
 
 import {
   InterestModelContract,
@@ -37,6 +36,7 @@ export async function testLend({
 
   const ALICE = await chain.getAgent("ALICE");
   const BOB = await chain.getAgent("BOB");
+  const MALLORY = await chain.getAgent("MALLORY");
 
   const INTEREST_MODEL = new InterestModelContract({ workspace });
   const ORACLE = new LendOracleContract({ workspace });
@@ -67,46 +67,40 @@ export async function testLend({
     MOCK_ORACLE.label
   );
 
-  const token1 = await deployment.getOrInit(agent, TOKEN1, "SLATOM", {
-    name: "slToken1",
-    symbol: "SLATOM",
-    decimals: 18,
-    prng_seed: randomHex(36),
-    config: {
-      enable_burn: true,
-      enable_deposit: true,
-      enable_mint: true,
-      enable_redeem: true,
-      public_total_supply: true,
+  // set prices
+  await agent.execute(deployedMockOracle, {
+    set_price: {
+      symbol: "SLATOM",
+      price: "1",
     },
   });
-
-  const token2 = await deployment.getOrInit(agent, TOKEN2, "SLSCRT", {
-    name: "slToken2",
-    symbol: "SLSCRT",
-    decimals: 18,
-    prng_seed: randomHex(36),
-    config: {
-      enable_burn: true,
-      enable_deposit: true,
-      enable_mint: true,
-      enable_redeem: true,
-      public_total_supply: true,
+  await agent.execute(deployedMockOracle, {
+    set_price: {
+      symbol: "SLSCRT",
+      price: "1",
     },
   });
+  const token1 = await deployment.getOrInit(agent, TOKEN1, "SLATOM");
 
+  const token2 = await deployment.getOrInit(agent, TOKEN2, "SLSCRT");
+
+  console.info("minting tokens...");
   await withGasReport(agent, token1, {
     mint: { recipient: BOB.address, amount: "100" },
   });
+  await withGasReport(agent, token1, {
+    mint: { recipient: MALLORY.address, amount: "100" },
+  });
   await withGasReport(agent, token2, {
-    mint: { recipient: ALICE.address, amount: "100" },
+    mint: { recipient: ALICE.address, amount: "200" },
   });
 
+  console.info("listing markets...");
   await withGasReport(agent, deployedOverseer, {
     whitelist: {
       config: {
         config: {
-          initial_exchange_rate: "1",
+          initial_exchange_rate: "0.2",
           reserve_factor: "1",
           seize_factor: "0.9",
         },
@@ -115,9 +109,9 @@ export async function testLend({
           address: deployedInterestModel.address,
           code_hash: deployedInterestModel.codeHash,
         },
-        ltv_ratio: "0.9",
+        ltv_ratio: "0.7",
         prng_seed: randomHex(36),
-        token_symbol: "SLTOKEN1",
+        token_symbol: "SLATOM",
         underlying_asset: {
           address: token1.address,
           code_hash: token1.codeHash,
@@ -130,7 +124,7 @@ export async function testLend({
     whitelist: {
       config: {
         config: {
-          initial_exchange_rate: "1",
+          initial_exchange_rate: "0.2",
           reserve_factor: "1",
           seize_factor: "0.9",
         },
@@ -139,9 +133,9 @@ export async function testLend({
           address: deployedInterestModel.address,
           code_hash: deployedInterestModel.codeHash,
         },
-        ltv_ratio: "0.9",
+        ltv_ratio: "0.7",
         prng_seed: randomHex(36),
-        token_symbol: "SLTOKEN1",
+        token_symbol: "SLSCRT",
         underlying_asset: {
           address: token2.address,
           code_hash: token2.codeHash,
@@ -150,7 +144,64 @@ export async function testLend({
     },
   });
 
-  let markets = await agent.query(deployedOverseer, {markets: {start: 0, limit: 10}})
+  let [market1, market2] = await agent.query(deployedOverseer, {
+    markets: { pagination: { start: 0, limit: 10 } },
+  });
+
+  console.info("depositing...");
+  await withGasReport(BOB, token1, {
+    send: {
+      recipient: market1.contract.address,
+      recipient_code_hash: market1.contract.code_hash,
+      amount: "100",
+      msg: b64encode(JSON.stringify("deposit")),
+    },
+  });
+
+  await withGasReport(ALICE, token2, {
+    send: {
+      recipient: market2.contract.address,
+      recipient_code_hash: market2.contract.code_hash,
+      amount: "100",
+      msg: b64encode(JSON.stringify("deposit")),
+    },
+  });
+
+  console.info("entering markets...");
+  await withGasReport(BOB, deployedOverseer, {
+    enter: {
+      markets: [market1.contract.address, market2.contract.address],
+    },
+  });
+
+  await withGasReport(ALICE, deployedOverseer, {
+    enter: {
+      markets: [market1.contract.address, market2.contract.address],
+    },
+  });
+
+  console.info("borrowing...");
+  await withGasReport(BOB, market2.contract, {
+    borrow: {
+      amount: "100",
+    },
+  });
+
+  await withGasReport(MALLORY, market2.contract, {
+    borrow: {
+      amount: "100",
+    },
+  });
+
+  console.info("repaying...");
+  await withGasReport(BOB, token2, {
+    send: {
+      recipient: market2.contract.address,
+      recipient_code_hash: market2.contract.code_hash,
+      amount: "100",
+      msg: b64encode(JSON.stringify({ repay: { borrower: null } })),
+    },
+  });
 
   console.table(gasTable, ["op", "gas_wanted", "gas_used"]);
 }
