@@ -113,29 +113,17 @@
           "type": "object",
           "required": [
             "exchange_settings",
-            "ido_contract",
-            "launchpad_contract",
             "lp_token_contract",
-            "pair_contract",
-            "snip20_contract"
+            "pair_contract"
           ],
           "properties": {
             "exchange_settings": {
               "$ref": "#/definitions/ExchangeSettings"
             },
-            "ido_contract": {
-              "$ref": "#/definitions/ContractInstantiationInfo"
-            },
-            "launchpad_contract": {
-              "$ref": "#/definitions/ContractInstantiationInfo"
-            },
             "lp_token_contract": {
               "$ref": "#/definitions/ContractInstantiationInfo"
             },
             "pair_contract": {
-              "$ref": "#/definitions/ContractInstantiationInfo"
-            },
-            "snip20_contract": {
               "$ref": "#/definitions/ContractInstantiationInfo"
             }
           }

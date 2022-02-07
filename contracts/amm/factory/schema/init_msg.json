@@ -4,12 +4,9 @@
   "type": "object",
   "required": [
     "exchange_settings",
-    "ido_contract",
-    "launchpad_contract",
     "lp_token_contract",
     "pair_contract",
-    "prng_seed",
-    "snip20_contract"
+    "prng_seed"
   ],
   "properties": {
     "admin": {
@@ -25,12 +22,6 @@
     "exchange_settings": {
       "$ref": "#/definitions/ExchangeSettings"
     },
-    "ido_contract": {
-      "$ref": "#/definitions/ContractInstantiationInfo"
-    },
-    "launchpad_contract": {
-      "$ref": "#/definitions/ContractInstantiationInfo"
-    },
     "lp_token_contract": {
       "$ref": "#/definitions/ContractInstantiationInfo"
     },
@@ -39,9 +30,6 @@
     },
     "prng_seed": {
       "$ref": "#/definitions/Binary"
-    },
-    "snip20_contract": {
-      "$ref": "#/definitions/ContractInstantiationInfo"
     }
   },
   "additionalProperties": false,

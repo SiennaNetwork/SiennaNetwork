@@ -1,4 +1,5 @@
-import { Agent, randomHex, SNIP20Contract_1_2 } from "@hackbg/fadroma"
+import { Agent, randomHex, Snip20Contract_1_2 } from "@hackbg/fadroma"
+import { workspace } from '@sienna/settings'
 import { InitMsg } from "./schema/init_msg.d"
 
 export type LPTokenOptions = {
@@ -7,10 +8,11 @@ export type LPTokenOptions = {
   prefix?: string,
 }
 
-export class LPTokenContract extends SNIP20Contract_1_2 {
-
-  crate = 'lp-token'
-
+import { LPTokenClient } from './LPTokenClient'
+export { LPTokenClient }
+export class LPTokenContract extends Snip20Contract_1_2 {
+  source = { workspace, crate: 'lp-token' }
+  Client = LPTokenClient
   initMsg: InitMsg = {
     name:     "Liquidity Provision Token",
     symbol:   "LPTOKEN",
@@ -24,7 +26,6 @@ export class LPTokenContract extends SNIP20Contract_1_2 {
     },
     prng_seed: randomHex(36),
   }
-
   constructor (options = {}) {
     super(options)
     if (options.name) {
@@ -33,17 +34,4 @@ export class LPTokenContract extends SNIP20Contract_1_2 {
       this.initMsg.symbol = `LP-${options?.name}`
     }
   }
-
-  get friendlyName (): Promise<string> {
-    const { chain, agent } = this
-    return this.info.then(async ({name})=>{
-      const fragments = name.split(' ')
-      const [t0addr, t1addr] = fragments[fragments.length-1].split('-')
-      const t0 = new SNIP20Contract_1_2({ chain, agent, address: t0addr })
-      const t1 = new SNIP20Contract_1_2({ chain, agent, address: t1addr })
-      const [t0info, t1info] = await Promise.all([t0.info, t1.info])
-      return `LP-${t0info.symbol}-${t1info.symbol}`
-    })
-  }
-
 }

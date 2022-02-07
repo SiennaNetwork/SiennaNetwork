@@ -16,12 +16,9 @@ export type Binary = string;
 export interface InitMsg {
   admin?: HumanAddr | null;
   exchange_settings: ExchangeSettings;
-  ido_contract: ContractInstantiationInfo;
-  launchpad_contract: ContractInstantiationInfo;
   lp_token_contract: ContractInstantiationInfo;
   pair_contract: ContractInstantiationInfo;
   prng_seed: Binary;
-  snip20_contract: ContractInstantiationInfo;
 }
 export interface ExchangeSettings {
   sienna_burner?: HumanAddr | null;

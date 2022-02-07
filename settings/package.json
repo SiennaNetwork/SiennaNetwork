@@ -4,6 +4,7 @@
   "type": "module",
   "main": "index.js",
   "dependencies": {
-    "js-yaml": "^4.1.0"
+    "js-yaml": "^4.1.0",
+    "@hackbg/konzola": "^1"
   }
 }

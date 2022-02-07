@@ -1,17 +1,20 @@
+import Konzola from '@hackbg/konzola'
 import { resolve, dirname } from 'path'
 import { existsSync, readFileSync } from 'fs'
 import { fileURLToPath } from 'url'
+
+const console = Konzola.default('@sienna/settings')
 
 import YAML from 'js-yaml'
 
 export default function getSettingsForChain (chainId) {
   const source = resolve(__dirname, 'by-chain-id', chainId + '.yml')
-  console.info('Getting settings from', source)
+  //console.info('Getting settings from', source)
   if (!existsSync(source)) {
     throw new Error(`settings/by-chain-id/${chainId}.yml does not exist`)
   }
   const content = readFileSync(source, 'utf8')
-  console.log(content)
+  //console.log(content)
   const settings = YAML.load(content)
   return settings
 }

@@ -13,7 +13,7 @@ export type HandleMsg =
         /**
          * The amount the price moves in a trading pair between when a transaction is submitted and when it is executed. Transactions that exceed this threshold will be rejected.
          */
-        slippage_tolerance?: Decimal | null;
+        slippage_tolerance?: Decimal256 | null;
         [k: string]: unknown;
       };
       [k: string]: unknown;
@@ -67,11 +67,9 @@ export type TokenType =
     };
 export type HumanAddr = string;
 /**
- * A fixed-point decimal value with 18 fractional digits, i.e. Decimal(1_000_000_000_000_000_000) == 1.0
- *
- * The greatest possible value that can be represented is 340282366920938463463.374607431768211455 (which is (2^128 - 1) / 10^18)
+ * A fixed-point decimal value with 18 fractional digits, i.e. Decimal256(1_000_000_000_000_000_000) == 1.0 The greatest possible value that can be represented is 115792089237316195423570985008687907853269984665640564039457.584007913129639935 (which is (2^128 - 1) / 10^18)
  */
-export type Decimal = string;
+export type Decimal256 = string;
 /**
  * Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.
  *
