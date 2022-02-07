@@ -1,6 +1,5 @@
 import {
   MigrationContext,
-  printContracts,
   Deployment,
   Chain,
   Agent,
@@ -8,6 +7,7 @@ import {
   Console,
   randomHex,
   timestamp,
+  Template,
 } from "@hackbg/fadroma";
 
 import {
@@ -38,16 +38,23 @@ export async function deployLend({
   TOKEN1: AMMSNIP20Contract;
   TOKEN2: AMMSNIP20Contract;
 }> {
-  let [INTEREST_MODEL, ORACLE, MARKET, OVERSEER, MOCK_ORACLE, TOKEN1, TOKEN2] =
-    await chain.buildAndUpload(agent, [
-      new InterestModelContract({ workspace }),
-      new LendOracleContract({ workspace }),
-      new LendMarketContract({ workspace }),
-      new LendOverseerContract({ workspace }),
-      new MockOracleContract({ workspace }),
-      new AMMSNIP20Contract({ workspace, name: "SLATOM" }),
-      new AMMSNIP20Contract({ workspace, name: "SLSCRT" }),
-    ]);
+  const INTEREST_MODEL = new InterestModelContract();
+  const ORACLE = new LendOracleContract();
+  const MARKET = new LendMarketContract();
+  const OVERSEER = new LendOverseerContract();
+  const MOCK_ORACLE = new MockOracleContract();
+  const TOKEN1 = new AMMSNIP20Contract({ name: "SLATOM" });
+  const TOKEN2 = new AMMSNIP20Contract({ name: "SLSCRT" });
+
+  await chain.buildAndUpload(agent, [
+    INTEREST_MODEL,
+    ORACLE,
+    MARKET,
+    OVERSEER,
+    MOCK_ORACLE,
+    TOKEN1,
+    TOKEN2,
+  ]);
 
   await deployment.getOrInit(agent, TOKEN1, "SLATOM", {
     name: "slToken1",
@@ -96,12 +103,12 @@ export async function deployLend({
     close_factor: "0.5",
     entropy: randomHex(36),
     market_contract: {
-      code_hash: MARKET.codeHash,
-      id: MARKET.codeId,
+      code_hash: MARKET.template.codeHash,
+      id: Number(MARKET.template.codeId),
     },
     oracle_contract: {
-      code_hash: ORACLE.codeHash,
-      id: ORACLE.codeId,
+      code_hash: ORACLE.template.codeHash,
+      id: Number(ORACLE.template.codeId),
     },
     oracle_source: {
       address: mock_oracle.address,
