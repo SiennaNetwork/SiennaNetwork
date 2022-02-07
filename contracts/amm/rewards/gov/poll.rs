@@ -12,6 +12,7 @@ pub struct Poll {
     pub metadata: PollMetadata,
     pub expiration: Expiration,
     pub status: PollStatus,
+    pub reveal_approvals: Vec<CanonicalAddr>
 }
 
 impl Poll {
@@ -20,6 +21,7 @@ impl Poll {
     pub const CREATOR: &'static [u8] = b"/gov/poll/creator/";
     pub const EXPIRATION: &'static [u8] = b"/gov/poll/expiration";
     pub const STATUS: &'static [u8] = b"/gov/poll/status";
+    pub const REVEAL_STATUS: &'static [u8] = b"/gov/poll/reveal_approvals";
 }
 
 pub trait IPoll<S, A, Q, C>
@@ -42,6 +44,8 @@ where
     fn status(core: &C, poll_id: u64) -> StdResult<PollStatus>;
 
     fn commit_status(&self, core: &mut C) -> StdResult<()>;
+    fn approve(core: &mut C, sender: &HumanAddr) -> StdResult<()>;
+    fn reveal_approvals( core: &C) -> StdResult<Vec<CanonicalAddr>>;
 }
 
 impl<S, A, Q, C> IPoll<S, A, Q, C> for Poll
@@ -71,6 +75,7 @@ where
             id,
             metadata,
             status,
+            reveal_approvals
         } = self;
 
         core.set_ns(Self::CREATOR, &self.id.to_be_bytes(), creator)?;
@@ -86,12 +91,14 @@ where
         let expiration = Self::expiration(core, poll_id)?;
         let status = Self::status(core, poll_id)?;
         let metadata = Self::metadata(core, poll_id)?;
+        let reveal_approvals = Self::reveal_approvals(core)?;
         Ok(Self {
             id: poll_id,
             creator,
             expiration,
             metadata,
             status,
+            reveal_approvals
         })
     }
 
@@ -121,6 +128,18 @@ where
 
         Ok(())
     }
+
+
+    fn approve(core: &mut C, sender: &HumanAddr) -> StdResult<()> {
+        Ok(())
+    }
+
+    fn reveal_approvals( core: &C) -> StdResult<Vec<CanonicalAddr>> {
+        // core.set_ns(Self::STATUS, &self.id.to_be_bytes(), self.status.clone())?;
+
+        Ok(vec![])
+    }
+
 }
 
 

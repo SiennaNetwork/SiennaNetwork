@@ -8,3 +8,4 @@ pub mod poll_metadata;
 pub mod expiration;
 pub mod governance;
 pub mod vote;
+pub mod reveal;

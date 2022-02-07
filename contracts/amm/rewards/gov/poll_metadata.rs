@@ -13,14 +13,12 @@ pub struct PollMetadata {
     pub title: String,
     pub description: String,
     pub poll_type: PollType,
-    pub reveal_committee: [RevealCommitteeMember; 3]
 }
 
 impl PollMetadata {
     pub const TITLE: &'static [u8] = b"/poll/meta/title/";
     pub const DESCRIPTION: &'static [u8] = b"/poll/meta/desc/";
     pub const POLL_TYPE: &'static [u8] = b"/poll/meta/type/";
-    pub const REVEAL_COMMITTEE: &'static [u8] = b"/gov/poll/committee";
 }
 pub trait IPollMetaData<S, A, Q, C>
 where
@@ -35,12 +33,10 @@ where
     fn commit_title(&self, core: &mut C, poll_id: u64) -> StdResult<()>;
     fn commit_description(&self, core: &mut C, poll_id: u64) -> StdResult<()>;
     fn commit_poll_type(&self, core: &mut C, poll_id: u64) -> StdResult<()>;
-    fn commit_reveal_committee_member(&self,  core: &mut C, poll_id: u64) -> StdResult<()>;
-
+    
     fn title(core: &C, poll_id: u64) -> StdResult<String>;
     fn description(core: &C, poll_id: u64) -> StdResult<String>;
     fn poll_type(core: &C, poll_id: u64) -> StdResult<PollType>;
-    fn reveal_committee(core: &C, poll_id: u64) -> StdResult<[RevealCommitteeMember; 3]>;
 }
 impl<S, A, Q, C> IPollMetaData<S, A, Q, C> for PollMetadata
 where
@@ -62,7 +58,6 @@ where
             description: Self::description(core, poll_id)?,
             title: Self::title(core, poll_id)?,
             poll_type: Self::poll_type(core, poll_id)?,
-            reveal_committee: Self::reveal_committee(core, poll_id)?
         })
     }
 
@@ -89,15 +84,6 @@ where
         Ok(())
     }
 
-    fn commit_reveal_committee_member(&self,  core: &mut C, poll_id: u64) -> StdResult<()> {
-        core.set_ns(
-            Self::REVEAL_COMMITTEE,
-            &poll_id.to_be_bytes(),
-            self.reveal_committee.clone(),
-        )?;
-        Ok(())   
-    }
-
     fn title(core: &C, poll_id: u64) -> StdResult<String> {
         core.get_ns(Self::TITLE, &poll_id.to_be_bytes())?
             .ok_or(StdError::generic_err(
@@ -119,10 +105,6 @@ where
             ))?
     }
 
-    fn reveal_committee(core: &C, poll_id: u64) -> StdResult<[RevealCommitteeMember; 3]> {
-        core.get_ns(Self::REVEAL_COMMITTEE, &poll_id.to_be_bytes())?
-            .ok_or(StdError::generic_err("failed to parse reveal committee from storage"))?
-    }
 }
 
 
@@ -135,14 +117,3 @@ pub enum PollType {
 }
 
 
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
-#[serde(rename_all = "snake_case")]
-pub struct RevealCommitteeMember {
-    pub address: CanonicalAddr,
-    pub approved: bool
-}
-
-impl RevealCommitteeMember {
- //   pub const ADDRESS: &'static [u8] = b"/gov/poll/committee/";
-}

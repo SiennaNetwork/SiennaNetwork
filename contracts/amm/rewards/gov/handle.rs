@@ -44,6 +44,7 @@ where
                     id,
                     metadata: meta,
                     status: PollStatus::Active,
+                    reveal_approvals: vec![]
                 };
 
                 poll.store(core)?;

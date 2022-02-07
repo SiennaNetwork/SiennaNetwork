@@ -45,6 +45,7 @@ where
             metadata: meta,
             expiration: Poll::expiration(core, id)?,
             status: Poll::status(core, id)?,
+            reveal_approvals: Poll::reveal_approvals(core)?
         };
         Ok(GovernanceResponse::Poll(poll))
     }
