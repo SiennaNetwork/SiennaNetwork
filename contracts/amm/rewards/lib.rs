@@ -1,4 +1,5 @@
 extern crate fadroma; pub use fadroma::*;
+use gov::config::GovernanceConfig;
 use gov::governance::Governance;
 use gov::handle::GovernanceHandle;
 use gov::query::GovernanceQuery;
@@ -61,13 +62,15 @@ pub trait Contract<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
 #[serde(rename_all="snake_case")]
 pub struct Init {
     admin:  Option<HumanAddr>,
-    config: RewardsConfig
+    config: RewardsConfig,
+    governance_config: Option<GovernanceConfig>
 }
 impl Init {
     fn init <S, A, Q, C> (self, core: &mut C, env: Env) -> StdResult<InitResponse> where
         S: Storage, A: Api, Q: Querier, C: Contract<S, A, Q>
     {
         Auth::init(core, &env, &self.admin)?;
+        Governance::init(core, &env, self.governance_config.unwrap_or_default())?;
         Ok(InitResponse {
             messages: Rewards::init(core, &env, self.config)?,
             log:      vec![]

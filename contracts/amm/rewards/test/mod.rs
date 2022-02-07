@@ -246,6 +246,7 @@ impl Context {
         assert_eq!(
             Contract::init(&mut self.deps, self.env.clone(), Init {
                 admin:  None,
+                governance_config: Some(GovernanceConfig::default()),
                 config: RewardsConfig {
                     lp_token:     Some(self.lp_token.link.clone()),
                     reward_token: Some(self.reward_token.link.clone()),

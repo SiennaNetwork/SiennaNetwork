@@ -10,8 +10,8 @@ use super::governance::Governance;
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct GovernanceConfig {
-    pub threshold: Option<u8>,
-    pub quorum: Option<u8>,
+    pub threshold: Option<u64>,
+    pub quorum: Option<Decimal>,
     pub deadline: Option<u64>,
 }
 impl GovernanceConfig {
@@ -21,6 +21,10 @@ impl GovernanceConfig {
 
     pub const MIN_DESC_LENGTH: usize = 8;
     pub const MAX_DESC_LENGTH: usize = 1024;
+    
+    pub const DEFAULT_QUORUM_PERCENT: u64 = 33;
+    pub const DEFAULT_TRESHOLD: u64 = 3500;
+    pub const DEFAULT_DEADLINE: u64 = 7 * 24 * 60 * 60;
 
     //storage keys
     pub const THRESHOLD: &'static [u8] = b"/gov/threshold";
@@ -50,7 +54,8 @@ where
     C: Governance<S, A, Q>,
 {
     fn initialize(&mut self, core: &mut C, env: &Env) -> StdResult<Vec<CosmosMsg>> {
-        Ok(vec![])
+        self.store(core)
+        // TODO: check for uninitialized fields after store
     }
 
     fn store(&self, core: &mut C) -> StdResult<Vec<CosmosMsg>> {
@@ -85,4 +90,17 @@ where
         core.get::<u64>(Self::THRESHOLD)?
             .ok_or(StdError::generic_err("deadline not set"))
     }
+}
+
+
+impl Default for GovernanceConfig {
+
+    fn default() -> Self {
+        Self {
+            threshold: Some(Self::DEFAULT_TRESHOLD),
+            quorum: Some(Decimal::percent(Self::DEFAULT_QUORUM_PERCENT)),
+            deadline: Some(Self::DEFAULT_DEADLINE),
+        }
+    }
+    
 }
