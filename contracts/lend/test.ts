@@ -92,7 +92,7 @@ export async function testLend({
     mint: { recipient: MALLORY.address, amount: "100" },
   });
   await withGasReport(agent, token2, {
-    mint: { recipient: ALICE.address, amount: "200" },
+    mint: { recipient: ALICE.address, amount: "300" },
   });
 
   console.info("listing markets...");
@@ -162,7 +162,7 @@ export async function testLend({
     send: {
       recipient: market2.contract.address,
       recipient_code_hash: market2.contract.code_hash,
-      amount: "100",
+      amount: "300",
       msg: b64encode(JSON.stringify("deposit")),
     },
   });
@@ -175,6 +175,12 @@ export async function testLend({
   });
 
   await withGasReport(ALICE, deployedOverseer, {
+    enter: {
+      markets: [market1.contract.address, market2.contract.address],
+    },
+  });
+
+  await withGasReport(MALLORY, deployedOverseer, {
     enter: {
       markets: [market1.contract.address, market2.contract.address],
     },
@@ -202,6 +208,5 @@ export async function testLend({
       msg: b64encode(JSON.stringify({ repay: { borrower: null } })),
     },
   });
-
   console.table(gasTable, ["op", "gas_wanted", "gas_used"]);
 }
