@@ -1,3 +1,5 @@
+import { Artifact } from '@hackbg/fadroma'
+
 import {
   InterestModelContract,
   LendMarketContract,
@@ -8,12 +10,12 @@ import {
 
 import { workspace } from '@sienna/settings'
 
-export async function buildLend (): Promise<string[]> {
+export async function buildLend (): Promise<Artifact[]> {
   return Promise.all([
-    new InterestModelContract({ workspace }).build(),
-    new LendMarketContract({    workspace }).build(),
-    new LendOracleContract({    workspace }).build(),
-    new LendOverseerContract({  workspace }).build(),
-    new MockOracleContract({workspace}).build(),
+    new InterestModelContract().build(),
+    new LendMarketContract().build(),
+    new LendOracleContract().build(),
+    new LendOverseerContract().build(),
+    new MockOracleContract().build(),
   ])
 }
