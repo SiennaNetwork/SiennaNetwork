@@ -1,9 +1,11 @@
-
 use fadroma::*;
 use schemars::JsonSchema;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
-use super::{response::{GovernanceResponse, IGovernanceResponse}, governance::Governance};
+use super::{
+    governance::Governance,
+    response::{GovernanceResponse, IGovernanceResponse},
+};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
@@ -16,6 +18,7 @@ pub enum GovernanceQuery {
     Poll {
         id: u64,
     },
+    Config {},
 }
 impl<S, A, Q, C> QueryDispatch<S, A, Q, C, GovernanceResponse> for GovernanceQuery
 where
@@ -28,6 +31,7 @@ where
         match self {
             GovernanceQuery::Polls {} => GovernanceResponse::polls(core),
             GovernanceQuery::Poll { id } => GovernanceResponse::poll(core, id),
+            GovernanceQuery::Config {} => GovernanceResponse::config(core),
         }
     }
 }

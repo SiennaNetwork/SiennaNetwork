@@ -1,9 +1,12 @@
-
 use fadroma::*;
 use schemars::JsonSchema;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
-use super::{config::GovernanceConfig, governance::Governance, poll::{Poll, IPoll}};
+use super::{
+    config::{GovernanceConfig, IGovernanceConfig},
+    governance::Governance,
+    poll::{IPoll, Poll},
+};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
@@ -21,6 +24,7 @@ where
 {
     fn polls(core: &C) -> StdResult<Self>;
     fn poll(core: &C, id: u64) -> StdResult<Self>;
+    fn config(core: &C) -> StdResult<Self>;
 }
 impl<S, A, Q, C> IGovernanceResponse<S, A, Q, C> for GovernanceResponse
 where
@@ -43,5 +47,9 @@ where
             status: Poll::status(core, id)?,
         };
         Ok(GovernanceResponse::Poll(poll))
+    }
+    fn config(core: &C) -> StdResult<Self> {
+        let config = GovernanceConfig::get(core)?;
+        Ok(GovernanceResponse::Config(config))
     }
 }

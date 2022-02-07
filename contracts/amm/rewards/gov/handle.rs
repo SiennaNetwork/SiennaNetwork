@@ -1,13 +1,18 @@
-
 use schemars::JsonSchema;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 use crate::algo::{Account, IAccount};
 use crate::auth::Auth;
 use fadroma::*;
 
-use super::{governance::{Governance}, vote::{VoteType, IVote, Vote}, poll_metadata::PollMetadata, config::{GovernanceConfig, IGovernanceConfig}, expiration::Expiration, poll::{Poll, IPoll, PollStatus}};
-
+use super::{
+    config::{GovernanceConfig, IGovernanceConfig},
+    expiration::Expiration,
+    governance::Governance,
+    poll::{IPoll, Poll, PollStatus},
+    poll_metadata::PollMetadata,
+    vote::{IVote, Vote, VoteType},
+};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
@@ -17,7 +22,7 @@ pub enum GovernanceHandle {
     Unvote { poll_id: u64 },
     ChangeVote { variant: VoteType, poll_id: u64 },
     UpdateConfig { config: GovernanceConfig },
-    Reveal { poll_id: u64} 
+    Reveal { poll_id: u64 },
 }
 impl<S, A, Q, C> HandleDispatch<S, A, Q, C> for GovernanceHandle
 where
@@ -60,17 +65,20 @@ where
                     vote_power,
                     voter: core.canonize(env.message.sender.clone())?,
                 };
-                
+
                 vote.store(core, env.message.sender, poll_id)?;
 
                 Ok(HandleResponse::default())
             }
-            GovernanceHandle::ChangeVote { variant, poll_id } => Ok(HandleResponse::default()),
-            GovernanceHandle::Unvote { poll_id } => Ok(HandleResponse::default()),
-            GovernanceHandle::Reveal { poll_id} => {
+            GovernanceHandle::ChangeVote {
+                variant: _,
+                poll_id: _,
+            } => Ok(HandleResponse::default()),
+            GovernanceHandle::Unvote { poll_id: _ } => Ok(HandleResponse::default()),
+            GovernanceHandle::Reveal { poll_id: _ } => {
                 // not implemented
                 Ok(HandleResponse::default())
-            },
+            }
             _ => {
                 Auth::assert_admin(core, &env)?;
                 match self {
