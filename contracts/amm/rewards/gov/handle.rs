@@ -3,7 +3,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::algo::{self, Account, IAccount};
 use crate::auth::Auth;
-use crate::keplr::KeplrCompat;
 use fadroma::*;
 
 use super::validator;

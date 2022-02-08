@@ -81,13 +81,13 @@ where
             id,
             metadata,
             status,
-            reveal_approvals: _,
+            reveal_approvals,
         } = self;
 
         core.set_ns(Self::CREATOR, &self.id.to_be_bytes(), creator)?;
         core.set_ns(Self::EXPIRATION, &self.id.to_be_bytes(), expiration)?;
         core.set_ns(Self::STATUS, &self.id.to_be_bytes(), status)?;
-        Self::commit_approvals(core, self.id, reveal_approvals);
+        Self::commit_approvals(core, self.id, reveal_approvals)?;
         
         metadata.store(core, id.clone())?;
 
@@ -144,7 +144,7 @@ where
             return Err(StdError::generic_err("Member already approved"));
         }
         current_approvals.insert(0, sender.clone());
-        Self::commit_approvals(core, poll_id, &current_approvals);
+        Self::commit_approvals(core, poll_id, &current_approvals)?;
         Ok(())
     }
 
