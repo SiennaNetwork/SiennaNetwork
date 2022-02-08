@@ -17,13 +17,15 @@ use lend_shared::fadroma::{
 use lend_shared::interfaces::{interest_model, market, overseer};
 use overseer::MarketInitConfig;
 
-use crate::{impl_contract_harness_default, ADMIN};
+use crate::impl_contract_harness_default;
 use lend_interest_model;
 use lend_market;
 use lend_oracle;
 use lend_overseer;
 
 use lend_oracle::SourceQuery;
+
+pub const ADMIN: &str = "admin";
 
 pub struct Token;
 impl ContractHarness for Token {
@@ -343,7 +345,7 @@ impl Lend {
         let underlying_token = self.ensemble.instantiate(
             self.token.id,
             &Snip20InitMsg {
-                name: "Underlying Token".into(),
+                name: format!("Underlying Token: {}", symbol),
                 admin: None,
                 symbol: symbol.into(),
                 decimals,
@@ -362,6 +364,65 @@ impl Lend {
             ),
         )?;
         Ok(underlying_token)
+    }
+
+    #[inline]
+    pub fn account_info(
+        &self,
+        address: impl Into<HumanAddr>,
+        market: HumanAddr
+    ) -> market::AccountInfo {
+        self.ensemble.query(
+            market.clone(),
+            market::QueryMsg::Account {
+                method: Permit::new(
+                    address,
+                    vec![ market::MarketPermissions::AccountInfo ],
+                    vec![ market ],
+                    "balance"
+                ).into(),
+                block: None
+            }
+        ).unwrap()
+    }
+
+    #[inline]
+    pub fn _underlying_balance(
+        &self,
+        address: impl Into<HumanAddr>,
+        market: HumanAddr
+    ) -> Uint256 {
+        self.ensemble.query(
+            market.clone(),
+            market::QueryMsg::BalanceUnderlying {
+                method: Permit::new(
+                    address,
+                    vec![ market::MarketPermissions::Balance ],
+                    vec![ market ],
+                    "balance"
+                ).into(),
+                block: None
+            }
+        ).unwrap()
+    }
+
+    #[inline]
+    pub fn id(
+        &self,
+        address: impl Into<HumanAddr>,
+        market: HumanAddr
+    ) -> Binary {
+        self.ensemble.query(
+            market.clone(),
+            market::QueryMsg::Id {
+                method: Permit::new(
+                    address,
+                    vec![ market::MarketPermissions::Id ],
+                    vec![ market ],
+                    "id"
+                ).into()
+            }
+        ).unwrap()
     }
 }
 

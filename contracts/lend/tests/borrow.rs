@@ -1,8 +1,7 @@
 use lend_shared::{
     fadroma::{
         ensemble::MockEnv,
-        permit::Permit,
-        cosmwasm_std::{Uint128, HumanAddr, StdError, Binary, to_binary},
+        cosmwasm_std::{Uint128, StdError, to_binary},
         snip20_impl::msg as snip20,
         Decimal256, Uint256
     },
@@ -16,47 +15,6 @@ use crate::setup::Lend;
 const BOB: &str = "Bob";
 const ALICE: &str = "Alice";
 const CHESTER: &str = "Chester";
-
-impl Lend {
-    #[inline]
-    pub fn _underlying_balance(
-        &self,
-        address: impl Into<HumanAddr>,
-        market: HumanAddr
-    ) -> Uint256 {
-        self.ensemble.query(
-            market.clone(),
-            market::QueryMsg::BalanceUnderlying {
-                method: Permit::new(
-                    address,
-                    vec![ market::MarketPermissions::Balance ],
-                    vec![ market ],
-                    "balance"
-                ).into(),
-                block: None
-            }
-        ).unwrap()
-    }
-
-    #[inline]
-    pub fn id(
-        &self,
-        address: impl Into<HumanAddr>,
-        market: HumanAddr
-    ) -> Binary {
-        self.ensemble.query(
-            market.clone(),
-            market::QueryMsg::Id {
-                method: Permit::new(
-                    address,
-                    vec![ market::MarketPermissions::Id ],
-                    vec![ market ],
-                    "id"
-                ).into()
-            }
-        ).unwrap()
-    }
-}
 
 #[test]
 fn borrow() {
