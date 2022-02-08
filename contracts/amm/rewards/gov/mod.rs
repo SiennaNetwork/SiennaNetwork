@@ -9,3 +9,4 @@ pub mod expiration;
 pub mod governance;
 pub mod vote;
 pub mod reveal;
+pub mod validator;

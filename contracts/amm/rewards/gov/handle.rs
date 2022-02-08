@@ -1,10 +1,12 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::algo::{Account, IAccount};
+use crate::algo::{self, Account, IAccount};
 use crate::auth::Auth;
+use crate::keplr::KeplrCompat;
 use fadroma::*;
 
+use super::validator;
 use super::{
     config::{GovernanceConfig, IGovernanceConfig},
     expiration::Expiration,
@@ -34,6 +36,24 @@ where
     fn dispatch_handle(self, core: &mut C, env: Env) -> StdResult<HandleResponse> {
         match self {
             GovernanceHandle::CreatePoll { meta } => {
+                validator::validate_text_length(
+                    &meta.title,
+                    "Title",
+                    GovernanceConfig::MIN_TITLE_LENGTH,
+                    GovernanceConfig::MAX_TITLE_LENGTH,
+                )?;
+                validator::validate_text_length(
+                    &meta.description,
+                    "Description",
+                    GovernanceConfig::MIN_DESC_LENGTH,
+                    GovernanceConfig::MAX_DESC_LENGTH,
+                )?;
+                let account = algo::Account::from_env(core, &env)?;
+                let threshold = GovernanceConfig::threshold(core)?;
+                if account.staked < threshold.into() {
+                    return Err(StdError::generic_err("Insufficient funds to create a poll"));
+                };
+
                 let id = Poll::create_id(core)?;
                 let deadline = GovernanceConfig::deadline(core)?;
                 let expiration = Expiration::AtTime(env.block.time + deadline);
@@ -48,7 +68,16 @@ where
                 };
 
                 poll.store(core)?;
-                Ok(HandleResponse::default())
+
+                Ok(HandleResponse {
+                    data: Some(to_binary(&poll)?),
+                    log: vec![
+                        log("ACTION", "CREATE_POLL"),
+                        log("POLL_ID", format!("{}", id)),
+                        log("POLL_CREATOR", format!("{}", &poll.creator)),
+                    ],
+                    messages: vec![],
+                })
             }
             GovernanceHandle::Vote { variant, poll_id } => {
                 if let Ok(_) = Vote::get(core, env.message.sender.clone(), poll_id) {
@@ -67,6 +96,8 @@ where
                 };
 
                 vote.store(core, env.message.sender, poll_id)?;
+
+                //calculate current tally/result
 
                 Ok(HandleResponse::default())
             }
