@@ -51,21 +51,9 @@ export async function testLend({
 
   const gasTable = [];
 
-  const deployedInterestModel = await deployment.getOrInit(
-    agent,
-    INTEREST_MODEL,
-    INTEREST_MODEL.label
-  );
-  const deployedOverseer = await deployment.getOrInit(
-    agent,
-    OVERSEER,
-    OVERSEER.label
-  );
-  const deployedMockOracle = await deployment.getOrInit(
-    agent,
-    MOCK_ORACLE,
-    MOCK_ORACLE.label
-  );
+  const deployedInterestModel = await deployment.get(INTEREST_MODEL.name);
+  const deployedOverseer = await deployment.get(OVERSEER.name);
+  const deployedMockOracle = await deployment.get(MOCK_ORACLE.name);
 
   // set prices
   await agent.execute(deployedMockOracle, {
@@ -80,9 +68,9 @@ export async function testLend({
       price: "1",
     },
   });
-  const token1 = await deployment.getOrInit(agent, TOKEN1, "SLATOM");
+  const token1 = await deployment.get(TOKEN1.name, "SLATOM");
 
-  const token2 = await deployment.getOrInit(agent, TOKEN2, "SLSCRT");
+  const token2 = await deployment.get(TOKEN2.name, "SLSCRT");
 
   console.info("minting tokens...");
   await withGasReport(agent, token1, {

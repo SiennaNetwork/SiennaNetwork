@@ -40,8 +40,8 @@ export async function deployLend({
   const MARKET = new LendMarketContract();
   const OVERSEER = new LendOverseerContract();
   const MOCK_ORACLE = new MockOracleContract();
-  const TOKEN1 = new AMMSNIP20Contract({ name: "SLATOM" });
-  const TOKEN2 = new AMMSNIP20Contract({ name: "SLSCRT" });
+  const TOKEN1 = new AMMSNIP20Contract({ name: "SLATOM", suffix: "SLATOM" });
+  const TOKEN2 = new AMMSNIP20Contract({ name: "SLSCRT", suffix: "SLSCRT" });
 
   for (const contract of [
     INTEREST_MODEL,
@@ -55,67 +55,76 @@ export async function deployLend({
     await agent.chain.buildAndUpload(agent, [contract]);
   }
 
-  await deployment.getOrInit(agent, TOKEN1, "SLATOM", {
-    name: "slToken1",
-    symbol: "SLATOM",
-    decimals: 18,
-    prng_seed: randomHex(36),
-    config: {
-      enable_burn: true,
-      enable_deposit: true,
-      enable_mint: true,
-      enable_redeem: true,
-      public_total_supply: true,
+  await deployment.instantiate(agent, [
+    TOKEN1,
+    {
+      name: "slToken1",
+      symbol: "SLATOM",
+      decimals: 18,
+      prng_seed: randomHex(36),
+      config: {
+        enable_burn: true,
+        enable_deposit: true,
+        enable_mint: true,
+        enable_redeem: true,
+        public_total_supply: true,
+      },
     },
-  });
+  ]);
 
-  await deployment.getOrInit(agent, TOKEN2, "SLSCRT", {
-    name: "slToken2",
-    symbol: "SLSCRT",
-    decimals: 18,
-    prng_seed: randomHex(36),
-    config: {
-      enable_burn: true,
-      enable_deposit: true,
-      enable_mint: true,
-      enable_redeem: true,
-      public_total_supply: true,
+  await deployment.instantiate(agent, [
+    TOKEN2,
+    {
+      name: "slToken2",
+      symbol: "SLSCRT",
+      decimals: 18,
+      prng_seed: randomHex(36),
+      config: {
+        enable_burn: true,
+        enable_deposit: true,
+        enable_mint: true,
+        enable_redeem: true,
+        public_total_supply: true,
+      },
     },
-  });
+  ]);
 
-  await deployment.getOrInit(agent, INTEREST_MODEL, INTEREST_MODEL.label, {
-    base_rate_year: "0",
-    blocks_year: 6311520,
-    jump_multiplier_year: "0",
-    jump_threshold: "0",
-    multiplier_year: "1",
-  });
+  await deployment.instantiate(agent, [
+    INTEREST_MODEL,
+    {
+      base_rate_year: "0",
+      blocks_year: 6311520,
+      jump_multiplier_year: "0",
+      jump_threshold: "0",
+      multiplier_year: "1",
+    },
+  ]);
 
-  let mock_oracle = await deployment.getOrInit(
-    agent,
-    MOCK_ORACLE,
-    MOCK_ORACLE.label,
-    {}
-  );
+  await deployment.instantiate(agent, [MOCK_ORACLE, {}]);
 
-  await deployment.getOrInit(agent, OVERSEER, OVERSEER.label, {
-    close_factor: "0.5",
-    entropy: randomHex(36),
-    market_contract: {
-      code_hash: MARKET.template.codeHash,
-      id: Number(MARKET.template.codeId),
+  let mock_oracle = deployment.get(MOCK_ORACLE.name);
+
+  await deployment.instantiate(agent, [
+    OVERSEER,
+    {
+      close_factor: "0.5",
+      entropy: randomHex(36),
+      market_contract: {
+        code_hash: MARKET.template.codeHash,
+        id: Number(MARKET.template.codeId),
+      },
+      oracle_contract: {
+        code_hash: ORACLE.template.codeHash,
+        id: Number(ORACLE.template.codeId),
+      },
+      oracle_source: {
+        address: mock_oracle.address,
+        code_hash: mock_oracle.codeHash,
+      },
+      premium: "1",
+      prng_seed: randomHex(36),
     },
-    oracle_contract: {
-      code_hash: ORACLE.template.codeHash,
-      id: Number(ORACLE.template.codeId),
-    },
-    oracle_source: {
-      address: mock_oracle.address,
-      code_hash: mock_oracle.codeHash,
-    },
-    premium: "1",
-    prng_seed: randomHex(36),
-  });
+  ]);
 
   return {
     OVERSEER,
