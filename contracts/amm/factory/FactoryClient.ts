@@ -90,14 +90,7 @@ export abstract class AMMFactoryClient extends Client {
     token_1: TokenType
   ): Promise<ExchangeInfo> {
     const {get_exchange_address:{address}} =
-      await this.query({
-        get_exchange_address: {
-          pair: {
-            token_0,
-            token_1
-          }
-        }
-      })
+      await this.query({ get_exchange_address: { pair: { token_0, token_1 } } })
     return await AMMExchangeClient.get(
       this.agent,
       address,
