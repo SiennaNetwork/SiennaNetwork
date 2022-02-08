@@ -47,6 +47,7 @@ where
             status: Poll::status(core, id)?,
             reveal_approvals: Poll::reveal_approvals(core, id)?
         };
+        print!("{:?}", poll);
         Ok(GovernanceResponse::Poll(poll))
     }
     fn config(core: &C) -> StdResult<Self> {

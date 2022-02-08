@@ -1,8 +1,12 @@
-use schemars::JsonSchema;
-use serde::{Serialize, Deserialize};
 use fadroma::*;
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 
-use super::{poll_metadata::{PollMetadata, IPollMetaData}, expiration::Expiration, governance::Governance};
+use super::{
+    expiration::Expiration,
+    governance::Governance,
+    poll_metadata::{IPollMetaData, PollMetadata},
+};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
@@ -57,6 +61,7 @@ where
     C: Governance<S, A, Q>,
 {
     fn create_id(core: &mut C) -> StdResult<u64> {
+
         let total = core
             .get::<u64>(Self::TOTAL)?
             .ok_or(StdError::generic_err("can't find total id count"))?;
@@ -76,7 +81,7 @@ where
             id,
             metadata,
             status,
-            reveal_approvals
+            reveal_approvals: _,
         } = self;
 
         core.set_ns(Self::CREATOR, &self.id.to_be_bytes(), creator)?;
@@ -84,7 +89,7 @@ where
         core.set_ns(Self::STATUS, &self.id.to_be_bytes(), status)?;
         Self::commit_approvals(core, self.id, reveal_approvals);
         
-        metadata.store(core, *id)?;
+        metadata.store(core, id.clone())?;
 
         Ok(())
     }
@@ -101,7 +106,7 @@ where
             expiration,
             metadata,
             status,
-            reveal_approvals
+            reveal_approvals,
         })
     }
 
@@ -160,11 +165,7 @@ where
             .collect();  
         Ok(approval_addresses)
     }
-
 }
-
-
-
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
@@ -173,4 +174,3 @@ pub enum PollStatus {
     Failed,
     Passed,
 }
-

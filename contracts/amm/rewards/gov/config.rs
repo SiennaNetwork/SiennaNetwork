@@ -10,7 +10,7 @@ pub struct GovernanceConfig {
     pub threshold: Option<u64>,
     pub quorum: Option<Decimal>,
     pub deadline: Option<u64>,
-    pub reveal_committee: Option<Vec<HumanAddr>>
+    pub reveal_committee: Option<Vec<HumanAddr>>,
 }
 impl GovernanceConfig {
     //metadata configuration
@@ -136,7 +136,6 @@ where
         Ok(committee)
 
     }
-    
 }
 
 impl Default for GovernanceConfig {
@@ -145,7 +144,7 @@ impl Default for GovernanceConfig {
             threshold: Some(Self::DEFAULT_TRESHOLD),
             quorum: Some(Decimal::percent(Self::DEFAULT_QUORUM_PERCENT)),
             deadline: Some(Self::DEFAULT_DEADLINE),
-            reveal_committee: Some(vec![])
+            reveal_committee: Some(vec![]),
         }
     }
 }
