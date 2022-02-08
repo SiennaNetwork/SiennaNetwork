@@ -101,17 +101,20 @@ async function getPlaceholderTokens ({
   TOKENS   = {}
 }): Promise<SupportedTokens> {
 
-  const toDeploy = []
-
+  // placeholder list from config
   const placeholders: Record<string, { label: string, initMsg: any }> = settings.placeholderTokens
 
-  // collect list of missing placeholder tokens to deploy
+  // collect list of existing placeholder tokens,
+  // and list of missing placeholder tokens to deploy
+  const placeholderTokensToInit = []
   for (const [_, {label, initMsg}] of Object.entries(placeholders)) {
+
     const { symbol } = initMsg
     if (TOKENS[symbol]) {
       console.info(bold(symbol), 'exists in working memory')
       continue
     }
+
     const name = `Placeholder.${symbol}`
     if (deployment.receipts[name]) {
       console.info(bold(name), 'exists in current deployment')
@@ -119,47 +122,34 @@ async function getPlaceholderTokens ({
       TOKENS[symbol] = new AMMSNIP20Client({...receipt, agent})
       continue
     }
-    console.info(bold(name), 'deploying...')
+
+    console.info(bold('Placeholder:'), symbol, '- deploying...')
     const TOKEN = new AMMSNIP20Contract({ prefix: deployment.prefix, name })
     TOKEN.name = name
     await agent.chain.buildAndUpload(agent, [TOKEN])
-    toDeploy.push([symbol, TOKEN, { ...initMsg, name: initMsg.symbol }])
+    placeholderTokensToInit.push([TOKEN, {
+      ...TOKEN.initMsg,
+      ...initMsg,
+      name: symbol, // HMM
+      admin: agent.address
+    }, name])
+
   }
 
-  if (toDeploy.length > 0) {
+  if (placeholderTokensToInit.length > 0) {
 
-    // deploy all placeholders in 1 tx
-    let bundle = agent.bundle()
-    for (let [symbol, TOKEN, initMsg] of toDeploy) {
-      initMsg = {...TOKEN.initMsg, ...initMsg, admin: agent.address}
-      bundle = bundle.init(TOKEN.template, TOKEN.label, initMsg)
-    }
-    const { logs, transactionHash } = await bundle.run()
-
-    // bundling api is virtually nonexistent
-    // gotta fish out the addresses manually
-    for (const i in logs) {
-      const [symbol, TOKEN] = toDeploy[i]
-      deployment.receipts[TOKEN.name] = TOKEN.instance = {
-        chainId:  TOKEN.template.chainId,
-        codeId:   TOKEN.template.codeId,
-        codeHash: TOKEN.template.codeHash,
-        address:  logs[i].events[0].attributes[4].value,
-        transactionHash
-      }
-      deployment.save()
-      TOKENS[symbol] = TOKEN.client(agent)
-    }
+    // deploy missing placeholder tokens in 1 tx
+    const instantiatedPlaceholderTokens = await deployment.instantiate(agent, ...placeholderTokensToInit)
 
     // mint test balances for all placeholders in 1 tx
     await agent.bundle().wrap(async bundle=>{
-      for (const [symbol, _, __] of toDeploy) {
+      for (const contract of instantiatedPlaceholderTokens) {
+        const client = contract.client(bundle)
         const amount = "100000000000000000000000"
-        console.warn("Minting", bold(amount), bold(symbol), 'to', bold(agent.address))
-        const {address, codeHash} = TOKENS[symbol]
-        const token = new AMMSNIP20Client({address, codeHash, agent: bundle})
-        await token.setMinters([agent.address])
-        await token.mint(amount, agent.address)
+        console.warn("Minting", bold(amount), bold(contract.name), 'to', bold(agent.address))
+        await client.setMinters([agent.address])
+        await client.mint(amount, agent.address)
+        TOKENS[contract.initMsg.name] = client
       }
     })
   }

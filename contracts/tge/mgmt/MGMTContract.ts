@@ -27,7 +27,7 @@ async function mgmtStatus ({
   MGMT: MGMTClient
 }) {
   try {
-    const status = await MGMT.q().status()
+    const status = await MGMT.status()
     console.debug(`${bold(`MGMT status`)} of ${bold(MGMT.address)}`, status)
   } catch (e) {
     console.error(e.message)

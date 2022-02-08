@@ -161,13 +161,14 @@ export async function deployAMMFactory (context) {
 }
 
 async function buildTemplates (agent: Agent, version: 'v1'|'v2') {
-  console.log({version}, AMMExchangeContract.v1)
   const AMMTOKEN  = new AMMSNIP20Contract()
   const LPTOKEN   = new LPTokenContract()
   const EXCHANGE  = new AMMExchangeContract[version]()
   const LAUNCHPAD = new LaunchpadContract() // special cased because versions
   const IDO       = new IDOContract()
-  await agent.chain.buildAndUpload(agent, [AMMTOKEN, LPTOKEN, EXCHANGE, LAUNCHPAD, IDO])
+  for (const contract of [AMMTOKEN, LPTOKEN, EXCHANGE, LAUNCHPAD, IDO]) {
+    await agent.chain.buildAndUpload(agent, [contract]) // TODO parallel
+  }
   const template = contract => ({
     id:        Number(contract.template.codeId),
     code_hash: contract.template.codeHash
