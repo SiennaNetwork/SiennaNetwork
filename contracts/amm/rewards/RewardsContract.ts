@@ -236,8 +236,8 @@ async function upgradeRewards ({
 }: MigrationContext & {
   oldVersion:         RewardsAPIVersion,
   newVersion:         RewardsAPIVersion,
-  OldRewardsContract: typeof RewardsContract,
-  NewRewardsContract: typeof RewardsContract,
+  OldRewardsContract: new(input:any)=>RewardsContract,
+  NewRewardsContract: new(input:any)=>RewardsContract,
   SIENNA: Snip20Client,
   RPT:    RPTClient
   REWARD_POOLS: RewardsClient[]
