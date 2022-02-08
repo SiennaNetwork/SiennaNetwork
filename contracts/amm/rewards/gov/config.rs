@@ -111,10 +111,13 @@ where
     }
 
     fn reveal_committee(core: &C) -> StdResult<Option<Vec<HumanAddr>>> {
-        core.get(Self::REVEAL_COMMITTEE)?
+        // questionable? There is no need to store, if Err variant is returned simply means there is no commitee,
+        // thus the field in config can be set to None
+        Ok(core
+            .get::<Option<Vec<HumanAddr>>>(Self::REVEAL_COMMITTEE)?
             .ok_or(StdError::generic_err(
                 "failed to parse reveal committee from storage",
-            ))?
+            ))?)
     }
 }
 
