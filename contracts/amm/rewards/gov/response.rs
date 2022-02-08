@@ -45,8 +45,9 @@ where
             metadata: meta,
             expiration: Poll::expiration(core, id)?,
             status: Poll::status(core, id)?,
-            reveal_approvals: Poll::reveal_approvals(core)?
+            reveal_approvals: Poll::reveal_approvals(core)?,
         };
+        print!("{:?}", poll);
         Ok(GovernanceResponse::Poll(poll))
     }
     fn config(core: &C) -> StdResult<Self> {

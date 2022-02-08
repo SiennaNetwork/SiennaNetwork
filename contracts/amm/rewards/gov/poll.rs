@@ -1,8 +1,12 @@
-use schemars::JsonSchema;
-use serde::{Serialize, Deserialize};
 use fadroma::*;
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 
-use super::{poll_metadata::{PollMetadata, IPollMetaData}, expiration::Expiration, governance::Governance};
+use super::{
+    expiration::Expiration,
+    governance::Governance,
+    poll_metadata::{IPollMetaData, PollMetadata},
+};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
@@ -12,7 +16,7 @@ pub struct Poll {
     pub metadata: PollMetadata,
     pub expiration: Expiration,
     pub status: PollStatus,
-    pub reveal_approvals: Vec<CanonicalAddr>
+    pub reveal_approvals: Vec<CanonicalAddr>,
 }
 
 impl Poll {
@@ -45,7 +49,7 @@ where
 
     fn commit_status(&self, core: &mut C) -> StdResult<()>;
     fn approve(core: &mut C, sender: &HumanAddr) -> StdResult<()>;
-    fn reveal_approvals( core: &C) -> StdResult<Vec<CanonicalAddr>>;
+    fn reveal_approvals(core: &C) -> StdResult<Vec<CanonicalAddr>>;
 }
 
 impl<S, A, Q, C> IPoll<S, A, Q, C> for Poll
@@ -56,6 +60,7 @@ where
     C: Governance<S, A, Q>,
 {
     fn create_id(core: &mut C) -> StdResult<u64> {
+
         let total = core
             .get::<u64>(Self::TOTAL)?
             .ok_or(StdError::generic_err("can't find total id count"))?;
@@ -75,13 +80,13 @@ where
             id,
             metadata,
             status,
-            reveal_approvals
+            reveal_approvals: _,
         } = self;
 
         core.set_ns(Self::CREATOR, &self.id.to_be_bytes(), creator)?;
         core.set_ns(Self::EXPIRATION, &self.id.to_be_bytes(), expiration)?;
         core.set_ns(Self::STATUS, &self.id.to_be_bytes(), status)?;
-        metadata.store(core, *id)?;
+        metadata.store(core, id.clone())?;
 
         Ok(())
     }
@@ -98,7 +103,7 @@ where
             expiration,
             metadata,
             status,
-            reveal_approvals
+            reveal_approvals,
         })
     }
 
@@ -129,21 +134,16 @@ where
         Ok(())
     }
 
-
-    fn approve(core: &mut C, sender: &HumanAddr) -> StdResult<()> {
+    fn approve(_core: &mut C, _sender: &HumanAddr) -> StdResult<()> {
         Ok(())
     }
 
-    fn reveal_approvals( core: &C) -> StdResult<Vec<CanonicalAddr>> {
+    fn reveal_approvals(_core: &C) -> StdResult<Vec<CanonicalAddr>> {
         // core.set_ns(Self::STATUS, &self.id.to_be_bytes(), self.status.clone())?;
 
         Ok(vec![])
     }
-
 }
-
-
-
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
@@ -152,4 +152,3 @@ pub enum PollStatus {
     Failed,
     Passed,
 }
-

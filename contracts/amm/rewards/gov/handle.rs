@@ -44,11 +44,10 @@ where
                     id,
                     metadata: meta,
                     status: PollStatus::Active,
-                    reveal_approvals: vec![]
+                    reveal_approvals: vec![],
                 };
 
                 poll.store(core)?;
-
                 Ok(HandleResponse::default())
             }
             GovernanceHandle::Vote { variant, poll_id } => {

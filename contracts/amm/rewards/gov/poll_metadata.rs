@@ -1,11 +1,8 @@
-
-
 use fadroma::*;
 use schemars::JsonSchema;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 use super::governance::Governance;
-
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
@@ -33,7 +30,7 @@ where
     fn commit_title(&self, core: &mut C, poll_id: u64) -> StdResult<()>;
     fn commit_description(&self, core: &mut C, poll_id: u64) -> StdResult<()>;
     fn commit_poll_type(&self, core: &mut C, poll_id: u64) -> StdResult<()>;
-    
+
     fn title(core: &C, poll_id: u64) -> StdResult<String>;
     fn description(core: &C, poll_id: u64) -> StdResult<String>;
     fn poll_type(core: &C, poll_id: u64) -> StdResult<PollType>;
@@ -62,51 +59,47 @@ where
     }
 
     fn commit_title(&self, core: &mut C, poll_id: u64) -> StdResult<()> {
-        core.set_ns(Self::TITLE, &poll_id.to_be_bytes(), self.title.as_bytes())?;
+        core.set_ns(Self::TITLE, &poll_id.to_be_bytes(), &self.title)?;
         Ok(())
     }
 
     fn commit_description(&self, core: &mut C, poll_id: u64) -> StdResult<()> {
-        core.set_ns(
-            Self::DESCRIPTION,
-            &poll_id.to_be_bytes(),
-            self.description.as_bytes(),
-        )?;
+        core.set_ns(Self::DESCRIPTION, &poll_id.to_be_bytes(), &self.description)?;
         Ok(())
     }
 
     fn commit_poll_type(&self, core: &mut C, poll_id: u64) -> StdResult<()> {
-        core.set_ns(
-            Self::POLL_TYPE,
-            &poll_id.to_be_bytes(),
-            self.poll_type.clone(),
-        )?;
+        core.set_ns(Self::POLL_TYPE, &poll_id.to_be_bytes(), &self.poll_type)?;
         Ok(())
     }
 
     fn title(core: &C, poll_id: u64) -> StdResult<String> {
-        core.get_ns(Self::TITLE, &poll_id.to_be_bytes())?
-            .ok_or(StdError::generic_err(
-                "failed to parse meta title from storage",
-            ))?
+        Ok(core
+            .get_ns(Self::TITLE, &poll_id.to_be_bytes())?
+            .ok_or(StdError::generic_err(format!(
+                "failed to parse meta title from storage, id: {}",
+                poll_id
+            )))?)
     }
 
     fn description(core: &C, poll_id: u64) -> StdResult<String> {
-        core.get_ns(Self::DESCRIPTION, &poll_id.to_be_bytes())?
-            .ok_or(StdError::generic_err(
-                "failed to parse meta description from storage",
-            ))?
+        Ok(core
+            .get_ns(Self::DESCRIPTION, &poll_id.to_be_bytes())?
+            .ok_or(StdError::generic_err(format!(
+                "failed to parse meta description from storage, id: {}",
+                poll_id
+            )))?)
     }
 
     fn poll_type(core: &C, poll_id: u64) -> StdResult<PollType> {
-        core.get_ns(Self::POLL_TYPE, &poll_id.to_be_bytes())?
-            .ok_or(StdError::generic_err(
-                "failed to parse meta poll type from storage",
-            ))?
+        Ok(core
+            .get_ns(Self::POLL_TYPE, &poll_id.to_be_bytes())?
+            .ok_or(StdError::generic_err(format!(
+                "failed to parse meta poll type from storage, id: {}",
+                poll_id
+            )))?)
     }
-
 }
-
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
@@ -115,5 +108,3 @@ pub enum PollType {
     SiennaSwapParameters,
     Other,
 }
-
-

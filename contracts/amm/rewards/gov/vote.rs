@@ -1,7 +1,6 @@
-
 use fadroma::*;
 use schemars::JsonSchema;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 use super::governance::Governance;
 
@@ -32,8 +31,7 @@ where
 {
     fn store(&self, core: &mut C, address: HumanAddr, poll_id: u64) -> StdResult<()>;
     fn get(core: &C, address: HumanAddr, poll_id: u64) -> StdResult<Self>;
-    fn build_key(core: &C, address: HumanAddr, poll_id: u64) -> StdResult<Vec<u8>>;
-    fn get_all(core: &C, poll_id: u64) -> StdResult<Vec<Self>>;
+    fn build_prefix(core: &C, poll_id: u64) -> StdResult<Vec<u8>>;
 }
 
 impl<S, A, Q, C> IVote<S, A, Q, C> for Vote
@@ -45,44 +43,28 @@ where
     Self: Sized,
 {
     fn store(&self, core: &mut C, address: HumanAddr, poll_id: u64) -> StdResult<()> {
-        let key = Self::build_key(core, address, poll_id)?;
-
-        core.set_ns(Self::VOTE, &key, self.clone())?;
-
+        let prefix = Self::build_prefix(core, poll_id)?;
+        core.set_ns(&prefix, address.as_str().as_bytes(), self.clone())?;
         Ok(())
     }
-    fn get_all<'a>(core: &C, poll_id: u64) -> StdResult<Vec<Self>> {
-        let poll_id = poll_id.to_be_bytes().to_vec();
-        let mut key = Vec::with_capacity(poll_id.as_slice().len() + Self::VOTE.len());
-        key.extend_from_slice(Self::VOTE);
-        key.extend_from_slice(poll_id.as_slice());
-
-        let store = IterableStorage::<Vote>::new(&key);
-
-        let votes = store.iter(core.storage())?.map(|vote| vote).collect();
-        votes
-    }
     fn get(core: &C, address: HumanAddr, poll_id: u64) -> StdResult<Self> {
-        let key = Self::build_key(core, address, poll_id)?;
-
+        let prefix = Self::build_prefix(core, poll_id)?;
         let vote = core
-            .get_ns::<Vote>(Self::VOTE, &key)?
+            .get_ns::<Vote>(&prefix, address.as_str().as_bytes())?
             .ok_or(StdError::generic_err(
                 "can't find vote for user on that poll",
             ))?;
         Ok(vote)
     }
-
-    fn build_key(core: &C, address: HumanAddr, poll_id: u64) -> StdResult<Vec<u8>> {
-        let address = core.canonize(address)?;
+    fn build_prefix(_core: &C, poll_id: u64) -> StdResult<Vec<u8>> {
         let poll_id = poll_id.to_be_bytes().to_vec();
 
         //TODO: Cleaner way to handle this?
-        let len = address.as_slice().len() + poll_id.as_slice().len();
+        let len = Self::VOTE.len() + poll_id.as_slice().len();
 
         let mut key = Vec::with_capacity(len);
+        key.extend_from_slice(Self::VOTE);
         key.extend_from_slice(poll_id.as_slice());
-        key.extend_from_slice(address.as_slice());
 
         Ok(key)
     }
