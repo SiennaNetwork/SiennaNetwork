@@ -60,7 +60,7 @@ async function getExchange (
   })
 
   const { TOKEN: TOKEN_0, NAME: TOKEN_0_NAME } = await Snip20Client.fromTokenSpec(agent, token_0)
-  const { TOKEN: TOKEN_1, NAME: TOKEN_1_NAME } = await Snip20Client.fromTokenSpec(agent, token_0)
+  const { TOKEN: TOKEN_1, NAME: TOKEN_1_NAME } = await Snip20Client.fromTokenSpec(agent, token_1)
   const name = `${TOKEN_0_NAME}-${TOKEN_1_NAME}`
 
   const { liquidity_token } = await EXCHANGE.getPairInfo()

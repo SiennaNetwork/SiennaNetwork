@@ -18,10 +18,10 @@ export class SiennaSnip20Contract extends Snip20Contract_1_0 {
 async function siennaStatus (context) {
   const {
     deployment, agent,
-    sienna = deployment.get('SIENNA', SiennaSnip20Contract).client(agent)
+    sienna = new SiennaSnip20Client({ ...deployment.get('SIENNA'), agent })
   } = context
   try {
-    const balance = await sienna.balance(agent.address, '')
+    const balance = await sienna.getBalance(agent.address, '')
     console.info(`SIENNA balance of ${bold(agent.address)}: ${balance}`)
   } catch (e) {
     console.error(e.message)
