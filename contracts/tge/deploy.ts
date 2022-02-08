@@ -52,7 +52,7 @@ export async function deployTGE (context: MigrationContext & {
   const MGMT   = new MGMTContract()
   const RPT    = new RPTContract()
 
-  await agent.chain.buildAndUpload(agent, [SIENNA, MGMT, RPT])
+  await agent.buildAndUpload([SIENNA, MGMT, RPT])
 
   const admin = agent.address
 

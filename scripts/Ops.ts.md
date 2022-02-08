@@ -112,6 +112,18 @@ Fadroma.command('upgrade amm v1_to_v2',
 Fadroma.command('upgrade rewards v2_to_v3',
   Deployments.activate,
   RewardsContract['v2'].upgrade['v3'])
+
+import { ScrtAgentTX } from '@hackbg/fadroma'
+Fadroma.command('generate upgrade rewards v2_to_v3',
+  Deployments.activate,
+  ({agent, deployment})=>{
+    console.warn('Switching to TX agent...')
+    return {
+      agent: new ScrtAgentTX(agent)
+    }
+  },
+  SiennaSnip20Contract.status,
+)
 ```
 
 ### Full up-to-date deployment

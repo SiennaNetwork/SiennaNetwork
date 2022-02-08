@@ -37,7 +37,7 @@ export async function deployLend({ agent, deployment, prefix }: MigrationContext
   const MOCK_ORACLE    = new MockOracleContract();
 
   for (const contract of [INTEREST_MODEL, ORACLE, MARKET, OVERSEER, MOCK_ORACLE]) {
-    await agent.chain.buildAndUpload(agent, [contract]);
+    await agent.buildAndUpload([contract]);
   }
 
   // paramters taken from Compound

@@ -76,10 +76,10 @@ export abstract class RewardsContract extends Scrt_1_2.Contract<RewardsClient> {
 
     constructor ({ template, admin, staked, reward }: {
       template?: Template,
-      admin:     string,
-      staked:    Snip20Client,
-      reward:    Snip20Client,
-    }) {
+      admin?:     string,
+      staked?:    Snip20Client,
+      reward?:    Snip20Client,
+    } = {}) {
       super()
       if (template) this.template = template
       this.initMsg = makeRewardInitMsg['v2'](admin, staked, reward)
@@ -106,11 +106,11 @@ export abstract class RewardsContract extends Scrt_1_2.Contract<RewardsClient> {
     Client = RewardsClient['v3']
 
     constructor ({ template, admin, staked, reward }: {
-      template: Template,
-      admin:    string,
-      staked:   Snip20Client,
-      reward:   Snip20Client,
-    }) {
+      template?: Template,
+      admin?:    string,
+      staked?:   Snip20Client,
+      reward?:   Snip20Client,
+    } = {}) {
       super()
       if (template) this.template = template
       this.initMsg = makeRewardInitMsg['v3'](admin, staked, reward)
@@ -133,7 +133,7 @@ export abstract class RewardsContract extends Scrt_1_2.Contract<RewardsClient> {
   static "v2+v3" = {
     /** Command. Deploy both versions simultaneously,
       * splitting the balance evenly in the RPT config. */
-    deploy: deployRewards_v2_and_v3
+    deploy: () => { throw new Error('deprecated') }
   }
 
   /** Command. Attach a specified version of Sienna Rewards
@@ -169,9 +169,7 @@ async function deployRewards ({
 
 }): Promise<[RewardsClient, string][]> {
 
-  const contract = new RewardsContract[version]({})
-  await agent.chain.buildAndUpload(agent, [contract])
-  const { template } = contract
+  const [template] = await agent.buildAndUpload([new RewardsContract[version]({})])
   const rewardPoolsToCreate = []
   const admin = agent.address
   const reward = SIENNA
@@ -200,77 +198,48 @@ async function deployRewards ({
 
 }
 
-type MultisigTX = any
-const pick       = (...keys) => x => keys.reduce((y, key)=>{y[key]=x[key];return y}, {})
-const essentials = pick('codeId', 'codeHash', 'address', 'label')
-
-async function deployRewards_v2_and_v3 ({run}) {
-  const [V2, V3] = await Promise.all([
-    run(RewardsContract.deployRewards, { version: 'v2' }),
-    run(RewardsContract.deployRewards, { version: 'v3' })
-  ])
-  const REWARD_POOLS = [ ...V2.REWARD_POOLS, ...V3.REWARD_POOLS ]
-  console.table(REWARD_POOLS.reduce(
-    (table, {label, address, codeId, codeHash})=>
-      Object.assign(table, {
-        [label]: { address: address, codeId: codeId, codeHash: codeHash }
-      }), {}))
-  const RPT_CONFIG  = [ ...V2.RPT_CONFIG,   ...V3.RPT_CONFIG   ]
-  return await run(RPTContract.adjustConfig, { RPT_CONFIG })
-  return { RPT_CONFIG, REWARD_POOLS }
-}
-
 async function upgradeRewards ({
-  timestamp, agent, deployment, prefix, run,
+  timestamp, agent, deployment, prefix, run, suffix = `+${timestamp}`,
   oldVersion,
   newVersion,
-  OldRewardsContract = RewardsContract[oldVersion],
-  NewRewardsContract = RewardsContract[newVersion],
-  SIENNA = new Snip20Client({ ...deployment.get('SIENNA'), agent }),
-  RPT    = new RPTClient({    ...deployment.get('RPT'),    agent }),
-  REWARD_POOLS = deployment.getAll(
-    `Rewards[${oldVersion}].`, name => new OldRewardsContract({agent})
-  ),
-  version,
-  suffix = `+${timestamp}`
 }: MigrationContext & {
-  oldVersion:         RewardsAPIVersion,
-  newVersion:         RewardsAPIVersion,
-  OldRewardsContract: new(input:any)=>RewardsContract,
-  NewRewardsContract: new(input:any)=>RewardsContract,
-  SIENNA: Snip20Client,
-  RPT:    RPTClient
-  REWARD_POOLS: RewardsClient[]
+  oldVersion: RewardsAPIVersion,
+  newVersion: RewardsAPIVersion,
 }): Promise<{
   REWARD_POOLS: RewardsClient[]
 }> {
-  const NEW_REWARD_POOLS: RewardsContract[] = []
-  for (const REWARDS of REWARD_POOLS) {
-    //console.log({REWARDS})
-    //console.log(REWARDS.lpToken())
-    //process.exit(123)
-    const LP_TOKEN = REWARDS.lpToken
-    const {symbol} = await LP_TOKEN.info
+
+  // TODO FAILSAFE! Stake in admin address of old rewards
+  //      so that subsequent RPT portions are not lost if
+  //      everyone leaves the pool !!!
+  const SIENNA = new Snip20Client({ ...deployment.get('SIENNA'), agent })
+  const RPT    = new RPTClient({    ...deployment.get('RPT'),    agent })
+  const OldRewardsClient   = RewardsClient[oldVersion]
+  const oldRewardPools = Object.keys(deployment.receipts)
+    .filter(name=>name.endsWith(`.Rewards[${oldVersion}]`))
+    .map(name=>new OldRewardsClient({ ...deployment.receipts[name], agent }))
+
+  const NewRewardsContract = RewardsContract[newVersion]
+  const [template] = await agent.buildAndUpload([new NewRewardsContract({})])
+  const newRewardPools = []
+  const admin = agent.address
+  const reward = SIENNA
+  for (const oldRewardPool of oldRewardPools) {
+    const staked = await oldRewardPool.getStakedToken()
+    const newRewardPool = new NewRewardsContract({ template, admin, staked, reward })
     let name
-    if (symbol === 'SIENNA') {
-      name = 'SIENNA'
+    if (staked.address === deployment.get('SIENNA').address) {
+      name = `SIENNA.Rewards[${newVersion}]`
     } else {
-      const [LP, TOKEN0, TOKEN1] = (await LP_TOKEN.friendlyName).split('-')
-      name = `AMM[v2].${TOKEN0}-${TOKEN1}.LP`
+      name = `AMM[v2].${await staked.getPairName()}.LP.Rewards[${newVersion}]`
     }
-    //console.log()
-    //console.info(bold('Upgrading reward pool'), name)
-    const { REWARDS: NEW_REWARDS } = await run(deployRewardPool, {
-      version,
-      name,
-      lpToken: LP_TOKEN,
-      rewardToken: SIENNA
-    })
-    NEW_REWARD_POOLS.push(NEW_REWARDS)
+    newRewardPools.push([newRewardPool, newRewardPool.initMsg, name])
   }
-  const count = bold(String(NEW_REWARD_POOLS.length))
-  console.info(`Deployed`, count, version, `reward pools.`)
-  return {
-    REWARD_POOLS: NEW_REWARD_POOLS.map(contract=>contract.client(agent))
-  }
+
+  await deployment.instantiate(agent, ...newRewardPools)
+
+  return { REWARD_POOLS: newRewardPools }
+
 }
+
+async function rerouteRewardFunding () { /* TODO */ }

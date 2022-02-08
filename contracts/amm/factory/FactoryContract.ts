@@ -29,8 +29,8 @@ export abstract class AMMFactoryContract extends Scrt_1_2.Contract<AMMFactoryCli
   static v1 = class AMMFactoryContract_v1 extends AMMFactoryContract {
     version = 'v1' as AMMVersion
     name    = `AMM[${this.version}].Factory`
-    Client  = AMMFactoryClient[this.version]
     source  = { workspace, crate: 'factory', ref: '2f75175212'/*'a99d8273b4'???*/ }
+    Client  = AMMFactoryClient[this.version]
     static deploy = function deployAMMFactory_v1 (input) {
       return deployAMM({ ...input, ammVersion: 'v1'})
     }
@@ -45,8 +45,8 @@ export abstract class AMMFactoryContract extends Scrt_1_2.Contract<AMMFactoryCli
   static v2 = class AMMFactoryContract_v2 extends AMMFactoryContract {
     version = 'v2' as AMMVersion
     name    = `AMM[${this.version}].Factory`
-    Client  = AMMFactoryClient[this.version]
     source  = { workspace, crate: 'factory', ref: 'HEAD' }
+    Client  = AMMFactoryClient[this.version]
     static deploy = async function deployAMMFactory_v2 (input) {
       return deployAMM({ ...input, ammVersion: 'v2'})
     }
@@ -134,7 +134,7 @@ export async function deployAMMFactory ({
   FACTORY: AMMFactoryClient
 }> {
   const FACTORY = new AMMFactoryContract[version]({ prefix, suffix })
-  await agent.chain.buildAndUpload(agent, [FACTORY])
+  await agent.buildAndUpload([FACTORY])
   const templates = copyFrom
     ? await copyFrom.getContracts()
     : await buildTemplates(agent, version)
@@ -157,7 +157,7 @@ async function buildTemplates (agent: Agent, version: 'v1'|'v2') {
   const LAUNCHPAD = new LaunchpadContract() // special cased because versions
   const IDO       = new IDOContract()
   for (const contract of [AMMTOKEN, LPTOKEN, EXCHANGE, LAUNCHPAD, IDO]) {
-    await agent.chain.buildAndUpload(agent, [contract]) // TODO parallel
+    await agent.buildAndUpload([contract]) // TODO parallel
   }
   const template = contract => ({
     id:        Number(contract.template.codeId),
