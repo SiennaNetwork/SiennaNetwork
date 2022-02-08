@@ -99,7 +99,7 @@ async function deployAMMExchange (options) {
     if (e.message.includes("Address doesn't exist in storage")) {
       await factory.createExchange(token0, token1)
       const exchange = await factory.getExchange(token0, token1)
-      return AMMExchangeContract.save({ deployment, ammVersion, inventory, exchange })
+      return saveAMMExchange({ deployment, ammVersion, inventory, exchange })
     } else {
       console.error(e)
       throw new Error(`${bold(`Factory::GetExchange(${name})`)}: not found (${e.message})`)
@@ -153,7 +153,7 @@ async function saveCreatedPairs ({ FACTORY, deployment, ammVersion, createdPairs
   const inventory = await FACTORY.getContracts()
   const EXCHANGES = await Promise.all(createdPairs.map(async ([token0, token1])=>{
     const exchange = await FACTORY.getExchange(token0, token1)
-    return AMMExchangeContract.save({
+    return saveAMMExchange({
       deployment,
       ammVersion,
       inventory,
@@ -187,7 +187,7 @@ async function redeployAMMExchanges (options) {
   const inventory = await NEW_FACTORY.client(agent).getContracts()
   NEW_EXCHANGES = await Promise.all(NEW_EXCHANGES.map(async ([TOKEN_0, TOKEN_1])=>{
     const exchange = await factory.getExchange(TOKEN_0, TOKEN_1)
-    return AMMExchangeContract.save({ deployment, ammVersion, inventory, exchange })
+    return saveAMMExchange({ deployment, ammVersion, inventory, exchange })
   }))
 
   return { NEW_EXCHANGES }

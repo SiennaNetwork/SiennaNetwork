@@ -1,5 +1,6 @@
 import {
   MigrationContext,
+  print,
   Deployment,
   Chain,
   Agent,
@@ -22,14 +23,10 @@ import {
 import { workspace } from "@sienna/settings";
 
 export async function deployLend({
-  chain,
   agent,
   deployment,
   prefix,
 }: MigrationContext): Promise<{
-  workspace: string;
-  deployment: Deployment;
-  prefix: string;
   OVERSEER: LendOverseerContract;
   MARKET: LendMarketContract;
   INTEREST_MODEL: InterestModelContract;
@@ -46,7 +43,7 @@ export async function deployLend({
   const TOKEN1 = new AMMSNIP20Contract({ name: "SLATOM" });
   const TOKEN2 = new AMMSNIP20Contract({ name: "SLSCRT" });
 
-  await chain.buildAndUpload(agent, [
+  for (const contract of [
     INTEREST_MODEL,
     ORACLE,
     MARKET,
@@ -54,7 +51,9 @@ export async function deployLend({
     MOCK_ORACLE,
     TOKEN1,
     TOKEN2,
-  ]);
+  ]) {
+    await agent.chain.buildAndUpload(agent, [contract]);
+  }
 
   await deployment.getOrInit(agent, TOKEN1, "SLATOM", {
     name: "slToken1",
@@ -119,9 +118,6 @@ export async function deployLend({
   });
 
   return {
-    workspace,
-    deployment,
-    prefix,
     OVERSEER,
     MARKET,
     INTEREST_MODEL,

@@ -190,7 +190,7 @@ export async function deployRewardPools ({
   ammVersion:   AMMVersion,
   settings:     { rewardPairs: string[] },
   split:        number,
-}) {
+}): Promise<[RewardsClient, string][]> {
   if (!rewardPairs || rewardPairs.length === 1) {
     throw new Error(`@sienna/rewards: needs rewardPairs setting for ${agent.chain.id}`)
   }
@@ -210,7 +210,7 @@ export async function deployRewardPools ({
     })
     // collect the RPT budget line
     const reward = BigInt(rewardPairs[name]) / BigInt(1 / split)
-    const budget = [REWARDS.address, String(reward * ONE_SIENNA)]
+    const budget = [REWARDS, String(reward * ONE_SIENNA)]
     result.push([REWARDS, budget])
   }
   return result
@@ -227,10 +227,7 @@ async function deployRewards ({
   SIENNA:     Snip20Client,
   version:    RewardsAPIVersion,
   ammVersion: AMMVersion
-}): Promise<{
-  REWARD_POOLS: RewardsClient[],
-  RPT_CONFIG:   RPTConfig
-}> {
+}): Promise<[RewardsClient, string][]> {
   const contract = new RewardsContract[version]({})
   await agent.chain.buildAndUpload(agent, [contract])
   const { template } = contract
