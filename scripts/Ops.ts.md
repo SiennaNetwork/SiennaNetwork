@@ -64,6 +64,9 @@ Fadroma.command('status',
   SiennaSnip20Contract.status,
   MGMTContract.status,
   RPTContract.status)
+Fadroma.command('fund-testers',
+  Deployments.activate,
+  SiennaSnip20Contract.fundTesters)
 Fadroma.command('select', Deployments.select)
 Fadroma.command('deploy new', Deployments.new)
 ```
