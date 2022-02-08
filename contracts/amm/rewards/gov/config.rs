@@ -2,7 +2,7 @@ use fadroma::*;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use super::{governance::Governance, reveal::RevealCommitteeMember, poll::Poll};
+use super::{governance::Governance, poll::Poll};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
@@ -29,7 +29,7 @@ impl GovernanceConfig {
     pub const QUORUM: &'static [u8] = b"/gov/quorum";
     pub const DEADLINE: &'static [u8] = b"/gov/deadline";
     pub const VOTES: &'static [u8] = b"/gov/votes";
-    pub const REVEAL_COMMITTEE: &'static [u8] = b"/gov/committee";
+    pub const COMMITTEE: &'static [u8] = b"/gov/committee";
 
 }
 pub trait IGovernanceConfig<S, A, Q, C>
@@ -47,8 +47,8 @@ where
     fn threshold(core: &C) -> StdResult<u64>;
     fn quorum(core: &C) -> StdResult<Decimal>;
     fn deadline(core: &C) -> StdResult<u64>;
-    fn commit_reveal_committee_member(&self,  core: &mut C, poll_id: u64) -> StdResult<()>;
-    fn reveal_committee(core: &C) -> StdResult<Option<Vec<HumanAddr>>>;
+    fn commit_committee(committee: &Vec<HumanAddr>, core: &mut C) -> StdResult<()>;
+    fn committee(core: &C) -> StdResult<Vec<HumanAddr>>;
 
 }
 impl<S, A, Q, C> IGovernanceConfig<S, A, Q, C> for GovernanceConfig
@@ -60,8 +60,10 @@ where
 {
     fn initialize(&mut self, core: &mut C, _env: &Env) -> StdResult<Vec<CosmosMsg>> {
         core.set(Poll::TOTAL, 0)?;
+        if self.reveal_committee.is_none() {
+            self.reveal_committee = Some(vec![]);
+        };
         self.store(core)
-
         // TODO: check for uninitialized fields after store
     }
     fn get(core: &C) -> StdResult<Self> {
@@ -69,7 +71,7 @@ where
             deadline: Some(Self::deadline(core)?),
             quorum: Some(Self::quorum(core)?),
             threshold: Some(Self::threshold(core)?),
-            reveal_committee: Self::reveal_committee(core)?
+            reveal_committee: Some(Self::committee(core)?)
         })
     }
 
@@ -78,7 +80,7 @@ where
             deadline,
             threshold,
             quorum,
-            reveal_committee: _
+            reveal_committee
         } = self;
         if let Some(deadline) = deadline {
             core.set(Self::DEADLINE, deadline)?;
@@ -88,6 +90,10 @@ where
         }
         if let Some(quorum) = quorum {
             core.set(Self::QUORUM, quorum)?;
+        }
+        if let Some(reveal_committee) = reveal_committee {
+            Self::commit_committee(reveal_committee, core)?
+            // core.set(Self::REVEAL_COMMITTEE, reveal_committee)?;
         }
         Ok(vec![])
     }
@@ -108,17 +114,27 @@ where
     }
 
 
-    fn commit_reveal_committee_member(&self,  core: &mut C, poll_id: u64) -> StdResult<()> {
+    fn commit_committee(reveal_committee: &Vec<HumanAddr>,  core: &mut C) -> StdResult<()> {
+        let canonized_committee: Vec<CanonicalAddr> = reveal_committee
+            .iter()
+            .map(|member| member.canonize(core.api()).unwrap() )
+            .collect();
         core.set(
-            Self::REVEAL_COMMITTEE,
-            self.reveal_committee.clone(),
+            Self::COMMITTEE,
+            canonized_committee,
         )?;
         Ok(())   
     }
 
-    fn reveal_committee(core: &C) -> StdResult<Option<Vec<HumanAddr>>> {
-        core.get(Self::REVEAL_COMMITTEE)?
-            .ok_or(StdError::generic_err("failed to parse reveal committee from storage"))?
+    fn committee(core: &C) -> StdResult<Vec<HumanAddr>> {
+        let canonized_committee:Vec<CanonicalAddr> = core.get(Self::COMMITTEE)?
+            .ok_or(StdError::generic_err("failed to parse reveal committee from storage"))?;
+        let committee: Vec<HumanAddr> = canonized_committee
+            .iter()
+            .map(|member| { member.humanize(core.api()).unwrap() })
+            .collect();
+        Ok(committee)
+
     }
     
 }

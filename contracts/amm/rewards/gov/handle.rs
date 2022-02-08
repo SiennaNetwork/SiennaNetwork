@@ -76,8 +76,16 @@ where
                 poll_id: _,
             } => Ok(HandleResponse::default()),
             GovernanceHandle::Unvote { poll_id: _ } => Ok(HandleResponse::default()),
-            GovernanceHandle::Reveal { poll_id: _ } => {
-                // not implemented
+            GovernanceHandle::Reveal { poll_id } => {
+                // at least 2 out of 3 members must approve a reveal
+                let sender = env.message.sender;
+                let members = GovernanceConfig::committee(core)?;
+                let approvals = Poll::reveal_approvals(core, poll_id)?;
+                let is_member = members.contains(&sender);
+                let already_approved = approvals.contains(&sender);
+                if is_member && ! already_approved {
+                    Poll::approve_reveal(core, poll_id, &sender)?
+                }
                 Ok(HandleResponse::default())
             }
             _ => {
