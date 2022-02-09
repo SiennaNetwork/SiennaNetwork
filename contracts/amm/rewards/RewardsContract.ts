@@ -5,7 +5,7 @@ const console = Console('@sienna/rewards/Contract')
 import { RewardsAPIVersion, RewardsClient } from './RewardsClient'
 export * from './RewardsClient'
 
-import { MigrationContext, Template, Snip20Client } from '@hackbg/fadroma'
+import { Agent, MigrationContext, Template, Snip20Client } from '@hackbg/fadroma'
 import { LPTokenContract, LPTokenClient } from '@sienna/lp-token'
 import { RPTContract, RPTClient, RPTConfig } from '@sienna/rpt'
 import { SiennaSnip20Contract } from '@sienna/snip20-sienna'
@@ -144,35 +144,41 @@ export abstract class RewardsContract extends Scrt_1_2.Contract<RewardsClient> {
 
 }
 
-async function deployRewards ({
-
-  deployment, agent, run,
-
-  SIENNA      = new Snip20Client({ ...deployment.get('SIENNA'), agent }),
-  version     = 'v3' as RewardsAPIVersion,
-  ammVersion  = { v3: 'v2', v2: 'v1' }[version] as AMMVersion,
-  rewardPairs = getSettings(agent.chain.id).rewardPairs,
-  suffix      = `+${timestamp()}`,
-
-  adjustRPT = true
-
-}: MigrationContext & {
-
-  SIENNA:      Snip20Client,
+async function deployRewards (context: MigrationContext & {
+  /** Which address will be admin of the new reward pools.
+    * Defaults to the executing agent. */
+  admin:       string,
+  /** The reward token. Defaults to SIENNA */
+  reward:      Snip20Client,
+  /** Version of the rewards that we will be deploying */
   version:     RewardsAPIVersion,
+  /** Uploaded codeId+codeHash for rewards[version]. */
+  template:    Template,
+  /** The AMM version to which to attach the rewards. */
   ammVersion:  AMMVersion,
+  /** List of reward pairs to generate. */
   rewardPairs: any,
+  /** Prevent label clashes when iterating locally. */
   suffix:      string
-
   /** Whether the new reward pools should be configured in the RPT */
   adjustRPT: boolean
-
 }): Promise<[RewardsClient, string][]> {
+  const {
+    deployment, agent, run, suffix,
+    uploadAgent,
+    deployAgent,
+    clientAgent,
 
-  const [template] = await agent.buildAndUpload([new RewardsContract[version]({})])
+    admin       = agent.address,
+    reward      = new Snip20Client({ ...deployment.get('SIENNA'), agent: clientAgent }),
+    version     = 'v3' as RewardsAPIVersion,
+    template    = (await agent.buildAndUpload([new RewardsContract[version]({})]))[0],
+    ammVersion  = { v3: 'v2', v2: 'v1' }[version] as AMMVersion,
+    rewardPairs = getSettings(agent.chain.id).rewardPairs,
+    adjustRPT   = true
+  } = context
+
   const rewardPoolsToCreate = []
-  const admin = agent.address
-  const reward = SIENNA
 
   for (let [name, budgetAllocation] of Object.entries(rewardPairs)) {
     if (name !== 'SIENNA') name = `AMM[${ammVersion}].${name}.LP`
@@ -181,49 +187,66 @@ async function deployRewards ({
     const contract = new RewardsContract[version]({ template, admin, staked, reward })
     rewardPoolsToCreate.push([
       [contract, contract.initMsg, name],   // init options
-      String(BigInt(budgetAllocation) * ONE_SIENNA) // budget allocation
+      String(BigInt(budgetAllocation as string) * ONE_SIENNA) // budget allocation
     ])
   }
 
   const getInitOptions = x=>x[0]
-  await deployment.instantiate(agent, ...rewardPoolsToCreate.map(getInitOptions))
+  await deployment.instantiate(deployAgent, ...rewardPoolsToCreate.map(getInitOptions))
 
   if (adjustRPT) {
     const getAddressAndBudget = x=>[x[0][0].address, x[1]]
     await run(RPTContract.adjustConfig, { RPT_CONFIG: rewardPoolsToCreate.map(getAddressAndBudget) })
   }
 
-  const getClientAndBudget = x=>x[0][0].client(agent)
+  const getClientAndBudget = x=>x[0][0].client(clientAgent)
   return rewardPoolsToCreate.map(getClientAndBudget) as [RewardsClient, string][]
-
 }
 
-async function upgradeRewards ({
-  timestamp, agent, deployment, prefix, run, suffix = `+${timestamp}`,
-  oldVersion,
-  newVersion,
-}: MigrationContext & {
-  oldVersion: RewardsAPIVersion,
-  newVersion: RewardsAPIVersion,
+async function upgradeRewards (context: MigrationContext & {
+  /** Which address will be admin of the new reward pools.
+    * Defaults to the executing agent. */
+  admin:         string,
+  /** The reward token.
+    * Defaults to SIENNA */
+  reward:        Snip20Client,
+  /** Old version that we are migrating from. */
+  oldVersion:    RewardsAPIVersion,
+  /** New version that we are migrating to. */
+  newVersion:    RewardsAPIVersion,
+  /** Code id and code hash of new version. */
+  template:      Template,
+  /** Version of the AMM that the new reward pools will attach to. */
+  newAmmVersion: AMMVersion
 }): Promise<{
   REWARD_POOLS: RewardsClient[]
 }> {
+  const {
+    timestamp, agent, deployment, prefix, run, suffix = `+${timestamp}`,
+    uploadAgent,
+    deployAgent,
+    clientAgent,
+
+    admin  = agent.address,
+    reward = new Snip20Client({ ...deployment.get('SIENNA'), agent }),
+    oldVersion,
+    newVersion,
+    template = (await uploadAgent.buildAndUpload([new RewardsContract[newVersion]({})]))[0],
+    newAmmVersion = 'v2'
+  } = context
 
   // TODO FAILSAFE! Stake in admin address of old rewards
   //      so that subsequent RPT portions are not lost if
   //      everyone leaves the pool !!!
-  const SIENNA = new Snip20Client({ ...deployment.get('SIENNA'), agent })
-  const RPT    = new RPTClient({    ...deployment.get('RPT'),    agent })
-  const OldRewardsClient   = RewardsClient[oldVersion]
+  const RPT = new RPTClient({ ...deployment.get('RPT'), agent })
+
+  const OldRewardsClient = RewardsClient[oldVersion]
   const oldRewardPools = Object.keys(deployment.receipts)
     .filter(name=>name.endsWith(`.Rewards[${oldVersion}]`))
     .map(name=>new OldRewardsClient({ ...deployment.receipts[name], agent }))
 
   const NewRewardsContract = RewardsContract[newVersion]
-  const [template] = await agent.buildAndUpload([new NewRewardsContract({})])
   const newRewardPools = []
-  const admin = agent.address
-  const reward = SIENNA
   for (const oldRewardPool of oldRewardPools) {
     const staked = await oldRewardPool.getStakedToken()
     const newRewardPool = new NewRewardsContract({ template, admin, staked, reward })
@@ -231,15 +254,14 @@ async function upgradeRewards ({
     if (staked.address === deployment.get('SIENNA').address) {
       name = `SIENNA.Rewards[${newVersion}]`
     } else {
-      name = `AMM[v2].${await staked.getPairName()}.LP.Rewards[${newVersion}]`
+      name = `AMM[${newAmmVersion}].${await staked.getPairName()}.LP.Rewards[${newVersion}]`
     }
     newRewardPools.push([newRewardPool, newRewardPool.initMsg, name])
   }
 
-  await deployment.instantiate(agent, ...newRewardPools)
+  await deployment.instantiate(deployAgent, ...newRewardPools)
 
   return { REWARD_POOLS: newRewardPools }
-
 }
 
 async function rerouteRewardFunding () { /* TODO */ }

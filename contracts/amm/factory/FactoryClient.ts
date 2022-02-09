@@ -4,7 +4,7 @@ import { EnigmaUtils } from "secretjs"
 import { AMMExchangeClient, ExchangeInfo } from '@sienna/exchange'
 
 import { ContractInstantiationInfo } from './schema/init_msg.d'
-import { TokenType } from './schema/handle_msg.d'
+import { TokenType, ContractStatusLevel, HumanAddr } from './schema/handle_msg.d'
 import { Exchange } from './schema/query_response.d'
 
 export type AMMFactoryTemplates = {
@@ -28,6 +28,16 @@ export abstract class AMMFactoryClient extends Client {
     version = "v2" as AMMVersion
   }
 
+  setStatus (
+    level:        ContractStatusLevel,
+    new_address?: HumanAddr,
+    reason:       string = ""
+  ) {
+    return this.execute({
+      set_status: { level, new_address, reason }
+    })
+  }
+
   /** Return the collection of contract templates
     * (`{ id, code_hash }` structs) that the factory
     * uses to instantiate contracts. */
@@ -42,13 +52,12 @@ export abstract class AMMFactoryClient extends Client {
     }
   }
 
-  /** Create a liquidity pool, i.e. an instance of the exchange contract,
-    * and return info about it from getExchange. */
-  async createExchange (
+  /** Create a liquidity pool, i.e. an instance of the AMMExchange contract */
+  createExchange (
     token_0: TokenType,
     token_1: TokenType
   ) {
-    await this.execute({
+    return this.execute({
       create_exchange: {
         pair:    { token_0, token_1 },
         entropy: b64encode(EnigmaUtils.GenerateNewSeed().toString())
@@ -125,7 +134,7 @@ export abstract class AMMFactoryClient extends Client {
     return result
   }
 
-  async listExchangesFull (): Promise<ExchangeInfo[]> {
+  listExchangesFull (): Promise<ExchangeInfo[]> {
     return this.listExchanges().then(exchanges=>{
       return Promise.all(
         exchanges.map(({ pair: { token_0, token_1 } }) => {

@@ -66,7 +66,7 @@ async function deployAMM ({
   EXCHANGES: AMMExchangeClient[],
   LP_TOKENS: LPTokenClient[]
 }> {
-  const [template] = await agent.buildAndUpload(new AMMFactoryContract[ammVersion]())
+  const [template] = await agent.buildAndUpload([new AMMFactoryContract[ammVersion]()])
   const FACTORY = await run(deployAMMFactory, { template, version: ammVersion, suffix })
   const exchangeOptions = { FACTORY, ammVersion }
   const { EXCHANGES, LP_TOKENS } = await run(AMMExchangeContract.deployMany, exchangeOptions)

@@ -63,6 +63,7 @@ export async function deployTGE (context: MigrationContext & {
     config:    { public_total_supply: true },
     prng_seed: randomHex(36)
   }
+  await deployment.instantiate(agent, [SIENNA, siennaInitMsg, 'SIENNA'])
   const siennaLink = [SIENNA.instance.address, SIENNA.instance.codeHash] 
 
   const RPTAccount = getRPTAccount(schedule)

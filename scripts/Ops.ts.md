@@ -2,7 +2,7 @@
 
 ```typescript
 import Fadroma, { bold, timestamp, Console } from '@hackbg/fadroma'
-const console = new Console('@sienna/ops')
+const console = new Console('@sienna/scripts/Ops')
 ```
 
 ## How commands work
@@ -119,24 +119,63 @@ Fadroma.command('upgrade rewards v2_to_v3',
 #### On mainnet:
 
 ```typescript
-import { ScrtAgentTX } from '@hackbg/fadroma'
+import { ScrtAgentTX, Scrt_1_2 } from '@hackbg/fadroma'
+import * as API from '@sienna/api'
 
-Fadroma.command('generate amm v1 disable',
+Fadroma.command('generate amm-v1-pause',
   Deployments.activate,
-  async ({agent, deployment, run})=>{
-    const factory = new AMMFactoryClient['v1']
-    AMMFactoryContract
+  async ({agent, deployment, run, cmdArgs})=>{
+    const [ newAddress = null ] = cmdArgs
+    const factory = new API.AMMFactoryClient.v1({
+      ...deployment.get('AMM[v1].Factory'),
+      agent: new ScrtAgentTX(agent)
+    })
+    await factory.setStatus(
+      "Paused",
+      null,
+      "Migration to AMMv2 has begun."
+      )
   })
 
-Fadroma.command('generate rpt reroute rewards',
+Fadroma.command('generate amm-v1-terminate',
+  Deployments.activate,
+  async ({agent, deployment, run, cmdArgs: [ newAddress ]})=>{
+    const factory = new API.AMMFactoryClient.v1({
+      ...deployment.get('AMM[v1].Factory'),
+      agent: new ScrtAgentTX(agent)
+    })
+    await factory.setStatus(
+      "Migrating",
+      newAddress,
+      `This contract is terminated. Please migrate to AMM v2 at: ${newAddress}`
+    )
+  })
+
+Fadroma.command('generate amm-v1-to-v2',
+  Deployments.activate,
+  async ({agent, deployment, run}) => {
+    await run(API.AMMFactoryContract.v1.upgrade.v2, { deployAgent: new ScrtAgentTX(agent) })
+  })
+
+Fadroma.command('generate rewards-deploy-v3',
+  Deployments.activate,
+  async ({agent, deployment, run}) => {
+    await run(API.RewardsContract.v2.upgrade.v3, { deployAgent: new ScrtAgentTX(agent) })
+  })
+
+Fadroma.command('generate rpt-rewards-v2-to-v3',
   Deployments.activate,
   async ({agent, deployment, run, cmdArgs: [ proportion ]})=>{
     proportion = proportion.split(':').map(Number)
+    const rpt = new API.RPTClient({ ...deployment.get('RPT'), agent: new ScrtAgentTX(agent) })
+    const status = await rpt.status()
   })
 
-Fadroma.command('generate rewards v2 close-all',
+Fadroma.command('generate rewards-v2-close-all',
   Deployments.activate,
-  async ({agent, deployment, run})=>{})
+  async ({agent, deployment, run})=>{
+  })
+
 /*    const multisig = new ScrtAgentTX(agent)
     const bundle = await run(
       AMMFactoryContract['v1'].upgrade['v2'],
