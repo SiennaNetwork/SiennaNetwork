@@ -51,6 +51,11 @@ where
     fn reveal_approvals(core: &C, poll_id: u64) -> StdResult<Vec<HumanAddr>>;
     fn current_quorum(core: &C, poll_id: u64) -> StdResult<Decimal>;
 
+    /**
+     * return the current auto increment id number
+     */
+    fn total(core: &C) -> StdResult<u64>;
+
     fn commit_status(&self, core: &mut C) -> StdResult<()>;
     fn commit_approvals(core: &mut C, poll_id: u64, approvals: &Vec<HumanAddr>) -> StdResult<()>;
 }
@@ -63,9 +68,7 @@ where
     C: Governance<S, A, Q>,
 {
     fn create_id(core: &mut C) -> StdResult<u64> {
-        let total = core
-            .get::<u64>(Self::TOTAL)?
-            .ok_or(StdError::generic_err("can't find total id count"))?;
+        let total = Self::total(core)?;
         let total = total
             .checked_add(1)
             .ok_or(StdError::generic_err("total integer overflow"))?;
@@ -73,6 +76,11 @@ where
         core.set(Self::TOTAL, total)?;
 
         Ok(total)
+    }
+    fn total(core: &C) -> StdResult<u64> {
+        Ok(core
+            .get::<u64>(Self::TOTAL)?
+            .ok_or(StdError::generic_err("can't find total id count"))?)
     }
 
     fn store(&self, core: &mut C) -> StdResult<()> {

@@ -1,3 +1,5 @@
+use std::cmp::{max, min};
+
 use fadroma::*;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -11,7 +13,11 @@ use super::{
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum GovernanceResponse {
-    Polls {},
+    Polls {
+        polls: Vec<Poll>,
+        total: usize,
+        total_pages: u64,
+    },
     Poll(Poll),
     Config(GovernanceConfig),
 }
@@ -22,7 +28,7 @@ where
     Q: Querier,
     C: Governance<S, A, Q>,
 {
-    fn polls(core: &C) -> StdResult<Self>;
+    fn polls(core: &C, take: u64, page: u64, asc: bool) -> StdResult<Self>;
     fn poll(core: &C, id: u64) -> StdResult<Self>;
     fn config(core: &C) -> StdResult<Self>;
 }
@@ -33,8 +39,25 @@ where
     Q: Querier,
     C: Governance<S, A, Q>,
 {
-    fn polls(_core: &C) -> StdResult<Self> {
-        Ok(GovernanceResponse::Polls {})
+    fn polls(core: &C, take: u64, page: u64, asc: bool) -> StdResult<Self> {
+        let take = min(take, 10);
+
+        let total = Poll::total(core)?;
+        let total_pages = (total + take - 1) / take;
+
+        let start = (page - 1) * take;
+        let end = min(start + take, total);
+
+        let mut polls = vec![];
+        for index in start + 1..=end {
+            polls.push(Poll::get(core, index)?);
+        }
+
+        Ok(GovernanceResponse::Polls {
+            total: polls.len().into(),
+            polls,
+            total_pages,
+        })
     }
     fn poll(core: &C, id: u64) -> StdResult<GovernanceResponse> {
         let meta = Poll::metadata(core, id)?;

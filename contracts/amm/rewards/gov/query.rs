@@ -10,14 +10,8 @@ use super::{
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum GovernanceQuery {
-    Polls {
-        // TODO: add pagination
-    // take: u16,
-    // page: u16
-    },
-    Poll {
-        id: u64,
-    },
+    Polls { take: u64, page: u64 },
+    Poll { id: u64 },
     Config {},
 }
 impl<S, A, Q, C> QueryDispatch<S, A, Q, C, GovernanceResponse> for GovernanceQuery
@@ -29,7 +23,9 @@ where
 {
     fn dispatch_query(self, core: &C) -> StdResult<GovernanceResponse> {
         match self {
-            GovernanceQuery::Polls {} => GovernanceResponse::polls(core),
+            GovernanceQuery::Polls { take, page } => {
+                GovernanceResponse::polls(core, take, page, false)
+            }
             GovernanceQuery::Poll { id } => GovernanceResponse::poll(core, id),
             GovernanceQuery::Config {} => GovernanceResponse::config(core),
         }
