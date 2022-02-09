@@ -30,7 +30,6 @@ impl GovernanceConfig {
     pub const DEADLINE: &'static [u8] = b"/gov/deadline";
     pub const VOTES: &'static [u8] = b"/gov/votes";
     pub const COMMITTEE: &'static [u8] = b"/gov/committee";
-
 }
 pub trait IGovernanceConfig<S, A, Q, C>
 where
@@ -49,7 +48,6 @@ where
     fn deadline(core: &C) -> StdResult<u64>;
     fn commit_committee(committee: &Vec<HumanAddr>, core: &mut C) -> StdResult<()>;
     fn committee(core: &C) -> StdResult<Vec<HumanAddr>>;
-
 }
 impl<S, A, Q, C> IGovernanceConfig<S, A, Q, C> for GovernanceConfig
 where
@@ -71,7 +69,7 @@ where
             deadline: Some(Self::deadline(core)?),
             quorum: Some(Self::quorum(core)?),
             threshold: Some(Self::threshold(core)?),
-            reveal_committee: Some(Self::committee(core)?)
+            reveal_committee: Some(Self::committee(core)?),
         })
     }
 
@@ -80,7 +78,7 @@ where
             deadline,
             threshold,
             quorum,
-            reveal_committee
+            reveal_committee,
         } = self;
         if let Some(deadline) = deadline {
             core.set(Self::DEADLINE, deadline)?;
@@ -113,28 +111,26 @@ where
             .ok_or(StdError::generic_err("deadline not set"))
     }
 
-
-    fn commit_committee(reveal_committee: &Vec<HumanAddr>,  core: &mut C) -> StdResult<()> {
+    fn commit_committee(reveal_committee: &Vec<HumanAddr>, core: &mut C) -> StdResult<()> {
         let canonized_committee: Vec<CanonicalAddr> = reveal_committee
             .iter()
-            .map(|member| member.canonize(core.api()).unwrap() )
+            .map(|member| member.canonize(core.api()).unwrap())
             .collect();
-        core.set(
-            Self::COMMITTEE,
-            canonized_committee,
-        )?;
-        Ok(())   
+        core.set(Self::COMMITTEE, canonized_committee)?;
+        Ok(())
     }
 
     fn committee(core: &C) -> StdResult<Vec<HumanAddr>> {
-        let canonized_committee:Vec<CanonicalAddr> = core.get(Self::COMMITTEE)?
-            .ok_or(StdError::generic_err("failed to parse reveal committee from storage"))?;
+        let canonized_committee =
+            core.get::<Vec<CanonicalAddr>>(Self::COMMITTEE)?
+                .ok_or(StdError::generic_err(
+                    "failed to parse reveal committee from storage",
+                ))?;
         let committee: Vec<HumanAddr> = canonized_committee
             .iter()
-            .map(|member| { member.humanize(core.api()).unwrap() })
+            .map(|member| member.humanize(core.api()).unwrap())
             .collect();
         Ok(committee)
-
     }
 }
 

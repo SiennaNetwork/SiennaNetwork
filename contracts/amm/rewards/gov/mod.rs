@@ -10,3 +10,4 @@ pub mod governance;
 pub mod vote;
 pub mod reveal;
 pub mod validator;
+pub mod poll_result;
