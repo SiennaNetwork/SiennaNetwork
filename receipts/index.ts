@@ -76,18 +76,41 @@ export async function fix1 ({ agent, deployment }) {
 }
 
 export async function fix2 ({ agent, deployment }) {
+  if (agent.chain.id !== 'secret-4') throw new Error('only on secret-4')
   const source = resolve(workspace, 'receipts/secret-4/deployments/prod.yml')
   const input  = YAML.loadAll(readFileSync(source, 'utf8'))
   const target = resolve(workspace, 'receipts/secret-4/deployments/prod.fixed.yml')
   const output = []
   for (const instance of input) {
-    if (instance.exchange) {
+    if (instance.exchange && !instance.name.endsWith('.LP')) {
       const name = instance.name
       delete instance.name
-      console.info('Querying code hash for', instance.exchange.address)
-      const codeHash = await agent.getCodeHash(instance.exchange.address)
-      output.push({name, address: instance.exchange.address, codeHash, ...instance})
-      output.push({name: `${name}.LP`, address: instance.lp_token.address, codeHash: instance.lp_token.code_hash,...instance, })
+      console.info('Querying code ids, hashes, and labels for', name)
+      const [codeId, codeHash, label, lpCodeId, lpLabel] = await Promise.all([
+        agent.getCodeId(instance.exchange.address),
+        agent.getCodeHash(instance.exchange.address),
+        agent.getLabel(instance.exchange.address),
+        agent.getCodeId(instance.lp_token.address),
+        agent.getLabel(instance.lp_token.address),
+      ])
+      output.push({
+        name,
+        chainId: 'secret-4',
+        codeId,
+        codeHash,
+        address: instance.exchange.address,
+        label,
+        ...instance
+      })
+      output.push({
+        name:    `${name}.LP`,
+        chainId: 'secret-4',
+        codeId:   lpCodeId,
+        codeHash: instance.lp_token.code_hash,
+        address:  instance.lp_token.address,
+        label:    lpLabel,
+        ...instance
+      })
       continue
     }
     if (instance.name.startsWith('Rewards[v2]')) {
@@ -97,6 +120,8 @@ export async function fix2 ({ agent, deployment }) {
       } else {
         instance.name = `AMM[v1].${lp}.LP.Rewards[v2]`
       }
+    } else if (['MGMT','RPT','SIENNA'].includes(instance.name)) {
+      instance.codeId = await agent.getCodeId(instance.address)
     }
     output.push(instance)
   }
