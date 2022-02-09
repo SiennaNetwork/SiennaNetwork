@@ -16,6 +16,7 @@ impl GovernanceConfig {
     //metadata configuration
     pub const MIN_TITLE_LENGTH: usize = 8;
     pub const MAX_TITLE_LENGTH: usize = 64;
+    pub const COMMITTEE_CAPACITY: usize = 3;
 
     pub const MIN_DESC_LENGTH: usize = 8;
     pub const MAX_DESC_LENGTH: usize = 1024;
@@ -49,6 +50,8 @@ where
     fn deadline(core: &C) -> StdResult<u64>;
     fn commit_committee(committee: &Vec<HumanAddr>, core: &mut C) -> StdResult<()>;
     fn committee(core: &C) -> StdResult<Vec<HumanAddr>>;
+    fn add_committee_member(core: &mut C, member: HumanAddr) -> StdResult<()>;
+    fn remove_committee_member(core: &mut C, member: HumanAddr) -> StdResult<()>;
 
 }
 impl<S, A, Q, C> IGovernanceConfig<S, A, Q, C> for GovernanceConfig
@@ -135,6 +138,25 @@ where
             .collect();
         Ok(committee)
 
+    }
+
+    fn add_committee_member(core: &mut C, member: HumanAddr) -> StdResult<()> {
+        let mut committee = Self::committee(core)?;
+        if committee.len() == Self::COMMITTEE_CAPACITY {
+            return Err(StdError::generic_err("Committee already at maximum capacity"));
+        }
+        committee.push(member);
+        Self::commit_committee(&committee, core)?;
+        Ok(())
+    }
+
+    fn remove_committee_member(core: &mut C, member: HumanAddr) -> StdResult<()> {
+        let committee = Self::committee(core)?
+            .into_iter()
+            .filter(|addr| addr != &member)
+            .collect();
+        Self::commit_committee(&committee, core)?;
+        Ok(())
     }
 }
 

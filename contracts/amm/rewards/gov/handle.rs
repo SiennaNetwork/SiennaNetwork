@@ -24,6 +24,8 @@ pub enum GovernanceHandle {
     ChangeVote { variant: VoteType, poll_id: u64 },
     UpdateConfig { config: GovernanceConfig },
     Reveal { poll_id: u64 },
+    AddCommitteeMember{ member: HumanAddr},
+    RemoveCommitteeMember{member: HumanAddr},
 }
 impl<S, A, Q, C> HandleDispatch<S, A, Q, C> for GovernanceHandle
 where
@@ -49,6 +51,7 @@ where
                 )?;
                 let account = algo::Account::from_env(core, &env)?;
                 let threshold = GovernanceConfig::threshold(core)?;
+                
                 if account.staked < threshold.into() {
                     return Err(StdError::generic_err("Insufficient funds to create a poll"));
                 };
@@ -116,7 +119,17 @@ where
                     Poll::approve_reveal(core, poll_id, &sender)?
                 }
                 Ok(HandleResponse::default())
-            }
+            },
+            GovernanceHandle::AddCommitteeMember {member} => {
+                Auth::assert_admin(core, &env)?;
+                GovernanceConfig::add_committee_member(core, member)?;
+                Ok(HandleResponse::default())
+            },
+            GovernanceHandle::RemoveCommitteeMember {member} => {
+                Auth::assert_admin(core, &env)?;
+                GovernanceConfig::remove_committee_member(core, member)?;
+                Ok(HandleResponse::default())
+            },
             _ => {
                 Auth::assert_admin(core, &env)?;
                 match self {
