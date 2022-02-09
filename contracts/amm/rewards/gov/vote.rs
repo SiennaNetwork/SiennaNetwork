@@ -32,6 +32,7 @@ where
     fn store(&self, core: &mut C, address: HumanAddr, poll_id: u64) -> StdResult<()>;
     fn get(core: &C, address: HumanAddr, poll_id: u64) -> StdResult<Self>;
     fn build_prefix(core: &C, poll_id: u64) -> StdResult<Vec<u8>>;
+    fn remove(core: &mut C, address: HumanAddr, poll_id: u64) -> StdResult<()>;
 }
 
 impl<S, A, Q, C> IVote<S, A, Q, C> for Vote
@@ -44,18 +45,21 @@ where
 {
     fn store(&self, core: &mut C, address: HumanAddr, poll_id: u64) -> StdResult<()> {
         let prefix = Self::build_prefix(core, poll_id)?;
-        core.set_ns(&prefix, address.as_str().as_bytes(), self.clone())?;
+        let key = core.canonize(address)?;
+        core.set_ns(&prefix, key.as_slice(), self.clone())?;
         Ok(())
     }
     fn get(core: &C, address: HumanAddr, poll_id: u64) -> StdResult<Self> {
         let prefix = Self::build_prefix(core, poll_id)?;
+        let key = core.canonize(address)?;
         let vote = core
-            .get_ns::<Vote>(&prefix, address.as_str().as_bytes())?
+            .get_ns::<Vote>(&prefix, key.as_slice())?
             .ok_or(StdError::generic_err(
                 "can't find vote for user on that poll",
             ))?;
         Ok(vote)
     }
+
     fn build_prefix(_core: &C, poll_id: u64) -> StdResult<Vec<u8>> {
         let poll_id = poll_id.to_be_bytes().to_vec();
 
@@ -67,5 +71,15 @@ where
         key.extend_from_slice(poll_id.as_slice());
 
         Ok(key)
+    }
+    fn remove(core: &mut C, address: HumanAddr, poll_id: u64) -> StdResult<()> {
+        //again, better way to handle concat?
+        let mut prefix = Self::build_prefix(core, poll_id)?;
+        let key = core.canonize(address)?;
+        prefix.extend_from_slice(key.as_slice());
+
+        core.storage_mut().remove(&prefix);
+
+        Ok(())
     }
 }
