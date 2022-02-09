@@ -124,22 +124,35 @@ import * as API from '@sienna/api'
 
 Fadroma.command('generate amm-v1-pause',
   Deployments.activate,
+  forMainnet,
   async ({agent, deployment, run, cmdArgs})=>{
     const [ newAddress = null ] = cmdArgs
-    const factory = new API.AMMFactoryClient.v1({
-      ...deployment.get('AMM[v1].Factory'),
-      agent: new ScrtAgentTX(agent)
-    })
-    await factory.setStatus(
-      "Paused",
-      null,
-      "Migration to AMMv2 has begun."
+    const txAgent = new ScrtAgentTX(agent)
+    await txAgent.bundle().wrap(async bundle=>{
+      const factory = new API.AMMFactoryClient.v1({
+        ...deployment.get('AMM[v1].Factory'),
+        agent: bundle
+      })
+      await factory.setStatus(
+        "Paused",
+        null,
+        "Migration to AMMv2 has begun."
       )
+    })
+  })
+
+Fadroma.command('generate amm-v2-from-v1',
+  Deployments.activate,
+  forMainnet,
+  async ({agent, deployment, run}) => {
+    await run(API.AMMFactoryContract.v1.upgrade.v2, { deployAgent: new ScrtAgentTX(agent) })
   })
 
 Fadroma.command('generate amm-v1-terminate',
   Deployments.activate,
-  async ({agent, deployment, run, cmdArgs: [ newAddress ]})=>{
+  forMainnet,
+  async ({agent, deployment, run, cmdArgs})=>{
+    const [ newAddress = null ] = cmdArgs
     const factory = new API.AMMFactoryClient.v1({
       ...deployment.get('AMM[v1].Factory'),
       agent: new ScrtAgentTX(agent)
@@ -151,19 +164,15 @@ Fadroma.command('generate amm-v1-terminate',
     )
   })
 
-Fadroma.command('generate amm-v1-to-v2',
-  Deployments.activate,
-  async ({agent, deployment, run}) => {
-    await run(API.AMMFactoryContract.v1.upgrade.v2, { deployAgent: new ScrtAgentTX(agent) })
-  })
-
 Fadroma.command('generate rewards-deploy-v3',
+  forMainnet,
   Deployments.activate,
   async ({agent, deployment, run}) => {
     await run(API.RewardsContract.v2.upgrade.v3, { deployAgent: new ScrtAgentTX(agent) })
   })
 
 Fadroma.command('generate rpt-rewards-v2-to-v3',
+  forMainnet,
   Deployments.activate,
   async ({agent, deployment, run, cmdArgs: [ proportion ]})=>{
     proportion = proportion.split(':').map(Number)
@@ -172,9 +181,26 @@ Fadroma.command('generate rpt-rewards-v2-to-v3',
   })
 
 Fadroma.command('generate rewards-v2-close-all',
+  forMainnet,
   Deployments.activate,
   async ({agent, deployment, run})=>{
   })
+
+async function forMainnet ({ chain }) {
+  if (!chain.isMainnet) {
+    console.error('This command is for mainnet only.')
+    process.exit(1)
+  }
+  const address = process.env.MAINNET_MULTISIG
+  if (!address) {
+    console.error('Set MAINNET_MULTISIG env var to continue.')
+    process.exit(1)
+  }
+  console.info(bold('Switching to mainnet multisig address:'), address)
+  const agent = new chain.Agent({ chain, address, name: 'MAINNET_ADMIN' })
+  const txAgent = new ScrtAgentTX(agent)
+  return { agent, txAgent }
+}
 
 /*    const multisig = new ScrtAgentTX(agent)
     const bundle = await run(
