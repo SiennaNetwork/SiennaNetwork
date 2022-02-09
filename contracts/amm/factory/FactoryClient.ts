@@ -4,7 +4,7 @@ import { EnigmaUtils } from "secretjs"
 import { AMMExchangeClient, ExchangeInfo } from '@sienna/exchange'
 
 import { ContractInstantiationInfo } from './schema/init_msg.d'
-import { TokenType, ContractStatusLevel, HumanAddr } from './schema/handle_msg.d'
+import { TokenType, TokenPair, ContractStatusLevel, HumanAddr } from './schema/handle_msg.d'
 import { Exchange } from './schema/query_response.d'
 
 export type AMMFactoryTemplates = {
@@ -103,27 +103,22 @@ export abstract class AMMFactoryClient extends Client {
     token_0: TokenType,
     token_1: TokenType
   ): Promise<ExchangeInfo> {
-    const {get_exchange_address:{address}} =
-      await this.query({ get_exchange_address: { pair: { token_0, token_1 } } })
-    return await AMMExchangeClient.get(
-      this.agent,
-      address,
-      token_0,
-      token_1
-    )
+    const msg = { get_exchange_address: { pair: { token_0, token_1 } } }
+    const {get_exchange_address:{address}} = await this.query(msg)
+    return await AMMExchangeClient.get(this.agent, address, token_0, token_1)
   }
 
   /** Get the full list of raw exchange info from the factory. */
-  async listExchanges (): Promise<Exchange[]> {
-    const result: Exchange[] = []
+  async listExchanges (): Promise<{
+    address: string,
+    pair:   {token_0: TokenType, token_1: TokenType}
+  }[]> {
+    const result = []
     const limit = 30
     let start = 0
     while (true) {
-      const {list_exchanges: {exchanges: list}} = await this.query({
-        list_exchanges: {
-          pagination: { start, limit }
-        }
-      })
+      const msg = { list_exchanges: { pagination: { start, limit } } }
+      const {list_exchanges: {exchanges: list}} = await this.query(msg)
       if (list.length > 0) {
         result.push(...list)
         start += limit
@@ -134,14 +129,13 @@ export abstract class AMMFactoryClient extends Client {
     return result
   }
 
-  listExchangesFull (): Promise<ExchangeInfo[]> {
-    return this.listExchanges().then(exchanges=>{
-      return Promise.all(
-        exchanges.map(({ pair: { token_0, token_1 } }) => {
-          return this.getExchange(token_0, token_1)
-        })
-      )
-    })
+  async listExchangesFull (): Promise<ExchangeInfo[]> {
+    const exchanges = await this.listExchanges()
+    return Promise.all(
+      exchanges.map(({ address, pair: { token_0, token_1 } }) => {
+        return AMMExchangeClient.get(this.agent, address, token_0, token_1)
+      })
+    )
   }
 
 }

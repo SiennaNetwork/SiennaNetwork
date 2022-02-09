@@ -138,10 +138,11 @@ async function upgradeAMM (context: MigrationContext & {
     templates: oldTemplates
   })
 
+  let newExchanges
   if (!generateMigration) {
     // turn the list of pairs to create
     // into a list of created exchange instances
-    const newExchanges = await Promise.all(newPairs.map(
+    newExchanges = await Promise.all(newPairs.map(
       ({TOKEN_0, TOKEN_1})=>newFactory.getExchange(
         TOKEN_0.asCustomToken,
         TOKEN_1.asCustomToken
