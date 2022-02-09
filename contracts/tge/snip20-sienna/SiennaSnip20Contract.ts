@@ -19,16 +19,15 @@ export class SiennaSnip20Contract extends Snip20Contract_1_0 {
 }
 
 async function siennaStatus ({ deployment, agent, cmdArgs }) {
-  console.log({agent})
   const [ vk = 'q1Y3S7Vq8tjdWXCL9dkh' ] = cmdArgs
   const sienna = new SiennaSnip20Client({ ...deployment.get('SIENNA'), agent })
-  console.log({sienna})
   try {
     const balance = await sienna.getBalance(agent.address, vk)
     console.info(`SIENNA balance of ${bold(agent.address)}: ${balance}`)
   } catch (e) {
     if (agent.chain.isMainnet) {
-      throw new Error('SIENNA mainnet: pass real vk')
+      console.error('SIENNA mainnet: no VK')
+      return
     }
     const VK = await sienna.setViewingKey(vk)
     console.log(VK)

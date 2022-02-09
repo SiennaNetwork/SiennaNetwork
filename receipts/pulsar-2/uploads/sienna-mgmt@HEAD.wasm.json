@@ -1,35 +1,6 @@
 {
-  "originalSize": 225632,
-  "originalChecksum": "5f77b64877cb785e3344d55766b6a2023f4e8075d4f9b94e3863aad5962a44c2",
-  "compressedSize": 75815,
-  "compressedChecksum": "b6780cab3b92479190a860bfc370fd76cc460f89622d08ba6074bac1830ee9ab",
-  "codeId": 2806,
-  "logs": [
-    {
-      "events": [
-        {
-          "type": "message",
-          "attributes": [
-            {
-              "key": "action",
-              "value": "store-code"
-            },
-            {
-              "key": "module",
-              "value": "compute"
-            },
-            {
-              "key": "signer",
-              "value": "secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy"
-            },
-            {
-              "key": "code_id",
-              "value": "2806"
-            }
-          ]
-        }
-      ]
-    }
-  ],
+  "chainId":         "pulsar-2",
+  "codeId":           2806,
+  "codeHash":        "5f77b64877cb785e3344d55766b6a2023f4e8075d4f9b94e3863aad5962a44c2",
   "transactionHash": "56EA723E73848F8DFCC56623EEB7843B1A804052C398FB56C49C5784636EFD2D"
 }

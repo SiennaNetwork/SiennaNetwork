@@ -1,4 +1,4 @@
-import { Console, bold, colors, timestamp, randomHex } from '@hackbg/fadroma'
+import { Console, bold, colors, timestamp, randomHex, Template, ScrtBundle } from '@hackbg/fadroma'
 
 const console = Console('@sienna/amm/Factory')
 
@@ -17,7 +17,7 @@ import { SiennaSnip20Contract } from '@sienna/snip20-sienna'
 import { InitMsg, ExchangeSettings, ContractInstantiationInfo } from './schema/init_msg.d'
 import { TokenType } from './schema/handle_msg.d'
 import { QueryResponse, Exchange } from './schema/query_response.d'
-import { AMMVersion, AMMFactoryClient } from './FactoryClient'
+import { AMMVersion, AMMFactoryClient, AMMFactoryTemplates } from './FactoryClient'
 export { AMMFactoryClient }
 
 export abstract class AMMFactoryContract extends Scrt_1_2.Contract<AMMFactoryClient> {
@@ -57,7 +57,7 @@ export abstract class AMMFactoryContract extends Scrt_1_2.Contract<AMMFactoryCli
 /** Command. Take the active TGE deployment, add the AMM Factory to it, use it to
   * create the configured AMM Exchange liquidity pools and their LP tokens. */
 async function deployAMM ({
-  run, suffix = `+${timestamp()}`,
+  agent, run, suffix = `+${timestamp()}`,
   ammVersion
 }: MigrationContext & {
   ammVersion: string
@@ -66,8 +66,8 @@ async function deployAMM ({
   EXCHANGES: AMMExchangeClient[],
   LP_TOKENS: LPTokenClient[]
 }> {
-  const factoryOptions = { version: ammVersion, suffix }
-  const { FACTORY } = await run(deployAMMFactory, factoryOptions)
+  const [template] = await agent.buildAndUpload(new AMMFactoryContract[ammVersion]())
+  const FACTORY = await run(deployAMMFactory, { template, version: ammVersion, suffix })
   const exchangeOptions = { FACTORY, ammVersion }
   const { EXCHANGES, LP_TOKENS } = await run(AMMExchangeContract.deployMany, exchangeOptions)
   return {
@@ -80,32 +80,82 @@ async function deployAMM ({
 /** Command. Take an existing AMM and create a new one with the same
   * contract templates. Recreate all the exchanges from the old exchange
   * in the new one. */
-async function upgradeAMM ({
-  run, chain, agent, deployment, prefix, suffix = `+${timestamp()}`,
-  oldVersion = 'v1',
-  newVersion = 'v2',
-}): Promise<{
+async function upgradeAMM (context: MigrationContext & {
+
+  generateMigration: boolean
+
+  oldVersion:     AMMVersion
+  oldFactoryName: string
+  oldFactory:     AMMFactoryClient
+  oldExchanges:   AMMExchangeContract[]
+  oldTemplates:   any,
+
+  newVersion:     AMMVersion,
+
+  name: string,
+
+}): Promise<ScrtBundle|{
   FACTORY:   AMMFactoryClient
   EXCHANGES: ExchangeInfo[]
 }> {
-  // get the old factory and its exchanges
-  const name         = `AMM[${oldVersion}].Factory`
-  const oldFactory   = new AMMFactoryClient[oldVersion]({ ...deployment.get(name), agent })
-  const oldExchanges = await oldFactory.listExchangesFull()
+  const {
+    generateMigration = false,
+    run, chain, agent, deployment, prefix, suffix = `+${timestamp()}`,
 
-  // create the new factory
-  const newFactoryOptions = { version: newVersion, copyFrom: oldFactory, suffix }
-  const { FACTORY: newFactory } = await run(deployAMMFactory, newFactoryOptions)
+    // auto-get the old factory and its exchanges by default;
+    // still allow them to be passed in for multisig mode
+    oldVersion     = 'v1',
+    oldFactoryName = `AMM[${oldVersion}].Factory`,
+    oldFactory     = new AMMFactoryClient[oldVersion]({ ...deployment.get(oldFactoryName), agent }),
+    oldExchanges   = await oldFactory.listExchangesFull(),
+    oldTemplates   = await oldFactory.getContracts(),
+
+    newVersion = 'v2',
+  } = context
+
+  // upload the new factory's code
+  const [newFactoryTemplate] = await agent.buildAndUpload([
+    new AMMFactoryContract[newVersion]({ prefix, suffix })
+  ])
+
+  // if we're generating the multisig transactions,
+  // skip the queries and store all the txs in a bundle
+  let bundle
+  if (generateMigration) bundle = agent.bundle()
+
+  // create the new factory instance
+  const newFactory = await run(deployAMMFactory, {
+    agent:     generateMigration ? bundle : agent,
+    version:   newVersion,
+    template:  newFactoryTemplate,
+    templates: oldTemplates,
+    suffix
+  }) as AMMFactoryClient
 
   // create the new exchanges, collecting the pair tokens
-  const newExchanges = await newFactory.createExchanges(oldExchanges)
-  const inventory  = await newFactory.getContracts()
-  const ammVersion = newVersion
-  for (const exchange of newExchanges) {
-    AMMExchangeContract.save({ deployment, ammVersion, inventory, exchange })
+  const newPairs = await newFactory.createExchanges({
+    pairs:     oldExchanges,
+    templates: oldTemplates
+  })
+
+  if (!generateMigration) {
+    // turn the list of pairs to create
+    // into a list of created exchange instances
+    const newExchanges = await Promise.all(newPairs.map(
+      ({TOKEN_0, TOKEN_1})=>newFactory.getExchange(
+        TOKEN_0.asCustomToken,
+        TOKEN_1.asCustomToken
+      )
+    ))
+    const inventory  = await newFactory.getContracts()
+    const ammVersion = newVersion
+    // save the newly created contracts to the deployment
+    newExchanges.forEach((exchange)=>AMMExchangeContract.save({
+      deployment, ammVersion, inventory, exchange
+    }))
   }
 
-  return {
+  return generateMigration ? bundle : {
     // The AMM factory that was created as a result of the upgrade.
     FACTORY: newFactory,
     // The AMM exchanges that were created as a result of the upgrade.
@@ -117,37 +167,36 @@ async function upgradeAMM ({
   * It needs to be passed code ids and code hashes for
   * the different kinds of contracts that it can instantiate.
   * So build and upload versions of those contracts too. */
-export async function deployAMMFactory ({
-  agent, deployment, prefix, suffix = timestamp(),
-  version = 'v2',
-  copyFrom,
-  initMsg = {
-    admin:             agent.address,
-    prng_seed:         randomHex(36),
-    exchange_settings: getSettings(agent.chain.id).amm.exchange_settings,
-  },
-}: MigrationContext & {
-  version:   AMMVersion,
-  copyFrom?: AMMFactoryClient,
-  initMsg:   any
-}): Promise<{
-  FACTORY: AMMFactoryClient
-}> {
-  const FACTORY = new AMMFactoryContract[version]({ prefix, suffix })
-  await agent.buildAndUpload([FACTORY])
-  const templates = copyFrom
-    ? await copyFrom.getContracts()
-    : await buildTemplates(agent, version)
+export async function deployAMMFactory (context: MigrationContext & {
+  /** Version of the factory that will be deployed. */
+  version:    AMMVersion,
+  /** Code id and code hash for the Factory contract that will be deployed. */
+  template:   Template,
+  /** Code ids and code hashes of the contracts that the factory can spawn. */
+  templates?: AMMFactoryTemplates,
+  /** Configuration of the factory - goes into initMsg */
+  config:     any
+}): Promise<AMMFactoryClient> {
+  const {
+    agent, deployment, prefix, suffix = timestamp(),
+    version   = 'v2',
+    template,
+    templates = await buildTemplates(agent, version),
+    config    = {
+      admin:             agent.address,
+      prng_seed:         randomHex(36),
+      exchange_settings: getSettings(agent.chain.id).amm.exchange_settings,
+    },
+  } = context
   if (version === 'v2') {
     delete templates.snip20_contract
     delete templates.ido_contract
     delete templates.launchpad_contract
   }
-  const factoryInitMsg = { ...initMsg, ...templates }
-  await deployment.instantiate(agent, [FACTORY, factoryInitMsg])
-  return {
-    FACTORY: FACTORY.client(agent)
-  }
+  const factory = new AMMFactoryContract[version]({ prefix, suffix })
+  factory.template = template
+  await deployment.instantiate(agent, [factory, {...config, ...templates}])
+  return factory.client(agent)
 }
 
 async function buildTemplates (agent: Agent, version: 'v1'|'v2') {

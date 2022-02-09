@@ -4,11 +4,14 @@ import {
   bold,
   resolve, dirname, rimraf,
   readFileSync, writeFileSync, readdirSync, statSync, unlinkSync,
-  Deployment
+  Deployment,
+  Console
 } from '@hackbg/fadroma'
 import { workspace } from '@sienna/settings'
 
-export async function fixReceipts ({ agent, deployment }) {
+const console = Console('@sienna/receipts')
+
+export async function fix1 ({ agent, deployment }) {
 
   for (const chainId of [
     'fadroma-scrt-12',
@@ -70,6 +73,37 @@ export async function fixReceipts ({ agent, deployment }) {
     }
   }
 
+}
+
+export async function fix2 ({ agent, deployment }) {
+  const source = resolve(workspace, 'receipts/secret-4/deployments/prod.yml')
+  const input  = YAML.loadAll(readFileSync(source, 'utf8'))
+  const target = resolve(workspace, 'receipts/secret-4/deployments/prod.fixed.yml')
+  const output = []
+  for (const instance of input) {
+    if (instance.exchange) {
+      const name = instance.name
+      delete instance.name
+      console.info('Querying code hash for', instance.exchange.address)
+      const codeHash = await agent.getCodeHash(instance.exchange.address)
+      output.push({name, address: instance.exchange.address, codeHash, ...instance})
+      output.push({name: `${name}.LP`, address: instance.lp_token.address, codeHash: instance.lp_token.code_hash,...instance, })
+      continue
+    }
+    if (instance.name.startsWith('Rewards[v2]')) {
+      const [_,lp] = instance.name.split('.')
+      if (lp === 'SIENNA') {
+        instance.name = 'SIENNA.Rewards[v2]'
+      } else {
+        instance.name = `AMM[v1].${lp}.LP.Rewards[v2]`
+      }
+    }
+    output.push(instance)
+  }
+  const result = alignYAML(
+    output.map(receipt=>YAML.dump(receipt)).join('---\n')
+  )
+  writeFileSync(target, result, 'utf8')
 }
 
 export function toYAML (deployment) {

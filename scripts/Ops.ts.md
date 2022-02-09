@@ -104,6 +104,8 @@ Fadroma.command('test legacy',
 
 ### Upgrading legacy to latest
 
+#### Locally:
+
 ```typescript
 Fadroma.command('upgrade amm v1_to_v2',
   Deployments.activate,
@@ -112,18 +114,40 @@ Fadroma.command('upgrade amm v1_to_v2',
 Fadroma.command('upgrade rewards v2_to_v3',
   Deployments.activate,
   RewardsContract['v2'].upgrade['v3'])
+```
 
+#### On mainnet:
+
+```typescript
 import { ScrtAgentTX } from '@hackbg/fadroma'
-Fadroma.command('generate upgrade rewards v2_to_v3',
+
+Fadroma.command('generate amm v1 disable',
   Deployments.activate,
-  ({agent, deployment})=>{
+  async ({agent, deployment, run})=>{
+    const factory = new AMMFactoryClient['v1']
+    AMMFactoryContract
+  })
+
+Fadroma.command('generate rpt reroute rewards',
+  Deployments.activate,
+  async ({agent, deployment, run, cmdArgs: [ proportion ]})=>{
+    proportion = proportion.split(':').map(Number)
+  })
+
+Fadroma.command('generate rewards v2 close-all',
+  Deployments.activate,
+  async ({agent, deployment, run})=>{})
+/*    const multisig = new ScrtAgentTX(agent)
+    const bundle = await run(
+      AMMFactoryContract['v1'].upgrade['v2'],
+      { generateMigration: true }
+    )
+    console.log(bundle)
+    process.exit(123)
     console.warn('Switching to TX agent...')
-    return {
-      agent: new ScrtAgentTX(agent)
-    }
+    return { agent: new ScrtAgentTX(agent) }
   },
-  SiennaSnip20Contract.status,
-)
+)*/
 ```
 
 ### Full up-to-date deployment
@@ -215,7 +239,6 @@ to which it adds the contracts for Sienna Swap to which it adds a Factory instan
 built from `main`.
 
 ```typescript
-import { deployAMMFactory } from '@sienna/amm'
 Fadroma.command('deploy factory v1',
   Deployments.activate,
   AMMFactoryContract['v1'].deploy)
@@ -239,10 +262,9 @@ from the mainnet deploy that were previously stored
 in a non-compatible format.
 
 ```typescript
-import { fixReceipts } from '@sienna/receipts'
-Fadroma.command('fix receipts',
-  Deployments.activate,
-  fixReceipts)
+import * as Receipts from '@sienna/receipts'
+Fadroma.command('fix receipts 1', Receipts.fix1)
+Fadroma.command('fix receipts 2', Receipts.fix2)
 ```
 
 ## Integration test

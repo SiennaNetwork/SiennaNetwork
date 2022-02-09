@@ -7,7 +7,7 @@ import { ContractInstantiationInfo } from './schema/init_msg.d'
 import { TokenType } from './schema/handle_msg.d'
 import { Exchange } from './schema/query_response.d'
 
-export type FactoryInventory = {
+export type AMMFactoryTemplates = {
   snip20_contract?:    ContractInstantiationInfo
   pair_contract?:      ContractInstantiationInfo
   lp_token_contract?:  ContractInstantiationInfo
@@ -31,7 +31,7 @@ export abstract class AMMFactoryClient extends Client {
   /** Return the collection of contract templates
     * (`{ id, code_hash }` structs) that the factory
     * uses to instantiate contracts. */
-  async getContracts (): Promise<FactoryInventory> {
+  async getContracts (): Promise<AMMFactoryTemplates> {
     const { config } = await this.query({ get_config: {} })
     return {
       snip20_contract:    config.snip20_contract,
@@ -57,17 +57,26 @@ export abstract class AMMFactoryClient extends Client {
   }
 
   /** Creates multiple exchanges in the same transaction. */
-  async createExchanges (
+  async createExchanges (input: {
+    templates: AMMFactoryTemplates
     pairs: { name?: string, TOKEN_0: Snip20Client, TOKEN_1: Snip20Client }[]
-  ): Promise<ExchangeInfo[]> {
+  }): Promise<{ name?: string, TOKEN_0: Snip20Client, TOKEN_1: Snip20Client }[]> {
+
+    const {
+      templates = await this.getContracts(),
+      pairs,
+    } = input
+
     if (pairs.length === 0) {
       console.warn('Creating 0 exchanges.')
       return []
     }
-    const inventory = await this.getContracts()
+
     const newPairs = []
+
     await this.agent.bundle().wrap(async bundle=>{
       const bundledThis = this.client(bundle)
+      console.log(this, bundledThis)
       for (const { name, TOKEN_0, TOKEN_1 } of pairs) {
         const exchange = await bundledThis.createExchange(
           TOKEN_0.asCustomToken,
@@ -76,12 +85,8 @@ export abstract class AMMFactoryClient extends Client {
         newPairs.push({name, TOKEN_0, TOKEN_1})
       }
     })
-    return Promise.all(newPairs.map(
-      ({TOKEN_0, TOKEN_1})=>this.getExchange(
-        TOKEN_0.asCustomToken,
-        TOKEN_1.asCustomToken
-      )
-    ))
+
+    return newPairs
   }
 
   /** Get info about an exchange. */
