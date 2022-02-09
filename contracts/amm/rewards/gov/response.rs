@@ -41,11 +41,12 @@ where
 
         let poll = Poll {
             creator: Poll::creator(core, id)?,
-            id,
-            metadata: meta,
             expiration: Poll::expiration(core, id)?,
             status: Poll::status(core, id)?,
-            reveal_approvals: Poll::reveal_approvals(core, id)?
+            reveal_approvals: Poll::reveal_approvals(core, id)?,
+            current_quorum: Poll::current_quorum(core, id)?,
+            id,
+            metadata: meta,
         };
         print!("{:?}", poll);
         Ok(GovernanceResponse::Poll(poll))

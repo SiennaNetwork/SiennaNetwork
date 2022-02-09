@@ -58,15 +58,17 @@ where
 
                 let id = Poll::create_id(core)?;
                 let deadline = GovernanceConfig::deadline(core)?;
+                let current_quorum = GovernanceConfig::quorum(core)?;
                 let expiration = Expiration::AtTime(env.block.time + deadline);
 
                 let poll = Poll {
                     creator: core.canonize(env.message.sender)?,
+                    status: PollStatus::Active,
+                    reveal_approvals: vec![],
                     expiration,
                     id,
                     metadata: meta,
-                    status: PollStatus::Active,
-                    reveal_approvals: vec![],
+                    current_quorum,
                 };
 
                 poll.store(core)?;
@@ -115,7 +117,7 @@ where
                 let approvals = Poll::reveal_approvals(core, poll_id)?;
                 let is_member = members.contains(&sender);
                 let already_approved = approvals.contains(&sender);
-                if is_member && ! already_approved {
+                if is_member && !already_approved {
                     Poll::approve_reveal(core, poll_id, &sender)?
                 }
                 Ok(HandleResponse::default())
