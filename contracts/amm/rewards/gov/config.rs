@@ -10,7 +10,6 @@ pub struct GovernanceConfig {
     pub threshold: Option<u64>,
     pub quorum: Option<Decimal>,
     pub deadline: Option<u64>,
-    pub reveal_committee: Option<Vec<HumanAddr>>,
 }
 impl GovernanceConfig {
     //metadata configuration
@@ -30,7 +29,8 @@ impl GovernanceConfig {
     pub const QUORUM: &'static [u8] = b"/gov/quorum";
     pub const DEADLINE: &'static [u8] = b"/gov/deadline";
     pub const VOTES: &'static [u8] = b"/gov/votes";
-    pub const COMMITTEE: &'static [u8] = b"/gov/committee";
+
+    pub const USER_POLLS: &'static [u8] = b"/gov/user_polls";
 }
 pub trait IGovernanceConfig<S, A, Q, C>
 where
@@ -47,11 +47,6 @@ where
     fn threshold(core: &C) -> StdResult<u64>;
     fn quorum(core: &C) -> StdResult<Decimal>;
     fn deadline(core: &C) -> StdResult<u64>;
-    fn commit_committee(committee: &Vec<HumanAddr>, core: &mut C) -> StdResult<()>;
-    fn committee(core: &C) -> StdResult<Vec<HumanAddr>>;
-    fn add_committee_member(core: &mut C, member: HumanAddr) -> StdResult<()>;
-    fn remove_committee_member(core: &mut C, member: HumanAddr) -> StdResult<()>;
-
 }
 impl<S, A, Q, C> IGovernanceConfig<S, A, Q, C> for GovernanceConfig
 where
@@ -62,18 +57,13 @@ where
 {
     fn initialize(&mut self, core: &mut C, _env: &Env) -> StdResult<Vec<CosmosMsg>> {
         core.set(Poll::TOTAL, 0)?;
-        if self.reveal_committee.is_none() {
-            self.reveal_committee = Some(vec![]);
-        };
         self.store(core)
-        // TODO: check for uninitialized fields after store
     }
     fn get(core: &C) -> StdResult<Self> {
         Ok(Self {
             deadline: Some(Self::deadline(core)?),
             quorum: Some(Self::quorum(core)?),
             threshold: Some(Self::threshold(core)?),
-            reveal_committee: Some(Self::committee(core)?),
         })
     }
 
@@ -82,7 +72,6 @@ where
             deadline,
             threshold,
             quorum,
-            reveal_committee,
         } = self;
         if let Some(deadline) = deadline {
             core.set(Self::DEADLINE, deadline)?;
@@ -93,10 +82,7 @@ where
         if let Some(quorum) = quorum {
             core.set(Self::QUORUM, quorum)?;
         }
-        if let Some(reveal_committee) = reveal_committee {
-            Self::commit_committee(reveal_committee, core)?
-            // core.set(Self::REVEAL_COMMITTEE, reveal_committee)?;
-        }
+
         Ok(vec![])
     }
 
@@ -114,47 +100,6 @@ where
         core.get::<u64>(Self::DEADLINE)?
             .ok_or(StdError::generic_err("deadline not set"))
     }
-
-    fn commit_committee(reveal_committee: &Vec<HumanAddr>, core: &mut C) -> StdResult<()> {
-        let canonized_committee: Vec<CanonicalAddr> = reveal_committee
-            .iter()
-            .map(|member| member.canonize(core.api()).unwrap())
-            .collect();
-        core.set(Self::COMMITTEE, canonized_committee)?;
-        Ok(())
-    }
-
-    fn committee(core: &C) -> StdResult<Vec<HumanAddr>> {
-        let canonized_committee =
-            core.get::<Vec<CanonicalAddr>>(Self::COMMITTEE)?
-                .ok_or(StdError::generic_err(
-                    "failed to parse reveal committee from storage",
-                ))?;
-        let committee: Vec<HumanAddr> = canonized_committee
-            .iter()
-            .map(|member| member.humanize(core.api()).unwrap())
-            .collect();
-        Ok(committee)
-    }
-
-    fn add_committee_member(core: &mut C, member: HumanAddr) -> StdResult<()> {
-        let mut committee = Self::committee(core)?;
-        if committee.len() == Self::COMMITTEE_CAPACITY {
-            return Err(StdError::generic_err("Committee already at maximum capacity"));
-        }
-        committee.push(member);
-        Self::commit_committee(&committee, core)?;
-        Ok(())
-    }
-
-    fn remove_committee_member(core: &mut C, member: HumanAddr) -> StdResult<()> {
-        let committee = Self::committee(core)?
-            .into_iter()
-            .filter(|addr| addr != &member)
-            .collect();
-        Self::commit_committee(&committee, core)?;
-        Ok(())
-    }
 }
 
 impl Default for GovernanceConfig {
@@ -163,7 +108,6 @@ impl Default for GovernanceConfig {
             threshold: Some(Self::DEFAULT_TRESHOLD),
             quorum: Some(Decimal::percent(Self::DEFAULT_QUORUM_PERCENT)),
             deadline: Some(Self::DEFAULT_DEADLINE),
-            reveal_committee: Some(vec![]),
         }
     }
 }

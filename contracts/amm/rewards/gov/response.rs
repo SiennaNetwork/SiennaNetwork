@@ -1,4 +1,4 @@
-use std::cmp::{max, min};
+use std::cmp::min;
 
 use fadroma::*;
 use schemars::JsonSchema;
@@ -66,7 +66,6 @@ where
             creator: Poll::creator(core, id)?,
             expiration: Poll::expiration(core, id)?,
             status: Poll::status(core, id)?,
-            reveal_approvals: Poll::reveal_approvals(core, id)?,
             current_quorum: Poll::current_quorum(core, id)?,
             id,
             metadata: meta,

@@ -29,7 +29,8 @@ where
     C: Governance<S, A, Q>,
     Self: Sized,
 {
-    fn store(&self, core: &mut C, address: HumanAddr, poll_id: u64) -> StdResult<()>;
+    fn store(&self, core: &mut C, address: HumanAddr, poll_id: u64) -> StdResult<&Self>;
+    fn new(core: &C, variant: VoteType, voter: HumanAddr, vote_power: Uint128) -> StdResult<Self>;
     fn get(core: &C, address: HumanAddr, poll_id: u64) -> StdResult<Self>;
     fn build_prefix(core: &C, poll_id: u64) -> StdResult<Vec<u8>>;
     fn remove(core: &mut C, address: HumanAddr, poll_id: u64) -> StdResult<()>;
@@ -43,11 +44,11 @@ where
     C: Governance<S, A, Q>,
     Self: Sized,
 {
-    fn store(&self, core: &mut C, address: HumanAddr, poll_id: u64) -> StdResult<()> {
+    fn store(&self, core: &mut C, address: HumanAddr, poll_id: u64) -> StdResult<&Self> {
         let prefix = Self::build_prefix(core, poll_id)?;
         let key = core.canonize(address)?;
-        core.set_ns(&prefix, key.as_slice(), self.clone())?;
-        Ok(())
+        core.set_ns(&prefix, key.as_slice(), &self)?;
+        Ok(self)
     }
     fn get(core: &C, address: HumanAddr, poll_id: u64) -> StdResult<Self> {
         let prefix = Self::build_prefix(core, poll_id)?;
@@ -81,5 +82,14 @@ where
         core.storage_mut().remove(&prefix);
 
         Ok(())
+    }
+
+    fn new(core: &C, variant: VoteType, voter: HumanAddr, vote_power: Uint128) -> StdResult<Self> {
+        let voter = core.canonize(voter)?;
+        Ok(Self {
+            variant,
+            vote_power,
+            voter,
+        })
     }
 }

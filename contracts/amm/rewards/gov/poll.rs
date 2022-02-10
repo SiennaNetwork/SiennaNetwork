@@ -6,6 +6,7 @@ use super::{
     expiration::Expiration,
     governance::Governance,
     poll_metadata::{IPollMetaData, PollMetadata},
+    poll_result::{IPollResult, PollResult},
 };
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -17,7 +18,6 @@ pub struct Poll {
     pub expiration: Expiration,
     pub status: PollStatus,
     pub current_quorum: Decimal,
-    pub reveal_approvals: Vec<HumanAddr>,
 }
 
 impl Poll {
@@ -26,7 +26,6 @@ impl Poll {
     pub const EXPIRATION: &'static [u8] = b"/gov/poll/expiration";
     pub const STATUS: &'static [u8] = b"/gov/poll/status";
     pub const CURRENT_QUORUM: &'static [u8] = b"/gov/poll/current_quorum";
-    pub const REVEAL_APPROVALS: &'static [u8] = b"/gov/poll/reveal_approvals";
 }
 
 pub trait IPoll<S, A, Q, C>
@@ -39,16 +38,21 @@ where
 {
     fn create_id(core: &mut C) -> StdResult<u64>;
 
+    fn new(
+        core: &mut C,
+        creator: CanonicalAddr,
+        expiration: Expiration,
+        metadata: PollMetadata,
+        current_quorum: Decimal,
+    ) -> StdResult<Self>;
+
     fn store(&self, core: &mut C) -> StdResult<()>;
     fn get(core: &C, poll_id: u64) -> StdResult<Self>;
-
-    fn approve_reveal(core: &mut C, poll_id: u64, sender: &HumanAddr) -> StdResult<()>;
 
     fn creator(core: &C, poll_id: u64) -> StdResult<CanonicalAddr>;
     fn metadata(core: &C, poll_id: u64) -> StdResult<PollMetadata>;
     fn expiration(core: &C, poll_id: u64) -> StdResult<Expiration>;
     fn status(core: &C, poll_id: u64) -> StdResult<PollStatus>;
-    fn reveal_approvals(core: &C, poll_id: u64) -> StdResult<Vec<HumanAddr>>;
     fn current_quorum(core: &C, poll_id: u64) -> StdResult<Decimal>;
 
     /**
@@ -57,7 +61,6 @@ where
     fn total(core: &C) -> StdResult<u64>;
 
     fn commit_status(&self, core: &mut C) -> StdResult<()>;
-    fn commit_approvals(core: &mut C, poll_id: u64, approvals: &Vec<HumanAddr>) -> StdResult<()>;
 }
 
 impl<S, A, Q, C> IPoll<S, A, Q, C> for Poll
@@ -90,7 +93,6 @@ where
             id,
             metadata,
             status,
-            reveal_approvals,
             current_quorum,
         } = self;
 
@@ -98,7 +100,6 @@ where
         core.set_ns(Self::EXPIRATION, &self.id.to_be_bytes(), expiration)?;
         core.set_ns(Self::STATUS, &self.id.to_be_bytes(), status)?;
         core.set_ns(Self::CURRENT_QUORUM, &self.id.to_be_bytes(), current_quorum)?;
-        Self::commit_approvals(core, self.id, reveal_approvals)?;
 
         metadata.store(core, id.clone())?;
 
@@ -110,7 +111,6 @@ where
         let expiration = Self::expiration(core, poll_id)?;
         let status = Self::status(core, poll_id)?;
         let metadata = Self::metadata(core, poll_id)?;
-        let reveal_approvals = Self::reveal_approvals(core, poll_id)?;
         let current_quorum = Self::current_quorum(core, poll_id)?;
         Ok(Self {
             id: poll_id,
@@ -118,7 +118,6 @@ where
             expiration,
             metadata,
             status,
-            reveal_approvals,
             current_quorum,
         })
     }
@@ -150,48 +149,28 @@ where
         Ok(())
     }
 
-    fn approve_reveal(core: &mut C, poll_id: u64, sender: &HumanAddr) -> StdResult<()> {
-        let mut current_approvals = Self::reveal_approvals(core, poll_id)?;
-        if current_approvals.iter().any(|addr| addr == sender) {
-            return Err(StdError::generic_err("Member already approved"));
-        }
-        current_approvals.insert(0, sender.clone());
-        Self::commit_approvals(core, poll_id, &current_approvals)?;
-        Ok(())
-    }
-
-    fn commit_approvals(
-        core: &mut C,
-        poll_id: u64,
-        reveal_approvals: &Vec<HumanAddr>,
-    ) -> StdResult<()> {
-        let cannonized_approvals: Vec<CanonicalAddr> = reveal_approvals
-            .iter()
-            .map(|addr| addr.canonize(core.api()).unwrap())
-            .collect();
-        core.set_ns(
-            Self::REVEAL_APPROVALS,
-            &poll_id.to_be_bytes(),
-            &cannonized_approvals,
-        )?;
-        Ok(())
-    }
-
-    fn reveal_approvals(core: &C, poll_id: u64) -> StdResult<Vec<HumanAddr>> {
-        let approvals: Vec<CanonicalAddr> = core
-            .get_ns(Self::REVEAL_APPROVALS, &poll_id.to_be_bytes())?
-            .expect("Error reading the storage");
-        let approval_addresses: Vec<HumanAddr> = approvals
-            .iter()
-            .map(|addr| addr.humanize(core.api()).unwrap())
-            .collect();
-        Ok(approval_addresses)
-    }
-
     fn current_quorum(core: &C, poll_id: u64) -> StdResult<Decimal> {
         Ok(core
             .get_ns::<Decimal>(Self::CURRENT_QUORUM, &poll_id.to_be_bytes())?
             .ok_or(StdError::generic_err("failed to parse poll expiration"))?)
+    }
+
+    fn new(
+        core: &mut C,
+        creator: CanonicalAddr,
+        expiration: Expiration,
+        metadata: PollMetadata,
+        current_quorum: Decimal,
+    ) -> StdResult<Self> {
+        let id = Self::create_id(core)?;
+        Ok(Self {
+            id,
+            creator,
+            current_quorum,
+            expiration,
+            metadata,
+            status: PollStatus::Active,
+        })
     }
 }
 
