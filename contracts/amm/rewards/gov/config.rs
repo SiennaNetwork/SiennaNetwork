@@ -95,7 +95,6 @@ where
         }
         if let Some(reveal_committee) = reveal_committee {
             Self::commit_committee(reveal_committee, core)?
-            // core.set(Self::REVEAL_COMMITTEE, reveal_committee)?;
         }
         Ok(vec![])
     }
