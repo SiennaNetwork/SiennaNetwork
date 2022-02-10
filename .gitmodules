@@ -29,6 +29,3 @@
 [submodule "frontends/EthereumBridgeBackend"]
   path = frontends/EthereumBridgeBackend
   url = https://github.com/SiennaNetwork/EthereumBridgeBackend
-[submodule "frontends/vest-testnet"]
-	path = frontends/vest-testnet
-	url = git@github.com:SiennaNetwork/vest-testnet.git
