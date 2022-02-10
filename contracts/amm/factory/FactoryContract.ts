@@ -27,18 +27,67 @@ export abstract class AMMFactoryContract extends Scrt_1_2.Contract<AMMFactoryCli
 
   /** Subclass. Sienna AMM Factory v1 */
   static v1 = class AMMFactoryContract_v1 extends AMMFactoryContract {
+
     version = 'v1' as AMMVersion
     name    = `AMM[${this.version}].Factory`
     source  = { workspace, crate: 'factory', ref: '2f75175212'/*'a99d8273b4'???*/ }
     Client  = AMMFactoryClient[this.version]
-    static deploy = function deployAMMFactory_v1 (input) {
+
+    static deploy = function deployAMM_v1 (input) {
       return deployAMM({ ...input, ammVersion: 'v1'})
     }
+
     static upgrade = {
-      v2: function upgradeAMMFactory_v1_to_v2 (input) {
-        return upgradeAMM({...input, oldVersion: 'v1', newVersion: 'v2'})
+
+      v2: function upgradeAMM_v1_to_v2 ({
+        run
+      }) {
+        return run(upgradeAMM, {oldVersion: 'v1', newVersion: 'v2'})
+      },
+
+      v2_factory: async function upgradeAMMFactory_v1_to_v2 ({
+        run, deployment, prefix, suffix,
+        uploadAgent,
+        clientAgent,
+        deployAgent
+      }) {
+        const v1: Record<string, any> = {}
+        v1.name      = `AMM[v1].Factory`
+        v1.factory   = new AMMFactoryClient.v1({ ...deployment.get(v1.name), agent: clientAgent })
+        v1.templates = await v1.factory.getContracts()
+        const v2: Record<string, any> = {}
+        v2.contract  = new AMMFactoryContract.v2({ prefix, suffix })
+        v2.template  = (await uploadAgent.buildAndUpload([v2.contract]))[0]
+        v2.contracts = await run(deployAMMFactory, {
+          agent:     deployAgent,
+          version:   'v2',
+          template:  v2.template,
+          templates: v1.templates,
+          suffix
+        })
+        return { v1, v2 }
+      },
+
+      v2_exchanges: async function cloneAMMExchanges_v1_to_v2 ({
+        run, deployment,
+        clientAgent,
+        deployAgent
+      }) {
+        const v1: Record<string, any> = {}
+        v1.name    = `AMM[v1].Factory`
+        v1.factory = new AMMFactoryClient.v1({ ...deployment.get(v1.name), agent: clientAgent })
+        v1.pairs   = await v1.factory.listExchanges()
+        const v2: Record<string, any> = {}
+        v2.name      = `AMM[v2].Factory`
+        v2.factory   = new AMMFactoryClient.v1({ ...deployment.get(v2.name), agent: clientAgent })
+        v2.templates = await v2.factory.getContracts()
+        v2.factory   = v2.factory.client(deployAgent)
+        v2.pairs     = await v2.factory.createExchanges({ templates: v2.templates, pairs: v1.pairs })
+        return { v1, v2 }
       }
+
     }
+
   }
 
   /** Subclass. Sienna AMM Factory v2 */
@@ -47,7 +96,7 @@ export abstract class AMMFactoryContract extends Scrt_1_2.Contract<AMMFactoryCli
     name    = `AMM[${this.version}].Factory`
     source  = { workspace, crate: 'factory', ref: 'HEAD' }
     Client  = AMMFactoryClient[this.version]
-    static deploy = async function deployAMMFactory_v2 (input) {
+    static deploy = async function deployAMM_v2 (input) {
       return deployAMM({ ...input, ammVersion: 'v2'})
     }
   }

@@ -67,9 +67,25 @@ export abstract class AMMFactoryClient extends Client {
 
   /** Creates multiple exchanges in the same transaction. */
   async createExchanges (input: {
+
     templates: AMMFactoryTemplates
-    pairs: { name?: string, TOKEN_0: Snip20Client, TOKEN_1: Snip20Client }[]
-  }): Promise<{ name?: string, TOKEN_0: Snip20Client, TOKEN_1: Snip20Client }[]> {
+
+    pairs: Array<{
+      name?: string,
+      pair: {
+        token_0: Snip20Client|TokenType,
+        token_1: Snip20Client|TokenType
+      }
+    }>
+
+  }): Promise<Array<{
+
+    name?: string,
+
+    token_0: Snip20Client|TokenType,
+    token_1: Snip20Client|TokenType
+
+  }>> {
 
     const {
       templates = await this.getContracts(),
@@ -85,13 +101,11 @@ export abstract class AMMFactoryClient extends Client {
 
     await this.agent.bundle().wrap(async bundle=>{
       const bundledThis = this.client(bundle)
-      console.log(this, bundledThis)
-      for (const { name, TOKEN_0, TOKEN_1 } of pairs) {
-        const exchange = await bundledThis.createExchange(
-          TOKEN_0.asCustomToken,
-          TOKEN_1.asCustomToken
-        )
-        newPairs.push({name, TOKEN_0, TOKEN_1})
+      for (let { name, pair: { token_0, token_1 } } of pairs) {
+        if (token_0 instanceof Snip20Client) token_0 = token_0.asCustomToken
+        if (token_1 instanceof Snip20Client) token_1 = token_1.asCustomToken
+        const exchange = await bundledThis.createExchange(token_0, token_1)
+        newPairs.push({name, token_0, token_1})
       }
     })
 

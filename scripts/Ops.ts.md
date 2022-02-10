@@ -7,16 +7,7 @@ const console = new Console('@sienna/scripts/Ops')
 
 ## How commands work
 
-TODO: Literate doc in Fadroma instead the following haphazard explanation:
-
-Fadroma commands are a match between of a series of keywords
-(represented by a space-separated string)
-and a series of [stages](https://github.com/hackbg/fadroma/blob/22.01/packages/ops/index.ts)
-(represented by async functions)
-that are executed in sequence with a common state object -
-the [`MigrationContext`](https://github.com/hackbg/fadroma/blob/22.01/packages/ops/index.ts),
-into which the values returned by each procedure can also be added
-(for example, see [`Deployments.activate`](#needsdeployment)).
+> See: [Fadroma CLI Documentation](https://github.com/hackbg/fadroma/blob/22.01/packages/cli/README.md)
 
 ## Chains
 
@@ -125,9 +116,8 @@ import * as API from '@sienna/api'
 Fadroma.command('generate amm-v1-pause',
   Deployments.activate,
   forMainnet,
-  async ({agent, deployment, run, cmdArgs})=>{
+  async ({agent, txAgent, deployment, run, cmdArgs})=>{
     const [ newAddress = null ] = cmdArgs
-    const txAgent = new ScrtAgentTX(agent)
     await txAgent.bundle().wrap(async bundle=>{
       const factory = new API.AMMFactoryClient.v1({
         ...deployment.get('AMM[v1].Factory'),
@@ -141,17 +131,28 @@ Fadroma.command('generate amm-v1-pause',
     })
   })
 
-Fadroma.command('generate amm-v2-from-v1',
+Fadroma.command('generate amm-v2-factory',
   Deployments.activate,
   forMainnet,
-  async ({agent, deployment, run}) => {
-    await run(API.AMMFactoryContract.v1.upgrade.v2, { deployAgent: new ScrtAgentTX(agent) })
+  async ({agent, txAgent, deployment, run}) => {
+    await txAgent.bundle().wrap(async deployAgent=>{
+      await run(API.AMMFactoryContract.v1.upgrade.v2_factory, { deployAgent })
+    })
+  })
+
+Fadroma.command('generate amm-v2-exchanges',
+  Deployments.activate,
+  forMainnet,
+  async ({agent, txAgent, deployment, run}) => {
+    await txAgent.bundle().wrap(async deployAgent=>{
+      await run(API.AMMFactoryContract.v1.upgrade.v2_exchanges, { deployAgent })
+    })
   })
 
 Fadroma.command('generate amm-v1-terminate',
   Deployments.activate,
   forMainnet,
-  async ({agent, deployment, run, cmdArgs})=>{
+  async ({agent, txAgent, deployment, run, cmdArgs})=>{
     const [ newAddress = null ] = cmdArgs
     const factory = new API.AMMFactoryClient.v1({
       ...deployment.get('AMM[v1].Factory'),
@@ -167,8 +168,8 @@ Fadroma.command('generate amm-v1-terminate',
 Fadroma.command('generate rewards-deploy-v3',
   forMainnet,
   Deployments.activate,
-  async ({agent, deployment, run}) => {
-    await run(API.RewardsContract.v2.upgrade.v3, { deployAgent: new ScrtAgentTX(agent) })
+  async ({agent, txAgent, deployment, run}) => {
+    await run(API.RewardsContract.v2.upgrade.v3, { deployAgent: txAgent })
   })
 
 Fadroma.command('generate rpt-rewards-v2-to-v3',
@@ -186,18 +187,16 @@ Fadroma.command('generate rewards-v2-close-all',
   async ({agent, deployment, run})=>{
   })
 
-async function forMainnet ({ chain }) {
-  if (!chain.isMainnet) {
-    console.error('This command is for mainnet only.')
-    process.exit(1)
+async function forMainnet ({ chain, agent }) {
+  if (chain.isMainnet) {
+    const address = process.env.MAINNET_MULTISIG
+    if (!address) {
+      console.error('Set MAINNET_MULTISIG env var to continue.')
+      process.exit(1)
+    }
+    console.info(bold('Switching to mainnet multisig address:'), address)
+    agent = new chain.Agent({ name: 'MAINNET_ADMIN', address, chain })
   }
-  const address = process.env.MAINNET_MULTISIG
-  if (!address) {
-    console.error('Set MAINNET_MULTISIG env var to continue.')
-    process.exit(1)
-  }
-  console.info(bold('Switching to mainnet multisig address:'), address)
-  const agent = new chain.Agent({ chain, address, name: 'MAINNET_ADMIN' })
   const txAgent = new ScrtAgentTX(agent)
   return { agent, txAgent }
 }
