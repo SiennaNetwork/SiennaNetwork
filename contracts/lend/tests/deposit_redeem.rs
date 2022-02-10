@@ -156,3 +156,71 @@ fn redeem_basic() {
 
     assert_eq!(res.sl_token_balance, Uint256::from(0u128));
 }
+
+#[test]
+fn redeem_underlying_basic() {
+    let redeem_tokens = Uint128(10_000);
+    let exchange_rate = Decimal256::from_uint256(50_000u128).unwrap();
+    let mut lend = Lend::default();
+
+    let underlying_1 = lend.new_underlying_token("ONE", 6).unwrap();
+
+    let market = lend
+        .whitelist_market(
+            underlying_1.clone(),
+            Decimal256::percent(50),
+            Some(exchange_rate),
+        )
+        .unwrap();
+
+    lend.ensemble
+        .execute(
+            &overseer::HandleMsg::Enter {
+                markets: vec![market.contract.address.clone()],
+            },
+            MockEnv::new(ADMIN, lend.overseer.clone()),
+        )
+        .unwrap();
+
+    lend.prefund_and_deposit(
+        BORROWER,
+        Uint128(
+            Uint256::from(redeem_tokens)
+                .decimal_mul(exchange_rate)
+                .unwrap()
+                .clamp_u128()
+                .unwrap(),
+        ),
+        market.contract.address.clone(),
+    );
+
+    lend.ensemble
+        .execute(
+            &market::HandleMsg::RedeemUnderlying {
+                receive_amount: Uint256::from(redeem_tokens)
+                    .decimal_mul(exchange_rate)
+                    .unwrap(),
+            },
+            MockEnv::new(BORROWER, market.contract.clone()),
+        )
+        .unwrap();
+
+    let res: market::AccountInfo = lend
+        .ensemble
+        .query(
+            market.contract.address.clone(),
+            &market::QueryMsg::Account {
+                method: Permit::<market::MarketPermissions>::new(
+                    BORROWER,
+                    vec![market::MarketPermissions::AccountInfo],
+                    vec![market.contract.address.clone()],
+                    "balance",
+                )
+                .into(),
+                block: None,
+            },
+        )
+        .unwrap();
+
+    assert_eq!(res.sl_token_balance, Uint256::from(0u128));
+}
