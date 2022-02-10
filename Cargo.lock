@@ -347,7 +347,7 @@ dependencies = [
 [[package]]
 name = "cosmwasm-schema"
 version = "0.10.0"
-source = "git+https://github.com/enigmampc/SecretNetwork?tag=secret-cosmwasm-v0.10.0#1b0df270cab55032c45c7fcdb9e2dfc46d8e2d57"
+source = "git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.0#490fba9243e6cb291462e9d3c1bcbd1975c0df1e"
 dependencies = [
  "schemars",
  "serde_json",
@@ -356,7 +356,7 @@ dependencies = [
 [[package]]
 name = "cosmwasm-schema"
 version = "0.10.0"
-source = "git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.0#490fba9243e6cb291462e9d3c1bcbd1975c0df1e"
+source = "git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print#004c6bca6f2b7f31a6594abe4f44f2e41b1456b3"
 dependencies = [
  "schemars",
  "serde_json",
@@ -696,7 +696,7 @@ dependencies = [
 name = "fadroma-platform-scrt"
 version = "0.1.0"
 dependencies = [
- "cosmwasm-schema 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=secret-cosmwasm-v0.10.0)",
+ "cosmwasm-schema 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "schemars",
  "secret-cosmwasm-std",
  "secret-cosmwasm-storage",

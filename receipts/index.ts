@@ -4,11 +4,14 @@ import {
   bold,
   resolve, dirname, rimraf,
   readFileSync, writeFileSync, readdirSync, statSync, unlinkSync,
-  Deployment
+  Deployment,
+  Console
 } from '@hackbg/fadroma'
 import { workspace } from '@sienna/settings'
 
-export async function fixReceipts ({ agent, deployment }) {
+const console = Console('@sienna/receipts')
+
+export async function fix1 ({ agent, deployment }) {
 
   for (const chainId of [
     'fadroma-scrt-12',
@@ -70,6 +73,62 @@ export async function fixReceipts ({ agent, deployment }) {
     }
   }
 
+}
+
+export async function fix2 ({ agent, deployment }) {
+  if (agent.chain.id !== 'secret-4') throw new Error('only on secret-4')
+  const source = resolve(workspace, 'receipts/secret-4/deployments/prod.yml')
+  const input  = YAML.loadAll(readFileSync(source, 'utf8'))
+  const target = resolve(workspace, 'receipts/secret-4/deployments/prod.fixed.yml')
+  const output = []
+  for (const instance of input) {
+    if (instance.exchange && !instance.name.endsWith('.LP')) {
+      const name = instance.name
+      delete instance.name
+      console.info('Querying code ids, hashes, and labels for', name)
+      const [codeId, codeHash, label, lpCodeId, lpLabel] = await Promise.all([
+        agent.getCodeId(instance.exchange.address),
+        agent.getCodeHash(instance.exchange.address),
+        agent.getLabel(instance.exchange.address),
+        agent.getCodeId(instance.lp_token.address),
+        agent.getLabel(instance.lp_token.address),
+      ])
+      output.push({
+        name,
+        chainId: 'secret-4',
+        codeId,
+        codeHash,
+        address: instance.exchange.address,
+        label,
+        ...instance
+      })
+      output.push({
+        name:    `${name}.LP`,
+        chainId: 'secret-4',
+        codeId:   lpCodeId,
+        codeHash: instance.lp_token.code_hash,
+        address:  instance.lp_token.address,
+        label:    lpLabel,
+        ...instance
+      })
+      continue
+    }
+    if (instance.name.startsWith('Rewards[v2]')) {
+      const [_,lp] = instance.name.split('.')
+      if (lp === 'SIENNA') {
+        instance.name = 'SIENNA.Rewards[v2]'
+      } else {
+        instance.name = `AMM[v1].${lp}.LP.Rewards[v2]`
+      }
+    } else if (['MGMT','RPT','SIENNA'].includes(instance.name)) {
+      instance.codeId = await agent.getCodeId(instance.address)
+    }
+    output.push(instance)
+  }
+  const result = alignYAML(
+    output.map(receipt=>YAML.dump(receipt)).join('---\n')
+  )
+  writeFileSync(target, result, 'utf8')
 }
 
 export function toYAML (deployment) {

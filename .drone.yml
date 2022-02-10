@@ -127,6 +127,6 @@ steps:
       - cat package.json
       - npm i -g pnpm
       - pnpm -w dev
-      - pnpm -w dev test clients
-      - pnpm -w ops pulsar-2
-      - pnpm -w ops secret-3
+      - FADROMA_CHAIN=mocknet pnpm dev test clients
+      - FADROMA_CHAIN=pulsar-2 pnpm ops
+      - FADROMA_CHAIN=secret-3 pnpm ops

@@ -109,11 +109,11 @@ async function deployAMMExchange (options) {
 }
 
 import { MigrationContext } from '@hackbg/fadroma'
-import { FactoryClient } from '@sienna/api'
+import { AMMFactoryClient } from '@sienna/api'
 async function deployAMMExchanges (options: MigrationContext & {
   settings: { swapPairs: string[] }
   TOKENS:     any,
-  FACTORY:    FactoryClient,
+  FACTORY:    AMMFactoryClient,
   ammVersion: AMMVersion
 }) {
   const {
@@ -130,7 +130,7 @@ async function deployAMMExchanges (options: MigrationContext & {
     await agent.bundle().wrap(async bundle=>{
       const agent = FACTORY.agent
       FACTORY.agent = bundle
-      const factory = new FactoryClient({...FACTORY})
+      const factory = new AMMFactoryClient({...FACTORY})
       for (const name of swapPairs) {
         const { token0, token1 } = await run(AMMSNIP20Contract.tokensFromName, { TOKENS, name })
         await factory.createExchange(token0, token1)

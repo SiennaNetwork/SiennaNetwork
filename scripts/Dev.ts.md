@@ -144,15 +144,19 @@ syntax errors, broken module imports/exports.
 ```typescript
 import * as API from '@sienna/api'
 Fadroma.command('test clients', () => {
-  new API.SiennaSNIP20Contract()
-  new API.MGMTContract()
-  new API.RPTContract()
-  new API.AMMFactoryContract['v1']()
-  new API.AMMFactoryContract['v2']()
-  new API.AMMExchangeContract()
-  new API.AMMSNIP20Contract()
-  new API.LPTokenContract()
-  new API.RewardsContract()
+  new API.SiennaSnip20Contract().client()
+  new API.MGMTContract().client()
+  new API.RPTContract().client()
+  new API.AMMFactoryContract['v1']().client()
+  new API.AMMFactoryContract['v2']().client()
+  new API.AMMExchangeContract['v1']().client()
+  new API.AMMExchangeContract['v2']().client()
+  new API.AMMSNIP20Contract().client()
+  new API.LPTokenContract().client()
+  new API.RewardsContract['v2']().client()
+  new API.RewardsContract['v3']().client()
+
+  // TODO: these don't have clients yet
   new API.LaunchpadContract()
   new API.IDOContract()
   new API.InterestModelContract()

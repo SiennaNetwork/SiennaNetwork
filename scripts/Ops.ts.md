@@ -2,7 +2,7 @@
 
 ```typescript
 import Fadroma, { bold, timestamp, Console } from '@hackbg/fadroma'
-const console = new Console('@sienna/ops')
+const console = new Console('@sienna/scripts/Ops')
 ```
 
 ## How commands work
@@ -64,6 +64,9 @@ Fadroma.command('status',
   SiennaSnip20Contract.status,
   MGMTContract.status,
   RPTContract.status)
+Fadroma.command('fund-testers',
+  Deployments.activate,
+  SiennaSnip20Contract.fundTesters)
 Fadroma.command('select', Deployments.select)
 Fadroma.command('deploy new', Deployments.new)
 ```
@@ -101,6 +104,8 @@ Fadroma.command('test legacy',
 
 ### Upgrading legacy to latest
 
+#### Locally:
+
 ```typescript
 Fadroma.command('upgrade amm v1_to_v2',
   Deployments.activate,
@@ -109,6 +114,105 @@ Fadroma.command('upgrade amm v1_to_v2',
 Fadroma.command('upgrade rewards v2_to_v3',
   Deployments.activate,
   RewardsContract['v2'].upgrade['v3'])
+```
+
+#### On mainnet:
+
+```typescript
+import { ScrtAgentTX, Scrt_1_2 } from '@hackbg/fadroma'
+import * as API from '@sienna/api'
+
+Fadroma.command('generate amm-v1-pause',
+  Deployments.activate,
+  forMainnet,
+  async ({agent, deployment, run, cmdArgs})=>{
+    const [ newAddress = null ] = cmdArgs
+    const txAgent = new ScrtAgentTX(agent)
+    await txAgent.bundle().wrap(async bundle=>{
+      const factory = new API.AMMFactoryClient.v1({
+        ...deployment.get('AMM[v1].Factory'),
+        agent: bundle
+      })
+      await factory.setStatus(
+        "Paused",
+        null,
+        "Migration to AMMv2 has begun."
+      )
+    })
+  })
+
+Fadroma.command('generate amm-v2-from-v1',
+  Deployments.activate,
+  forMainnet,
+  async ({agent, deployment, run}) => {
+    await run(API.AMMFactoryContract.v1.upgrade.v2, { deployAgent: new ScrtAgentTX(agent) })
+  })
+
+Fadroma.command('generate amm-v1-terminate',
+  Deployments.activate,
+  forMainnet,
+  async ({agent, deployment, run, cmdArgs})=>{
+    const [ newAddress = null ] = cmdArgs
+    const factory = new API.AMMFactoryClient.v1({
+      ...deployment.get('AMM[v1].Factory'),
+      agent: new ScrtAgentTX(agent)
+    })
+    await factory.setStatus(
+      "Migrating",
+      newAddress,
+      `This contract is terminated. Please migrate to AMM v2 at: ${newAddress}`
+    )
+  })
+
+Fadroma.command('generate rewards-deploy-v3',
+  forMainnet,
+  Deployments.activate,
+  async ({agent, deployment, run}) => {
+    await run(API.RewardsContract.v2.upgrade.v3, { deployAgent: new ScrtAgentTX(agent) })
+  })
+
+Fadroma.command('generate rpt-rewards-v2-to-v3',
+  forMainnet,
+  Deployments.activate,
+  async ({agent, deployment, run, cmdArgs: [ proportion ]})=>{
+    proportion = proportion.split(':').map(Number)
+    const rpt = new API.RPTClient({ ...deployment.get('RPT'), agent: new ScrtAgentTX(agent) })
+    const status = await rpt.status()
+  })
+
+Fadroma.command('generate rewards-v2-close-all',
+  forMainnet,
+  Deployments.activate,
+  async ({agent, deployment, run})=>{
+  })
+
+async function forMainnet ({ chain }) {
+  if (!chain.isMainnet) {
+    console.error('This command is for mainnet only.')
+    process.exit(1)
+  }
+  const address = process.env.MAINNET_MULTISIG
+  if (!address) {
+    console.error('Set MAINNET_MULTISIG env var to continue.')
+    process.exit(1)
+  }
+  console.info(bold('Switching to mainnet multisig address:'), address)
+  const agent = new chain.Agent({ chain, address, name: 'MAINNET_ADMIN' })
+  const txAgent = new ScrtAgentTX(agent)
+  return { agent, txAgent }
+}
+
+/*    const multisig = new ScrtAgentTX(agent)
+    const bundle = await run(
+      AMMFactoryContract['v1'].upgrade['v2'],
+      { generateMigration: true }
+    )
+    console.log(bundle)
+    process.exit(123)
+    console.warn('Switching to TX agent...')
+    return { agent: new ScrtAgentTX(agent) }
+  },
+)*/
 ```
 
 ### Full up-to-date deployment
@@ -199,7 +303,6 @@ to which it adds the contracts for Sienna Swap to which it adds a Factory instan
 built from `main`.
 
 ```typescript
-import { deployAMMFactory } from '@sienna/amm'
 Fadroma.command('deploy factory v1',
   Deployments.activate,
   AMMFactoryContract['v1'].deploy)
@@ -223,10 +326,9 @@ from the mainnet deploy that were previously stored
 in a non-compatible format.
 
 ```typescript
-import { fixReceipts } from '@sienna/receipts'
-Fadroma.command('fix receipts',
-  Deployments.activate,
-  fixReceipts)
+import * as Receipts from '@sienna/receipts'
+Fadroma.command('fix receipts 1', Receipts.fix1)
+Fadroma.command('fix receipts 2', Receipts.fix2)
 ```
 
 ## Integration test

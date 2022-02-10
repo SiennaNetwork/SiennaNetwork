@@ -52,7 +52,7 @@ export async function deployLend({
     TOKEN1,
     TOKEN2,
   ]) {
-    await agent.chain.buildAndUpload(agent, [contract]);
+    await agent.buildAndUpload([contract]);
   }
 
   await deployment.instantiate(agent, [
