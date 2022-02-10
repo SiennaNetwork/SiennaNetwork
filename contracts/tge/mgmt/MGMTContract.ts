@@ -1,7 +1,7 @@
 import { Console, bold } from '@hackbg/fadroma'
 const console = Console('@sienna/mgmt')
 
-import { Agent, Scrt_1_2 } from '@hackbg/fadroma'
+import { Agent, Scrt_1_2, MigrationContext } from '@hackbg/fadroma'
 import { workspace, schedule } from '@sienna/settings'
 import type { Init, Schedule } from './schema/init'
 import { MGMTClient } from './MGMTClient'
@@ -20,20 +20,30 @@ export class MGMTContract extends Scrt_1_2.Contract<MGMTClient> {
 
 }
 
-async function mgmtStatus (context) {
-  const { agent, deployment, MGMT = deployment.get('MGMT', MGMTContract) } = context
+async function mgmtStatus ({
+  deployment, agent,
+  MGMT = new MGMTClient({ ...deployment.get('MGMT'), agent }),
+}: MigrationContext & {
+  MGMT: MGMTClient
+}) {
   try {
-    const status = await MGMT.q().status()
+    const status = await MGMT.status()
     console.debug(`${bold(`MGMT status`)} of ${bold(MGMT.address)}`, status)
   } catch (e) {
     console.error(e.message)
   }
 }
 
-async function mgmtProgress (context) {
-  const { agent, address = agent.address, deployment, MGMT = deployment.get('MGMT', MGMTContract) } = context
+async function mgmtProgress ({
+  deployment, agent,
+  MGMT    = new MGMTClient({ ...deployment.get('MGMT'), agent }),
+  address = agent.address,
+}: MigrationContext & {
+  address: string,
+  MGMT: MGMTClient
+}) {
   try {
-    const progress = await MGMT.q().progress(address)
+    const progress = await MGMT.progress(address)
     console.info(`${bold(`MGMT progress`)} of ${bold(address)} in ${MGMT.address}`)
     for (const [k,v] of Object.entries(progress)) console.info(' ', bold(k), v)
   } catch (e) {

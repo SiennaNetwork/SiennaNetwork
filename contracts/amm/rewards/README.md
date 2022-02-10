@@ -190,3 +190,24 @@ To migrate:
     and claim any remaining rewards.
 
 ![](./doc/migration_flow.png)
+
+### Closing a reward pool
+
+* A reward pool can be closed by sending it
+  `{"close_pool":{"message":"Here the admin should provide info on why the pool was closed."}}`.
+
+  * If upgrading a pool, please write the message in this format:
+    `Moved to secret1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx (because...)`.
+
+  * A closed reward pool returns each user's LP tokens
+    the next time the user interacts with the pool.
+    No more locking is allowed.
+
+  * For a closed pool, time stops (liquidity shares stop changing,
+    even though sending more SIENNA to the pool will allocate
+    more rewards according to current liquidity shares).
+
+  * Eligible users are able to claim rewards
+    from a closed pool one last time.
+    Afterwards, their LP tokens will be returned
+    and their liquidity share reset to 0.

@@ -47,28 +47,29 @@ cargo test -p sienna-router
 pnpm -w dev build amm
 ```
 
-## Configure
+## Upgrade a production deployment
 
-### Configuring the factory
-
-### Configuring the reward pools
-
-* A reward pool can be closed by sending it
-  `{"close_pool":{"message":"Here the admin should provide info on why the pool was closed."}}`.
-
-  * If upgrading a pool, please write the message in this format:
-    `Moved to secret1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx (because...)`.
-
-  * A closed reward pool returns each user's LP tokens
-    the next time the user interacts with the pool.
-    No more locking is allowed, and time stops
-    (this means liquidity shares will stop changing,
-    even though sending more SIENNA to the pool will allocate
-    more rewards according to current liquidity shares).
-    Eligible users are able to claim rewards
-    from a closed pool one last time.
-    Afterwards, their LP tokens will be returned
-    and their liquidity share reset to 0.
+```sh
+export FADROMA_CHAIN=secret-4
+export SIENNA_OLD_AMM=v1
+export SIENNA_NEW_AMM=v2
+export SIENNA_OLD_REWARDS=v2
+export SIENNA_NEW_REWARDS=v3
+export SCRT_AGENT_ADDRESS='...'
+export SCRT_AGENT_MNEMONIC='...'
+# sanity check
+pnpm ops status
+# from deployer address:
+pnpm ops deploy amm v2
+pnpm ops deploy rewards v3
+# generate multisig transactions:
+pnpm ops generate amm v1 disable
+pnpm ops generate rewards v2 close-all
+pnpm ops generate rpt reroute rewards v2=30:v3=70
+# now, sign and broadcast the above 3 txs from the admin address;
+# then, from any address:
+pnpm ops rpt vest
+```
 
 ## References
 - https://github.com/enigmampc/SecretSwap

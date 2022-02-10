@@ -1,36 +1,91 @@
-{pkgs ? import <nixpkgs> { overlays = [
-  (import (builtins.fetchTarball {
-    url    = "https://github.com/mozilla/nixpkgs-mozilla/archive/master.tar.gz";
-    sha256 = "1a71nfw7d36vplf89fp65vgj3s66np1dc0hqnqgj5gbdnpm1bihl";
-  }))];}}:
-pkgs.mkShell {
+{
+
+  pkgs ? import <nixpkgs> {
+    overlays = [
+
+      (import (builtins.fetchTarball {
+        url    = "https://github.com/hackbg/nixpkgs-mozilla/archive/master.tar.gz";
+        sha256 = "1kapba23cy3y1ghyqpm0rapbrfj3qdkd7v58c6g8bhpys9qq1aic";
+      }))
+
+    ];
+  }
+
+}: let
+
+  # Platform dispatcher
+  forPlatform = let system = pkgs.stdenv.hostPlatform.system; in
+    platforms:
+      if platforms ? ${system}
+        then platforms.${system}
+        else throw "Unsupported platform: ${system}";
+
+in pkgs.mkShell {
+
   name = "sienna";
+
   nativeBuildInputs = with pkgs; [
+
+    # Some basics
     bash git jq cloc plantuml
 
+    # Node.js 14 with PNPM package manager.
+    # TODO: Make sure everything works in latest.
     nodejs-14_x nodePackages.pnpm
 
+    # Rust Nightly from our pinned fork of the Mozilla Rust Nix repo.
     (rustChannelOfTargets "nightly" "2021-08-04" ["wasm32-unknown-unknown"])
+
+    # WebAssembly tools.
     binaryen wabt wasm-pack wasm-bindgen-cli
 
-    (pkgs.callPackage ({pkgs ? import <nixpkgs> {}, ...}:let
-      repo    = "enigmampc/SecretNetwork";
-      version = "v1.0.4";
-      system  = pkgs.stdenv.hostPlatform.system;
-      binary  = if system == "x86_64-linux"  then "secretcli-linux-amd64"       else
-                if system == "x86_64-darwin" then "secretcli-darwin-10.6-amd64" else
-                "unsupported_platform";
-    in pkgs.stdenv.mkDerivation {
-      name = "secretcli-${version}";
-      src = pkgs.fetchurl {
-        url    = "https://github.com/${repo}/releases/download/${version}/${binary}";
-        sha256 = "1mlrns9d52ill3fn00fdxmp4r0lmmffz1w8qwpw7q1ac6y35ma8k"; };
-      nativeBuildInputs = with pkgs; [ autoPatchelfHook ];
-      phases            = [ "patchPhase" "installPhase" ];
-      installPhase      = ''ls -al; install -m755 -D $src $out/bin/secretcli''; }) {}) ];
+    # Platform CLI
+   (
+      let
+        name    = "secretcli";
+
+        # Update this variable and the checksums below
+        # to download the latest version of secretcli.
+        version = "1.2.2";
+
+        # Different download links for different OS.
+        # Calls `forPlatform` function defined above
+        # to set `platform` to the correct { binary, sha256 } value.
+        platform = forPlatform {
+          "x86_64-linux" = {
+            binary = "secretcli-Linux";
+            sha256 = "1p0fhr4avwcmb4p54v05c266v0bzbdlr8gs2b6nrzn94mpfhb56l";
+          };
+          "x86_64-darwin" = { # TODO update Mac version
+            binary = "secretcli-macOS";
+            sha256 = "sha256-e/jGFTrafSXapOoHLJfPKwfxXRSReIDyB9ODU2006Jk=";
+          };
+        };
+
+        # Applies autoPatchElfHook to the secretcli binary release,
+        # making it support the Nix environment.
+        package = { pkgs }: with platform; pkgs.stdenv.mkDerivation {
+          name = "${name}-${version}";
+          installPhase = ''ls -al; install -m755 -D $src $out/bin/secretcli'';
+          src = pkgs.fetchurl {
+            url    = "https://github.com/scrtlabs/SecretNetwork/releases/download/v${version}/${binary}";
+            sha256 = sha256;
+          };
+          nativeBuildInputs = [ pkgs.autoPatchelfHook ];
+          unpackPhase = "true";
+        };
+
+      # Tells Nix to compile the package.
+      in (pkgs.callPackage package { /* With no extra options. */ })
+    )
+
+  ];
 
   shellHook = ''
     export PS1='\n\e[0;35msɪᴇɴɴᴀ ⬢ \w\e[0m '
     export RUST_BACKTRACE=1
     export RUSTFLAGS="-Zmacro-backtrace"
-    export PATH="$PATH:$HOME/.cargo/bin" ''; }
+    export PATH="$PATH:$HOME/.cargo/bin"
+  '';
+
+}

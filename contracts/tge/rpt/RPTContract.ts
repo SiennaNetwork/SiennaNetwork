@@ -30,7 +30,9 @@ async function rptStatus ({
   RPT = new RPTClient({ ...deployment.get('RPT'), agent }),
 }) {
   const status = await RPT.status()
-  console.debug(`RPT status of ${bold(agent.address)}`, status)
+  console.info(`RPT status of ${bold(RPT.address)}`)
+  console.info(`       Agent: ${bold(agent.address)}`)
+  console.debug(status)
 }
 
 async function adjustRPTConfig ({
