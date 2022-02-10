@@ -34,7 +34,7 @@ const QUOTE_SYMBOL: &str = "USD";
     entry,
     path = "lend_shared::interfaces::overseer",
     component(path = "admin"),
-    component(path = "auth")
+    component(path = "auth", skip(query))
 )]
 pub trait Overseer {
     #[init]

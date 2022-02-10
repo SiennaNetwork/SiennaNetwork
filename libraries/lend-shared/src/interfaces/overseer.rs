@@ -13,7 +13,10 @@ use serde::{Deserialize, Serialize};
 use crate::core::{AuthMethod, MasterKey};
 use crate::interfaces::market::Config as MarketConfig;
 
-#[interface(component(path = "admin"), component(path = "auth"))]
+#[interface(
+    component(path = "admin"),
+    component(path = "auth", skip(query))
+)]
 pub trait Overseer {
     #[init]
     fn new(
