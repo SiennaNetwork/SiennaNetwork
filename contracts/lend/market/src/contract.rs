@@ -62,7 +62,8 @@ use ops::{LatestInterest, accrue_interest, accrued_interest_at};
 #[contract_impl(
     entry,
     path = "lend_shared::interfaces::market",
-    component(path = "admin")
+    component(path = "admin"),
+    component(path = "killswitch")
 )]
 pub trait Market {
     #[init]
@@ -127,8 +128,22 @@ pub trait Market {
     }
 
     #[handle_guard]
-    fn guard(_msg: &HandleMsg) -> StdResult<()> {
-        killswitch::is_operational(deps)
+    fn guard(msg: &HandleMsg) -> StdResult<()> {
+        let operational = killswitch::is_operational(deps);
+
+        if operational.is_err() && matches!(
+            msg,
+            HandleMsg::UpdateConfig { .. } |
+            HandleMsg::ReduceReserves { .. } |
+            HandleMsg::SetViewingKey { .. } |
+            HandleMsg::CreateViewingKey { .. } |
+            HandleMsg::Killswitch(_) |
+            HandleMsg::Admin(_)
+        ) {
+            Ok(())
+        } else {
+            operational
+        }
     }
 
     #[handle]
@@ -136,6 +151,7 @@ pub trait Market {
         if msg.is_none() {
             return Err(StdError::generic_err("\"msg\" parameter cannot be empty."));
         }
+
         match from_binary(&msg.unwrap())? {
             ReceiverCallbackMsg::Deposit => {
                 let underlying = Contracts::load_underlying(deps)?;

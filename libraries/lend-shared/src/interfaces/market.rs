@@ -1,5 +1,6 @@
 use fadroma::{
     admin,
+    killswitch,
     cosmwasm_std,
     derive_contract::*,
     snip20_impl::msg::QueryAnswer as Snip20Response,
@@ -18,7 +19,10 @@ use crate::interfaces::overseer::{
 };
 use crate::core::{MasterKey, AuthMethod};
 
-#[interface(component(path = "admin"))]
+#[interface(
+    component(path = "admin"),
+    component(path = "killswitch")
+)]
 pub trait Market {
     #[init]
     fn new(
