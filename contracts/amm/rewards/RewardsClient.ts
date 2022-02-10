@@ -10,7 +10,11 @@ const now = () => Math.floor(+ new Date() / 1000)
 
 type Link = { address: string, code_hash: string }
 
+import { LPTokenClient } from '@sienna/lp-token'
+
 export abstract class RewardsClient extends Client {
+
+  abstract getStakedToken (): Promise<LPTokenClient|Snip20Client>
 
   static "v2" = class RewardsClient_v2 extends RewardsClient {
 
@@ -25,11 +29,11 @@ export abstract class RewardsClient extends Client {
       return result.user_info
     }
 
-    async getLPToken () {
+    async getStakedToken () {
       const at = Math.floor(+new Date()/1000)
       const {pool_info} = await this.query({pool_info:{at}})
       const {address, code_hash} = pool_info.lp_token
-      return new Snip20Client({ address, codeHash: code_hash, agent: this.agent })
+      return new LPTokenClient({ address, codeHash: code_hash, agent: this.agent })
     }
 
     async getRewardToken () {
@@ -57,15 +61,15 @@ export abstract class RewardsClient extends Client {
       return result.rewards.config
     }
 
-    setLPToken (address: string, code_hash: string) {
+    async getStakedToken () {
+      const { lp_token: { address, code_hash } } = await this.getConfig()
+      return new LPTokenClient({ address, codeHash: code_hash, agent: this.agent })
+    }
+
+    setStakedToken (address: string, code_hash: string) {
       return this.execute({
         rewards: { configure: { lp_token: { address, code_hash } } }
       })
-    }
-
-    async getLPToken () {
-      const { lp_token: { address, code_hash } } = await this.getConfig()
-      return new Snip20Client({ address, codeHash: code_hash, agent: this.agent })
     }
 
     async getRewardToken () {
