@@ -1,10 +1,10 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::algo::{self, Account, IAccount};
-use crate::auth::Auth;
-use crate::errors::poll_expired;
 use fadroma::*;
+
+use crate::account::{Account, IAccount};
+use crate::auth::{Auth};
 
 use super::poll_result::{IPollResult, PollResult};
 use super::validator;
@@ -48,7 +48,7 @@ where
                     GovernanceConfig::MIN_DESC_LENGTH,
                     GovernanceConfig::MAX_DESC_LENGTH,
                 )?;
-                let account = algo::Account::from_env(core, &env)?;
+                let account = Account::from_env(core, &env)?;
                 let threshold = GovernanceConfig::threshold(core)?;
 
                 if account.staked < threshold.into() {

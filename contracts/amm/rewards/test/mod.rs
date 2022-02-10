@@ -14,6 +14,8 @@ use prettytable::{/*Row, Cell,*/ format, Table};
 //use yansi::Paint;
 
 use crate::*;
+use crate::time_utils::{Moment, Duration, DAY};
+use crate::total::Total;
 use fadroma::composability::{ClonableMemoryStorage, MockExtern};
 use fadroma::secret_toolkit::snip20;
 
@@ -408,7 +410,7 @@ impl Context {
         );
         let vk: Option<ViewingKey> = self
             .deps
-            .get(crate::algo::RewardsConfig::REWARD_VK)
+            .get(crate::RewardsConfig::REWARD_VK)
             .unwrap();
         assert_eq!(vk.unwrap().0, String::from(key));
         self

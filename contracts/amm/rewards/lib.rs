@@ -1,19 +1,29 @@
-extern crate fadroma; pub use fadroma::*;
+pub use fadroma::*;
+extern crate fadroma; 
+use account::Amount;
+use config::{RewardsConfig, IRewardsConfig};
 use gov::config::GovernanceConfig;
 use gov::governance::Governance;
 use gov::handle::GovernanceHandle;
 use gov::query::GovernanceQuery;
 use gov::response::GovernanceResponse;
-
-pub mod algo;      use crate::algo::{*, RewardsResponse};
+use handle::RewardsHandle;
+use account::{Account, *};
+use query::{RewardsQuery, RewardsResponse};
+// pub mod algo;      use crate::algo::{*, RewardsResponse};
 pub mod auth;      use crate::auth::{*, Auth};
 pub mod drain;     use crate::drain::Drain;
 pub mod keplr;     use crate::keplr::*;
 pub mod migration; use crate::migration::*;
 
+pub mod account;
 pub mod gov;       // use crate::gov::*;
-
+pub mod config;
+pub mod total;
 pub mod errors;
+pub mod handle;
+pub mod query;
+pub mod time_utils;
 
 #[cfg(test)] #[macro_use] extern crate prettytable;
 #[cfg(test)] mod test;
@@ -56,6 +66,26 @@ pub trait Contract<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         -> StdResult<HandleResponse> { msg.dispatch_handle(self, env) }
     fn query (&self, msg: Query)
         -> StdResult<Response>       { msg.dispatch_query(self) }
+}
+
+
+pub trait Rewards<S: Storage, A: Api, Q: Querier>:
+Composable<S, A, Q> // to compose with other modules
++ Auth<S, A, Q>     // to authenticate txs/queries
++ Sized             // to pass mutable self-reference to Total and Account
+{
+/// Configure the rewards module
+fn init (&mut self, env: &Env, mut config: RewardsConfig) -> StdResult<Vec<CosmosMsg>> {
+    config.initialize(self, env)
+}
+/// Handle transactions
+fn handle (&mut self, env: Env, msg: RewardsHandle) -> StdResult<HandleResponse> {
+    msg.dispatch_handle(self, env)
+}
+/// Handle queries
+fn query (&self, msg: RewardsQuery) -> StdResult<RewardsResponse> {
+    msg.dispatch_query(self)
+}
 }
 
 #[derive(Clone,Debug,PartialEq,serde::Serialize,serde::Deserialize,schemars::JsonSchema)]
@@ -164,7 +194,7 @@ pub enum Response {
 
         impl<S: Storage, A: Api, Q: Querier> crate::auth::Auth<S, A, Q> for $Core {}
 
-        impl<S: Storage, A: Api, Q: Querier> crate::algo::Rewards<S, A, Q> for $Core {}
+        impl<S: Storage, A: Api, Q: Querier> Rewards<S, A, Q> for $Core {}
 
         impl<S: Storage, A: Api, Q: Querier> Governance<S, A, Q> for $Core {}
 
@@ -181,7 +211,7 @@ pub enum Response {
             fn balance (&self, address: HumanAddr, key: ViewingKey) -> StdResult<Response> {
                 Auth::check_vk(self, &address, &key)?;
                 let id     = self.canonize(address)?;
-                let amount = self.get_ns(crate::algo::Account::STAKED, id.as_slice())?;
+                let amount = self.get_ns(account::Account::STAKED, id.as_slice())?;
                 Ok(Response::Balance { amount: amount.unwrap_or(Amount::zero()) })
             }
         }

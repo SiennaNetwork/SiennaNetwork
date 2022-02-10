@@ -1,5 +1,6 @@
 use fadroma::*;
-use crate::{*, Auth};
+use crate::{*, Auth, time_utils::{Duration, DAY}};
+use crate::config::IRewardsConfig;
 
 /// Number of seconds to wait after closing pool
 /// before it is possible to drain remaining LP or reward tokens.

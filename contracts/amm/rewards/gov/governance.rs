@@ -1,6 +1,6 @@
 use fadroma::*;
 
-use crate::{algo::Rewards, auth::Auth};
+use crate::{ auth::Auth, Rewards};
 
 use super::{config::{GovernanceConfig, IGovernanceConfig}, handle::GovernanceHandle, query::GovernanceQuery, response::GovernanceResponse};
 

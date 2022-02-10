@@ -1,5 +1,5 @@
-use crate::*;
 use fadroma::*;
+use crate::{ time_utils::{Duration, Moment}, account::Amount};
 
 /// When trying to set the epoch to something other than the next
 pub fn invalid_epoch_number<T>(epoch: Moment, next_epoch: Moment) -> StdResult<T> {
