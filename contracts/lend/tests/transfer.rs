@@ -9,7 +9,7 @@ const BOB: &str = "Bob";
 const ALICE: &str = "Alice";
 
 #[test]
-fn transefer_no_funds() {
+fn transfer_no_funds() {
     let mut lend = Lend::default();
     let exchange_rate = Decimal256::one();
 
