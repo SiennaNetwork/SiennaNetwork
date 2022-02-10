@@ -82,7 +82,6 @@ where
         if let Some(quorum) = quorum {
             core.set(Self::QUORUM, quorum)?;
         }
-
         Ok(vec![])
     }
 
