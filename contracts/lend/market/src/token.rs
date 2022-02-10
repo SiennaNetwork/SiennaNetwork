@@ -50,7 +50,14 @@ pub fn deposit<S: Storage, A: Api, Q: Querier>(
     let account = Account::of(deps, &from)?;
     account.add_balance(&mut deps.storage, mint_amount)?;
 
-    Ok(HandleResponse::default())
+    Ok(HandleResponse {
+        messages: vec![],
+        log: vec![
+            log("action", "deposit"),
+            log("mint_amount", mint_amount)
+        ],
+        data: None
+    })
 }
 
 pub fn redeem<S: Storage, A: Api, Q: Querier>(

@@ -6,10 +6,10 @@ use lend_shared::{
     interfaces::{market, overseer},
 };
 
-use crate::setup::Lend;
-use crate::ADMIN;
+use crate::setup::{Lend, ADMIN};
 
 const BORROWER: &str = "borrower";
+
 #[test]
 fn deposit_and_mint() {
     let deposit_amount = Uint128(100_000);

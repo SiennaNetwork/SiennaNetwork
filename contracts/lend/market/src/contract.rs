@@ -19,6 +19,7 @@ use lend_shared::{
                 DefaultImpl as AuthImpl, Auth
             }
         },
+        killswitch,
         derive_contract::*,
         require_admin,
         secret_toolkit::snip20,
@@ -83,15 +84,12 @@ pub trait Market {
         };
 
         Constants::save_config(&mut deps.storage, &config)?;
-
         BorrowerId::set_prng_seed(&mut deps.storage, &prng_seed)?;
+        
         Contracts::save_overseer(deps, &callback.contract)?;
         Contracts::save_interest_model(deps, &interest_model_contract)?;
         Contracts::save_underlying(deps, &underlying_asset)?;
-        Contracts::save_self_ref(deps, &ContractLink {
-            address: env.contract.address.clone(),
-            code_hash: env.contract_code_hash.clone()
-        })?;
+        Contracts::save_self_ref(deps, &self_ref)?;
 
         Global::save_borrow_index(&mut deps.storage, &Decimal256::one())?;
         Global::save_accrual_block_number(&mut deps.storage, env.block.height)?;
@@ -117,7 +115,7 @@ pub trait Market {
                     underlying_asset.address.clone(),
                 )?,
                 snip20::register_receive_msg(
-                    self_ref.code_hash.clone(),
+                    self_ref.code_hash,
                     None,
                     BLOCK_SIZE,
                     underlying_asset.code_hash,
@@ -126,6 +124,11 @@ pub trait Market {
             ],
             log: vec![],
         })
+    }
+
+    #[handle_guard]
+    fn guard(_msg: &HandleMsg) -> StdResult<()> {
+        killswitch::is_operational(deps)
     }
 
     #[handle]

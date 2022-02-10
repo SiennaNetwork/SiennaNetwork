@@ -6,15 +6,12 @@ mod setup;
 mod deposit_redeem;
 #[cfg(test)]
 mod borrow;
-
 #[cfg(test)]
 mod transfer;
-
+#[cfg(test)]
+mod exchange_rate;
 #[cfg(test)]
 mod liquidate;
-
-#[cfg(test)]
-const ADMIN: &str = "admin";
 
 #[macro_export]
 macro_rules! impl_contract_harness_default {
