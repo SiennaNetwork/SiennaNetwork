@@ -5,6 +5,7 @@ use fadroma::*;
 
 use crate::account::{Account, IAccount};
 use crate::auth::{Auth};
+use crate::errors::poll_expired;
 
 use super::poll_result::{IPollResult, PollResult};
 use super::validator;
