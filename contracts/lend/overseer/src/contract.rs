@@ -329,13 +329,36 @@ pub trait Overseer {
 
     #[handle]
     #[require_admin]
-    fn set_premium(premium: Decimal256) -> StdResult<HandleResponse> {
+    fn change_config(
+        premium_rate: Option<Decimal256>,
+        close_factor: Option<Decimal256>
+    ) -> StdResult<HandleResponse> {
         let mut constants = Constants::load(&deps.storage)?;
-        constants.premium = premium;
+
+        if let Some(premium_rate) = premium_rate {
+            constants.premium = premium_rate;
+        }
+
+        if let Some(close_factor) = close_factor {
+            if close_factor > Decimal256(900000000000000000u128.into()) ||
+                close_factor < Decimal256(50000000000000000u128.into()) {
+                    return Err(StdError::generic_err("Close factor must be between 0.05 and 0.9"))
+            }
+
+            constants.close_factor = close_factor;
+        }
 
         constants.save(&mut deps.storage)?;
 
-        Ok(HandleResponse::default())
+        Ok(HandleResponse {
+            messages: vec![],
+            log: vec![
+                log("action", "change_config"),
+                log("premium_rate", constants.premium),
+                log("close_factor", constants.close_factor)
+            ],
+            data: None
+        })
     }
 
     #[query]

@@ -611,7 +611,7 @@ fn calculate_amount_seize() {
         // set premium
         lend.ensemble
             .execute(
-                &HandleMsg::SetPremium { premium: *premium },
+                &HandleMsg::ChangeConfig { premium_rate: Some(*premium), close_factor: None },
                 MockEnv::new(ADMIN, lend.overseer.clone()),
             )
             .unwrap();

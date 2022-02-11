@@ -56,7 +56,10 @@ pub trait Overseer {
     ) -> StdResult<HandleResponse>;
 
     #[handle]
-    fn set_premium(premium: Decimal256) -> StdResult<HandleResponse>;
+    fn change_config(
+        premium_rate: Option<Decimal256>,
+        close_factor: Option<Decimal256>
+    ) -> StdResult<HandleResponse>;
 
     #[query]
     fn markets(pagination: Pagination) -> StdResult<Vec<Market<HumanAddr>>>;
