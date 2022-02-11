@@ -340,9 +340,9 @@ pub trait Overseer {
         }
 
         if let Some(close_factor) = close_factor {
-            if close_factor > Decimal256(900000000000000000u128.into()) ||
+            if close_factor > Decimal256::one() ||
                 close_factor < Decimal256(50000000000000000u128.into()) {
-                    return Err(StdError::generic_err("Close factor must be between 0.05 and 0.9"))
+                    return Err(StdError::generic_err("Close factor must be between 0.05 and 1"))
             }
 
             constants.close_factor = close_factor;
