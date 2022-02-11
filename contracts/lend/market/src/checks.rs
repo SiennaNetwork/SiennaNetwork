@@ -83,8 +83,8 @@ pub fn assert_liquidate_allowed<S: Storage, A: Api, Q: Querier>(
         overseer
     )?;
 
-    let max = borrower_balance.decimal_mul(config.close_factor)?;
-
+    let max = borrower_balance.decimal_mul(config.close_factor())?;
+    
     if amount > max {
         Err(StdError::generic_err(format!(
             "Repay amount is too high. Amount: {}, Max: {}",

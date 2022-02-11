@@ -58,7 +58,7 @@ pub trait Overseer {
             },
         )?;
 
-        Constants::new(premium, close_factor)?.save(&mut deps.storage)?;
+        Constants::save(&mut deps.storage, &Config::new(premium, close_factor)?)?;
 
         let self_ref = ContractLink {
             address: env.contract.address.clone(),
@@ -339,7 +339,7 @@ pub trait Overseer {
             constants.set_close_factor(close_factor)?;
         }
 
-        constants.save(&mut deps.storage)?;
+        Constants::save(&mut deps.storage, &constants)?;
 
         Ok(HandleResponse {
             messages: vec![],
@@ -475,12 +475,7 @@ pub trait Overseer {
 
     #[query]
     fn config() -> StdResult<Config> {
-        let constants = Constants::load(&deps.storage)?;
-
-        Ok(Config {
-            close_factor: constants.close_factor(),
-            premium: constants.premium
-        })
+        Constants::load(&deps.storage)
     }
 }
 

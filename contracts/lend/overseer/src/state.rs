@@ -10,7 +10,7 @@ use lend_shared::{
         Canonize, Humanize, ContractLink,
         ContractInstantiationInfo, Decimal256
     },
-    interfaces::overseer::{Pagination, Market},
+    interfaces::overseer::{Pagination, Market, Config},
     core::AuthenticatedUser
 };
 use serde::{Deserialize, Serialize};
@@ -38,47 +38,17 @@ type UserMarkets = Vec<u64>;
 impl Constants {
     const KEY: &'static [u8] = b"constants";
 
-    pub fn new(premium: Decimal256, close_factor: Decimal256) -> StdResult<Self> {
-        Self::validate_close_factor(&close_factor)?;
-
-        Ok(Self {
-            premium,
-            close_factor
-        })
-    }
-
     #[inline]
-    pub fn load(storage: &impl Storage) -> StdResult<Self> {
+    pub fn load(storage: &impl Storage) -> StdResult<Config> {
         Ok(load(storage, Self::KEY)?.unwrap())
     }
 
     #[inline]
     pub fn save(
-        &self,
-        storage: &mut impl Storage
+        storage: &mut impl Storage,
+        config: &Config
     ) -> StdResult<()> {
-        save(storage, Self::KEY, self)
-    }
-
-    pub fn set_close_factor(&mut self, new: Decimal256) -> StdResult<()> {
-        Self::validate_close_factor(&new)?;
-
-        self.close_factor = new;
-
-        Ok(())
-    }
-
-    pub fn close_factor(&self) -> Decimal256 {
-        self.close_factor
-    }
-
-    fn validate_close_factor(close_factor: &Decimal256) -> StdResult<()> {
-        if *close_factor > Decimal256::one() ||
-            *close_factor < Decimal256(50000000000000000u128.into()) {
-            return Err(StdError::generic_err("Close factor must be between 0.05 and 1"))
-        } else {
-            Ok(())
-        }
+        save(storage, Self::KEY, config)
     }
 }
 

@@ -122,12 +122,12 @@ pub struct AccountLiquidity {
 #[serde(rename_all = "snake_case")]
 #[serde(deny_unknown_fields)]
 pub struct Config {
+    /// The discount on collateral that a liquidator receives.
+    pub premium: Decimal256,
     /// The percentage of a liquidatable account's borrow that can be repaid in a single liquidate transaction.
     /// If a user has multiple borrowed assets, the closeFactor applies to any single borrowed asset,
     /// not the aggregated value of a user’s outstanding borrowing.
-    pub close_factor: Decimal256,
-    /// The discount on collateral that a liquidator receives.
-    pub premium: Decimal256,
+    close_factor: Decimal256
 }
 
 #[derive(Serialize, Deserialize, schemars::JsonSchema, Debug)]
@@ -163,6 +163,38 @@ pub struct MarketInitConfig {
 pub struct Pagination {
     pub start: u64,
     pub limit: u8,
+}
+
+impl Config {
+    pub fn new(premium: Decimal256, close_factor: Decimal256) -> StdResult<Self> {
+        Self::validate_close_factor(&close_factor)?;
+
+        Ok(Self {
+            premium,
+            close_factor
+        })
+    }
+
+    pub fn set_close_factor(&mut self, new: Decimal256) -> StdResult<()> {
+        Self::validate_close_factor(&new)?;
+
+        self.close_factor = new;
+
+        Ok(())
+    }
+
+    pub fn close_factor(&self) -> Decimal256 {
+        self.close_factor
+    }
+
+    fn validate_close_factor(close_factor: &Decimal256) -> StdResult<()> {
+        if *close_factor > Decimal256::one() ||
+            *close_factor < Decimal256(50000000000000000u128.into()) {
+            return Err(StdError::generic_err("Close factor must be between 0.05 and 1"))
+        } else {
+            Ok(())
+        }
+    }
 }
 
 impl<T> Market<T> {
