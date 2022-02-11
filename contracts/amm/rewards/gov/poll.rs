@@ -7,6 +7,7 @@ use super::{
     governance::Governance,
     poll_metadata::{IPollMetaData, PollMetadata},
     poll_result::{IPollResult, PollResult},
+    vote::VoteType,
 };
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -61,6 +62,13 @@ where
     fn total(core: &C) -> StdResult<u64>;
 
     fn commit_status(&self, core: &mut C) -> StdResult<()>;
+
+    fn update_result(
+        core: &mut C,
+        poll_id: u64,
+        sender: HumanAddr,
+        update: UpdateResultDto,
+    ) -> StdResult<PollResult>;
 }
 
 impl<S, A, Q, C> IPoll<S, A, Q, C> for Poll
@@ -172,6 +180,38 @@ where
             status: PollStatus::Active,
         })
     }
+    fn update_result(
+        core: &mut C,
+        poll_id: u64,
+        sender: HumanAddr,
+        update: UpdateResultDto,
+    ) -> StdResult<PollResult> {
+        let mut result = PollResult::get(core, poll_id).unwrap_or(PollResult::new(core, poll_id));
+
+        //perform the update
+        match update {
+            UpdateResultDto::AddVote { variant, power } => {
+                result.add_vote(core, variant, power, sender)?.store(core)?;
+            }
+            UpdateResultDto::ChangeVotePower { power } => {
+                result.change_vote_power(core, power, sender)?.store(core)?;
+            }
+            UpdateResultDto::ChangeVoteVariant { variant } => {
+                result
+                    .change_vote_variant(core, variant, sender)?
+                    .store(core)?;
+            }
+            UpdateResultDto::RemoveVote {} => {
+                result.remove_vote(core, sender)?.store(core)?;
+            }
+        }
+
+        //determine new poll status and change it
+
+        //todo, issue testing with balances, need to query total funds in pool
+
+        Ok(result)
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -180,4 +220,12 @@ pub enum PollStatus {
     Active,
     Failed,
     Passed,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
+pub enum UpdateResultDto {
+    ChangeVotePower { power: Uint128 },
+    ChangeVoteVariant { variant: VoteType },
+    RemoveVote {},
+    AddVote { variant: VoteType, power: Uint128 },
 }

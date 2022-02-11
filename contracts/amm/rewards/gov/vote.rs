@@ -14,7 +14,7 @@ pub enum VoteType {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct Vote {
     pub variant: VoteType,
-    pub vote_power: Uint128,
+    pub vote_power: u128,
     pub voter: CanonicalAddr,
 }
 
@@ -29,7 +29,7 @@ where
     C: Governance<S, A, Q>,
     Self: Sized,
 {
-    fn store(&self, core: &mut C, address: HumanAddr, poll_id: u64) -> StdResult<&Self>;
+    fn store(self, core: &mut C, address: HumanAddr, poll_id: u64) -> StdResult<Self>;
     fn new(core: &C, variant: VoteType, voter: HumanAddr, vote_power: Uint128) -> StdResult<Self>;
     fn get(core: &C, address: HumanAddr, poll_id: u64) -> StdResult<Self>;
     fn build_prefix(core: &C, poll_id: u64) -> StdResult<Vec<u8>>;
@@ -44,7 +44,7 @@ where
     C: Governance<S, A, Q>,
     Self: Sized,
 {
-    fn store(&self, core: &mut C, address: HumanAddr, poll_id: u64) -> StdResult<&Self> {
+    fn store(self, core: &mut C, address: HumanAddr, poll_id: u64) -> StdResult<Self> {
         let prefix = Self::build_prefix(core, poll_id)?;
         let key = core.canonize(address)?;
         core.set_ns(&prefix, key.as_slice(), &self)?;
@@ -87,8 +87,8 @@ where
     fn new(core: &C, variant: VoteType, voter: HumanAddr, vote_power: Uint128) -> StdResult<Self> {
         let voter = core.canonize(voter)?;
         Ok(Self {
+            vote_power: vote_power.u128(),
             variant,
-            vote_power,
             voter,
         })
     }

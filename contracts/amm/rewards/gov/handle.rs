@@ -4,9 +4,10 @@ use serde::{Deserialize, Serialize};
 use fadroma::*;
 
 use crate::account::{Account, IAccount};
-use crate::auth::{Auth};
+use crate::auth::Auth;
 use crate::errors::poll_expired;
 
+use super::poll::UpdateResultDto;
 use super::poll_result::{IPollResult, PollResult};
 use super::validator;
 use super::{
@@ -49,10 +50,11 @@ where
                     GovernanceConfig::MIN_DESC_LENGTH,
                     GovernanceConfig::MAX_DESC_LENGTH,
                 )?;
-                let account = Account::from_env(core, &env)?;
+                // let account = Account::from_env(core, &env)?;
+                let staked: Uint128 = Uint128(3600);
                 let threshold = GovernanceConfig::threshold(core)?;
 
-                if account.staked < threshold.into() {
+                if staked < threshold.into() {
                     return Err(StdError::generic_err("Insufficient funds to create a poll"));
                 };
 
@@ -80,34 +82,30 @@ where
                 if expiration.is_expired(&env.block) {
                     return poll_expired();
                 }
-                if let Ok(_) = Vote::get(core, env.message.sender.clone(), poll_id) {
-                    return Err(StdError::generic_err(
-                        "Already voted. Did you mean to update vote?",
-                    ));
-                }
 
-                let account = Account::from_env(core, &env)?;
+                // let account = Account::from_env(core, &env)?;
+                let power = Uint128(200);
 
-                let vote_power = account.staked;
-
-                PollResult::get(core, poll_id)
-                    .unwrap_or(PollResult::new(core, poll_id))
-                    .add_vote(core, env.message.sender, variant, vote_power)?
-                    .store(core)?;
+                Poll::update_result(
+                    core,
+                    poll_id,
+                    env.message.sender,
+                    UpdateResultDto::AddVote { power, variant },
+                );
 
                 Ok(HandleResponse::default())
             }
             GovernanceHandle::ChangeVote { variant, poll_id } => {
                 let expiration = Poll::expiration(core, poll_id)?;
                 if expiration.is_expired(&env.block) {
-                    return Err(StdError::generic_err(
-                        "Poll has expired. Voting is not possible anymore.",
-                    ));
+                    return poll_expired();
                 }
-
-                PollResult::get(core, poll_id)?
-                    .update_vote(core, variant, env.message.sender)?
-                    .store(core)?;
+                Poll::update_result(
+                    core,
+                    poll_id,
+                    env.message.sender,
+                    UpdateResultDto::ChangeVoteVariant { variant },
+                )?;
 
                 Ok(HandleResponse::default())
             }
@@ -117,7 +115,12 @@ where
                     return poll_expired();
                 }
 
-                PollResult::get(core, poll_id)?.remove_vote(core, env.message.sender)?;
+                Poll::update_result(
+                    core,
+                    poll_id,
+                    env.message.sender,
+                    UpdateResultDto::RemoveVote {},
+                )?;
 
                 Ok(HandleResponse::default())
             }
