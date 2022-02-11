@@ -58,11 +58,7 @@ pub trait Overseer {
             },
         )?;
 
-        Constants {
-            close_factor,
-            premium,
-        }
-        .save(&mut deps.storage)?;
+        Constants::new(premium, close_factor)?.save(&mut deps.storage)?;
 
         let self_ref = ContractLink {
             address: env.contract.address.clone(),
@@ -340,12 +336,7 @@ pub trait Overseer {
         }
 
         if let Some(close_factor) = close_factor {
-            if close_factor > Decimal256::one() ||
-                close_factor < Decimal256(50000000000000000u128.into()) {
-                    return Err(StdError::generic_err("Close factor must be between 0.05 and 1"))
-            }
-
-            constants.close_factor = close_factor;
+            constants.set_close_factor(close_factor)?;
         }
 
         constants.save(&mut deps.storage)?;
@@ -355,7 +346,7 @@ pub trait Overseer {
             log: vec![
                 log("action", "change_config"),
                 log("premium_rate", constants.premium),
-                log("close_factor", constants.close_factor)
+                log("close_factor", constants.close_factor())
             ],
             data: None
         })
@@ -484,14 +475,11 @@ pub trait Overseer {
 
     #[query]
     fn config() -> StdResult<Config> {
-        let Constants {
-            close_factor,
-            premium,
-        } = Constants::load(&deps.storage)?;
+        let constants = Constants::load(&deps.storage)?;
 
         Ok(Config {
-            close_factor,
-            premium,
+            close_factor: constants.close_factor(),
+            premium: constants.premium
         })
     }
 }

@@ -21,8 +21,8 @@ const MAX_MARKETS_ENTERED: usize = 5;
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct Constants {
-    pub close_factor: Decimal256,
-    pub premium: Decimal256
+    pub premium: Decimal256,
+    close_factor: Decimal256
 }
 
 pub struct Contracts;
@@ -38,6 +38,15 @@ type UserMarkets = Vec<u64>;
 impl Constants {
     const KEY: &'static [u8] = b"constants";
 
+    pub fn new(premium: Decimal256, close_factor: Decimal256) -> StdResult<Self> {
+        Self::validate_close_factor(&close_factor)?;
+
+        Ok(Self {
+            premium,
+            close_factor
+        })
+    }
+
     #[inline]
     pub fn load(storage: &impl Storage) -> StdResult<Self> {
         Ok(load(storage, Self::KEY)?.unwrap())
@@ -49,6 +58,27 @@ impl Constants {
         storage: &mut impl Storage
     ) -> StdResult<()> {
         save(storage, Self::KEY, self)
+    }
+
+    pub fn set_close_factor(&mut self, new: Decimal256) -> StdResult<()> {
+        Self::validate_close_factor(&new)?;
+
+        self.close_factor = new;
+
+        Ok(())
+    }
+
+    pub fn close_factor(&self) -> Decimal256 {
+        self.close_factor
+    }
+
+    fn validate_close_factor(close_factor: &Decimal256) -> StdResult<()> {
+        if *close_factor > Decimal256::one() ||
+            *close_factor < Decimal256(50000000000000000u128.into()) {
+            return Err(StdError::generic_err("Close factor must be between 0.05 and 1"))
+        } else {
+            Ok(())
+        }
     }
 }
 
