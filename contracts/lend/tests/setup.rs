@@ -176,7 +176,7 @@ impl Lend {
                 &overseer::InitMsg {
                     admin: None,
                     prng_seed: Binary::from(b"whatever"),
-                    close_factor: Decimal256::from_uint256(51000000000000000u128).unwrap(),
+                    close_factor: Decimal256::from_str("0.05").unwrap(),
                     premium: Decimal256::one(),
                     market_contract: market,
                     oracle_contract: oracle,
