@@ -81,7 +81,7 @@ export abstract class AMMFactoryContract extends Scrt_1_2.Contract<AMMFactoryCli
         v2.name      = `AMM[v2].Factory`
         v2.factory   = new AMMFactoryClient.v1({ ...deployment.get(v2.name), agent: clientAgent })
         v2.templates = await v2.factory.getContracts()
-        v2.factory   = v2.factory.client(deployAgent)
+        v2.factory   = v2.factory.switchAgent(deployAgent)
         v2.pairs     = await v2.factory.createExchanges({ templates: v2.templates, pairs: v1.pairs })
         return { v1, v2 }
       }

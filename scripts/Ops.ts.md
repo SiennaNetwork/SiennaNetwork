@@ -54,12 +54,18 @@ Fadroma.command('status',
   Deployments.activate,
   SiennaSnip20Contract.status,
   MGMTContract.status,
-  RPTContract.status)
+  RPTContract.status
+)
 Fadroma.command('fund-testers',
   Deployments.activate,
-  SiennaSnip20Contract.fundTesters)
-Fadroma.command('select', Deployments.select)
-Fadroma.command('deploy new', Deployments.new)
+  SiennaSnip20Contract.fundTesters
+)
+Fadroma.command('select',
+  Deployments.select
+)
+Fadroma.command('deploy new',
+  Deployments.new
+)
 ```
 
 ### Deployments.activate
@@ -81,16 +87,20 @@ This is how you start from a clean slate.
 ```typescript
 import { deployTGE } from '@sienna/tge'
 import { AMMFactoryContract, RewardsContract } from '@sienna/amm'
+
 Fadroma.command('deploy legacy',
   Deployments.new,
   deployTGE,
   Deployments.status,
-  AMMFactoryContract['v1'].deploy,
+  AMMFactoryContract.v1.deploy,
   Deployments.status,
-  RewardsContract['v2'].deploy,
-  Deployments.status)
+  RewardsContract.v2.deploy,
+  Deployments.status
+)
+
 Fadroma.command('test legacy',
-  Deployments.activate)
+  Deployments.activate
+)
 ```
 
 ### Upgrading legacy to latest
@@ -100,11 +110,13 @@ Fadroma.command('test legacy',
 ```typescript
 Fadroma.command('upgrade amm v1_to_v2',
   Deployments.activate,
-  AMMFactoryContract['v1'].upgrade['v2'])
+  AMMFactoryContract.v1.upgrade.v2
+)
 
 Fadroma.command('upgrade rewards v2_to_v3',
   Deployments.activate,
-  RewardsContract['v2'].upgrade['v3'])
+  RewardsContract.v2.upgrade.v3
+)
 ```
 
 #### On mainnet:
@@ -129,7 +141,8 @@ Fadroma.command('generate amm-v1-pause',
         "Migration to AMMv2 has begun."
       )
     })
-  })
+  }
+)
 
 Fadroma.command('generate amm-v2-factory',
   Deployments.activate,
@@ -138,7 +151,8 @@ Fadroma.command('generate amm-v2-factory',
     await txAgent.bundle().wrap(async deployAgent=>{
       await run(API.AMMFactoryContract.v1.upgrade.v2_factory, { deployAgent })
     })
-  })
+  }
+)
 
 Fadroma.command('generate amm-v2-exchanges',
   Deployments.activate,
@@ -147,7 +161,8 @@ Fadroma.command('generate amm-v2-exchanges',
     await txAgent.bundle().wrap(async deployAgent=>{
       await run(API.AMMFactoryContract.v1.upgrade.v2_exchanges, { deployAgent })
     })
-  })
+  }
+)
 
 Fadroma.command('generate amm-v1-terminate',
   Deployments.activate,
@@ -163,7 +178,8 @@ Fadroma.command('generate amm-v1-terminate',
       newAddress,
       `This contract is terminated. Please migrate to AMM v2 at: ${newAddress}`
     )
-  })
+  }
+)
 
 Fadroma.command('generate rewards-deploy-v3',
   forMainnet,
@@ -225,12 +241,14 @@ temporal dependencies in contracts.
 Fadroma.command('deploy all',
   Deployments.new,
   deployTGE,
-  AMMFactoryContract['v1'].deploy,
-  RewardsContract['v2'].deploy,
+  AMMFactoryContract.v1.deploy,
+  RewardsContract.v2.deploy,
   Deployments.status,
-  AMMFactoryContract['v1'].upgrade['v2'],
-  RewardsContract['v2'].upgrade['v3'],
-  Deployments.status)
+  AMMFactoryContract.v1.upgrade.v2_factory,
+  AMMFactoryContract.v1.upgrade.v2_exchanges,
+  RewardsContract.v2.upgrade.v3,
+  Deployments.status
+)
 ```
 
 ### Everything but the TGE
@@ -240,12 +258,14 @@ Used to shave off ~20s off the test of the Factory+Rewards migration:
 ```typescript
 Fadroma.command('deploy sans-tge',
   Deployments.activate,
-  AMMFactoryContract['v1'].deploy,
-  RewardsContract['v2'].deploy,
+  AMMFactoryContract.v1.deploy,
+  RewardsContract.v2.deploy,
   Deployments.status,
-  AMMFactoryContract['v1'].upgrade['v2'],
-  RewardsContract['v2'].upgrade['v3'],
-  Deployments.status)
+  AMMFactoryContract.v1.upgrade.v2_factory,
+  AMMFactoryContract.v1.upgrade.v2_exchanges,
+  RewardsContract.v2.upgrade.v3,
+  Deployments.status
+)
 ```
 
 ### Deploy just the TGE
@@ -255,7 +275,8 @@ This creates a new deployment under `/receipts/$CHAIN_ID/$TIMESTAMP`.
 ```typescript
 Fadroma.command('deploy tge',
   Deployments.new,
-  deployTGE)
+  deployTGE
+)
 ```
 
 ### Deploy just the Lend
@@ -264,7 +285,8 @@ Fadroma.command('deploy tge',
 import { deployLend } from "@sienna/lend"
 Fadroma.command("deploy lend",
   Deployments.new,
-  deployLend)
+  deployLend
+)
 ```
 
 ### Add the AMM and Rewards to the TGE
@@ -275,7 +297,8 @@ to which it adds the contracts for Sienna Swap.
 ```typescript
 Fadroma.command('deploy amm',
   Deployments.activate,
-  AMMFactoryContract['v2'].deploy)
+  AMMFactoryContract.v2.deploy
+)
 ```
 
 ### Deploying Rewards v2 and v3 side-by-side
@@ -285,15 +308,18 @@ Used to test the migration from v2 to v3 pools.
 ```typescript
 Fadroma.command('deploy rewards v2',
   Deployments.activate,
-  RewardsContract['v2'].deploy)
+  RewardsContract.v2.deploy
+)
 
 Fadroma.command('deploy rewards v3',
   Deployments.activate,
-  RewardsContract['v3'].deploy)
+  RewardsContract.v3.deploy
+)
 
 Fadroma.command('deploy rewards v2+v3',
   Deployments.activate,
-  RewardsContract['v2+v3'].deploy)
+  RewardsContract['v2+v3'].deploy
+)
 ```
 
 ### Deploying a v1 factory
@@ -305,7 +331,8 @@ built from `main`.
 ```typescript
 Fadroma.command('deploy factory v1',
   Deployments.activate,
-  AMMFactoryContract['v1'].deploy)
+  AMMFactoryContract.v1.deploy
+)
 ```
 
 ## Helper commands for auditing the contract logic
