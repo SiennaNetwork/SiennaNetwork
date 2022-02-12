@@ -126,7 +126,10 @@ export abstract class AMMFactoryClient extends Client {
   /** Get the full list of raw exchange info from the factory. */
   async listExchanges (): Promise<{
     address: string,
-    pair:   {token_0: TokenType, token_1: TokenType}
+    pair: {
+      token_0: TokenType,
+      token_1: TokenType
+    }
   }[]> {
     const result = []
     const limit = 30
