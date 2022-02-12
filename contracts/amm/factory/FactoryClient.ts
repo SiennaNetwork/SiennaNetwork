@@ -20,12 +20,12 @@ export type AMMVersion = "v1"|"v2"
 
 export abstract class AMMFactoryClient extends Client {
 
-  abstract version: AMMVersion
+  abstract readonly version: AMMVersion
   static "v1" = class AMMFactoryClient_v1 extends AMMFactoryClient {
-    version = "v1" as AMMVersion
+    readonly version = "v1" as AMMVersion
   }
   static "v2" = class AMMFactoryClient_v2 extends AMMFactoryClient {
-    version = "v2" as AMMVersion
+    readonly version = "v2" as AMMVersion
   }
 
   setStatus (
@@ -100,7 +100,7 @@ export abstract class AMMFactoryClient extends Client {
     const newPairs = []
 
     await this.agent.bundle().wrap(async bundle=>{
-      const bundledThis = this.client(bundle)
+      const bundledThis = this.switchAgent(bundle)
       for (let { name, pair: { token_0, token_1 } } of pairs) {
         if (token_0 instanceof Snip20Client) token_0 = token_0.asCustomToken
         if (token_1 instanceof Snip20Client) token_1 = token_1.asCustomToken
@@ -117,8 +117,9 @@ export abstract class AMMFactoryClient extends Client {
     token_0: TokenType,
     token_1: TokenType
   ): Promise<ExchangeInfo> {
-    const msg = { get_exchange_address: { pair: { token_0, token_1 } } }
-    const {get_exchange_address:{address}} = await this.query(msg)
+    const {get_exchange_address:{address}} = await this.query({
+      get_exchange_address: { pair: { token_0, token_1 } }
+    })
     return await AMMExchangeClient.get(this.agent, address, token_0, token_1)
   }
 
