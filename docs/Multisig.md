@@ -122,7 +122,7 @@ export MESSAGE='...'
 
 ### <!-- spacer -->
 
-**Output environment of step 1:**
+#### Environment variables after step 1
 
 * `CHAIN`     - ID of executing chain
 * `MULTISIG`  - address or name of multisig from "Create a multisig account"
@@ -131,7 +131,7 @@ export MESSAGE='...'
 * `CODE_HASH` - the code hash of the contract that you'll be calling
 * `MESSAGE`   - the message to execute
 
-**Example value for `MESSAGE`:**
+#### Example value for `MESSAGE`
 
 ```json
 {"mint":{"recipient":"some-address","amount":"10000"}}
@@ -171,18 +171,18 @@ export SEQUENCE='...' # from `secretcli q account`
 
 ### <!-- spacer -->
 
-**Output files of step 2:**
+#### New files after step 2
 
 ```json
 // io-master-cert.der
 ```
 
-**Output environment of step 2:**
+#### Environment variables after step 2
 
 * `ACCOUNT` - Needed to create a new transaction. Remains constant.
 * `SEQUENCE` - Needed to create a new transaction. Increments to prevent replay attacks.
 
-**Example output of `secretcli q account`:**
+#### Example output of `secretcli q account`
 
 ```json
 {
@@ -239,11 +239,11 @@ secretcli tx compute execute  \
 
 ### <!-- spacer -->
 
-**Output files of step 3:**
+#### New files after step 3
 
-- `$UNSIGNED` Unsigned transaction file (e.g. `UnsignedTX.json`)
+- `UnsignedTX.json` (or other name equal to the value of `$UNSIGNED`) - Unsigned transaction file.
 
-**Example contents of unsigned transaction:**
+#### Example contents of unsigned transaction
 
 ```json
 {
@@ -326,13 +326,13 @@ EOF
 
 ### <!-- spacer -->
 
-**Output files of step 4:**
+#### New files after step 4
 - `Signature_1.json`
 - `Signature_2.json`
 - ...
 - `Signature_N.json`
 
-**Example contents of signature file:**
+#### Example contents of signature file
 
 ```json
 {
@@ -374,10 +374,10 @@ secretcli tx multisign  \
 
 ### <!-- spacer -->
 
-**Output files of step 5:**
+#### New files after step 5
 - `Signed.json` - signed transaction
 
-**Example contents of signed transaction file:**
+#### Example contents of signed transaction file
 ```json
 {
   "type": "cosmos-sdk/StdTx",
@@ -460,13 +460,13 @@ secretcli q compute tx TX_HASH
 
 ### <!-- spacer -->
 
-**Example output of `secretcli tx broadcast`:**
+#### Example output of `secretcli tx broadcast`
 
 ```json
 {"height":"0","txhash":"BASE16 TX HASH","raw_log":"[]"}
 ```
 
-**Example output of `secretcli q compute tx`:**
+#### Example output of `secretcli q compute tx`
 
 ```json
 {
