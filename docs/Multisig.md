@@ -24,7 +24,7 @@ which can later be used for execution of different admin actions.*
 
 <table>
 
-<tr><td>
+<tr><td valign="top">
 
 ### Step 1. Collect signers' public keys
 
@@ -36,22 +36,21 @@ as a helper [here](https://build.scrt.network/validators-and-full-nodes/secretcl
 
 </td><td>
 
-In the example bellow we'd assume you already have your key
-imported in the `secretcli` with an alias of preference:
+This example assumes you already have your own key in `secretcli`,
+and are creating a 2-of-3 multisig with you and two other users.
 
 ```bash
-# import the first participant's pubkey with the alias `participant2`
-secretcli keys add participant2 --pubkey=secretpub1addwnpepqtd28uwa0yxtwal5223qqr5aqf5y57tc7kk7z8qd4zplrdlk5ez5kdnlrj4
-
-# import the first participant's pubkey with the alias `participant3`
-secretcli keys add participant3 --pubkey=secretpub1addwnpepqgj04jpm9wrdml5qnss9kjxkmxzywuklnkj0g3a3f8l5wx9z4ennz84ym5t
+secretcli keys add participant2 \
+  --pubkey=secretpub1addwnpepqtd28uwa0yxtwal5223qqr5aqf5y57tc7kk7z8qd4zplrdlk5ez5kdnlrj4
+secretcli keys add participant3 \
+  --pubkey=secretpub1addwnpepqgj04jpm9wrdml5qnss9kjxkmxzywuklnkj0g3a3f8l5wx9z4ennz84ym5t
 ```
 
 </td></tr>
 
 <tr><!--spacer--></tr>
 
-<tr><td>
+<tr><td valign="top">
 
 ### Step 2. Create multisig wallet
 
@@ -61,13 +60,13 @@ Set up the desired threshold of required signatures for a valid transaction.
 
 </td><td>
 
-In the example below, threshold of 2 would mean 2 signatures
-from all of the multisig parties are enough to create and execute a valid transaction.
+**Note:** `--multisig-threshold=2` means 2 of the 3 signatures in the multisig
+are enough to execute a valid transaction.
 
 ```bash
 # create the multisig account with alias `MULTISIG_ACCOUNT`
-secretcli keys add \
-  MULTISIG_ACCOUNT \
+secretcli keys add     \
+  MULTISIG_ACCOUNT      \
   --multisig-threshold=2 \
   --multisig=MY_ACCOUNT_ALIAS,participant2,participant3
 ```
@@ -83,28 +82,45 @@ secretcli keys show MULTISIG_ACCOUNT -a
 
 </table>
 
-## Prepare, sign, and broadcast multisig transactions
+## Performing multisig transactions
 
-### 1. Get the required certificates
+<table>
+<tr><td valign="top">
 
-These certificates are needed for encryption of the tx data with the node's secure enclave.
+### Step 1. Get the required certificates
+
+These certificates are needed to encrypt the tx data with the node's secure enclave.
+
+</td><td>
 
 ```bash
 secretcli query register secret-network-params
 ```
 
-*The command above will download the needed certificates in the current directory, make sure you proceed further within the same directory or address the path to the certificate properly in the next steps.*
+*The command above will download the needed certificates in the current directory,
+make sure you proceed further within the same directory or address the path to the
+certificate properly in the next steps.*
+
+</td></tr>
+
+<tr><!--spacer--></tr>
+
+<tr><td>
 
 ### 2. Prepare offline transaction for the multisig account
 
-In the example below we will demonstrate how to prepare a multisig transaction that executes a smart contract method. For example minting tokens from a SNIP20 contract via the `mint` method, assuming the contract is owned by the multisig and the multisig account has minter access granted.
+In the example below we will demonstrate how to prepare a multisig transaction
+that executes a smart contract method. For example minting tokens from a SNIP20
+contract via the `mint` method, assuming the contract is owned by the multisig
+and the multisig account has minter access granted.
+
+</td><td>
+
+The command above will give you the information about `MULTISIG_ACCOUNT_SEQUENCE` and `MULTISIG_ACCOUNT_NUMBER` that you will need in order to proceed further and succesfully create an offline multisig tx.
 
 ```bash
 # Get multisig sequence and account number
 secretcli q account MULTISIG_ACCOUNT_ADDRESS
-```
-
-The command above will give you the information about `MULTISIG_ACCOUNT_SEQUENCE` and `MULTISIG_ACCOUNT_NUMBER` that you will need in order to proceed further and succesfully create an offline multisig tx.
 
 Example output:
 
@@ -126,7 +142,15 @@ Example output:
 }
 ```
 
+</td></tr>
+
+<tr><!--spacer--></tr>
+
+<tr><td>
+
 Continue with preparation of the transaction towards the `SMART_CONTRACT_ADDRESS`, containing the message that we want to send.
+
+</td><td>
 
 ```bash
 # Prepare the offline transaction
@@ -177,9 +201,20 @@ If everything went well in the output file which we named `unsignedTx.tx` you sh
 }
 ```
 
+</td></tr>
+
+<tr><!--spacer--></tr>
+
+<tr><td>
+
 ### 3. Distribute for signatures
 
-Now that we have the prepared transaction its time to collect the signatures required. Depending on the threshold that was set for the multisig - you can distribute the file `unsignedTx.tx` to the required amount of signers by any means of communication (IM, email, etc.).
+Now that we have the prepared transaction its time to collect the signatures required.
+Depending on the threshold that was set for the multisig - you can distribute the file
+`unsignedTx.tx` to the required amount of signers by any means of communication
+(IM, email, etc.).
+
+</td><td>
 
 ### 4. Individual signing
 
@@ -210,6 +245,12 @@ Example file output:
 }
 ```
 
+</td></tr>
+
+<tr><!--spacer--></tr>
+
+<tr><td>
+
 ### 5. Preparing signed transaction using the collected signatures
 
 After the signatures has been collected you should have a set of multiple files containing signatures for the accounts participating in the multisig and the `unsignedTx.tx` file that contains the transaction information.
@@ -225,6 +266,8 @@ secretcli tx multisign unsignedTx.tx \
  --sequence=MULTISIG_ACCOUNT_SEQUENCE \
  > signedTx.json
 ```
+
+</td><td>
 
 Example output content of the `signedTx.json` file:
 ```json=
@@ -283,6 +326,12 @@ Example output content of the `signedTx.json` file:
 }
 ```
 
+</td></tr>
+
+<tr><!--spacer--></tr>
+
+<tr><td>
+
 ### 6. Broadcasting the tx
 
 Now all that is left is to broadcast the transaction to the network.
@@ -317,3 +366,15 @@ If all went well you should see similar output:
   "plaintext_error": ""
 }
 ```
+
+</td><td>
+
+</td></tr>
+
+<tr><!--spacer--></tr>
+
+<tr><td></td><td></td></tr>
+
+<tr><!--spacer--></tr>
+
+</table>
