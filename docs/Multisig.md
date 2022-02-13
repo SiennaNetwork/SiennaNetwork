@@ -129,7 +129,7 @@ export MESSAGE='...'
 
 **Example value for `MESSAGE`:**
 
-```json
+```json=
 {"mint":{"recipient":"some-address","amount":"10000"}}
 ```
 
@@ -171,7 +171,7 @@ You need these to create an unsigned transaction file.
 
 **Output files of step 2:**
 
-```json
+```json=
 // io-master-cert.der
 ```
 
@@ -452,7 +452,7 @@ secretcli q compute tx TX_HASH
 
 **Example output of `secretcli tx broadcast`:**
 
-```json
+```json=
 {"height":"0","txhash":"BASE16-ENCODED TRANSACTION HASH","raw_log":"[]"}
 ```
 
