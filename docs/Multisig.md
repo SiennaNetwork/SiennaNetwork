@@ -65,6 +65,8 @@ Set up the desired threshold of required signatures for a valid transaction.
 
 </td><td>
 
+### <!-- spacer -->
+
 **Note:** `--multisig-threshold=2` means 2 of the 3 signatures in the multisig
 are enough to execute a valid transaction.
 
@@ -118,6 +120,8 @@ export MESSAGE='...'
 
 </td><td valign="top">
 
+### <!-- spacer -->
+
 **Output environment of step 1:**
 
 * `CHAIN`     - ID of executing chain
@@ -164,6 +168,8 @@ export SEQUENCE='...' # from `secretcli q account`
 ```
 
 </td><td valign="top">
+
+### <!-- spacer -->
 
 **Output files of step 2:**
 
@@ -230,6 +236,8 @@ secretcli tx compute execute  \
 >current directory.
 
 </td><td valign="top">
+
+### <!-- spacer -->
 
 **Output files of step 3:**
 
@@ -316,6 +324,8 @@ EOF
 
 </td><td valign="top">
 
+### <!-- spacer -->
+
 **Output files of step 4:**
 - `Signature_1.json`
 - `Signature_2.json`
@@ -361,6 +371,8 @@ secretcli tx multisign  \
 ```
 
 </td><td valign="top">
+
+### <!-- spacer -->
 
 **Output files of step 5:**
 - `Signed.json` - signed transaction
@@ -445,6 +457,8 @@ secretcli q compute tx TX_HASH
 ```
 
 </td><td valign="top">
+
+### <!-- spacer -->
 
 **Example output of `secretcli tx broadcast`:**
 
