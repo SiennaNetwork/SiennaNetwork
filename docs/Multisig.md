@@ -155,19 +155,19 @@ Continue with preparation of the transaction towards the `SMART_CONTRACT_ADDRESS
 ```bash
 # Prepare the offline transaction
 secretcli tx compute execute SMART_CONTRACT_ADDRESS \
-'{"mint": {"recipient": "RECIPIENT_ADDRESS", "amount": "42000000000000000000" }}' \
---generate-only \
---chain-id secret-2 \
---gas 450000 \
---from MULTISIG_ACCOUNT_ADDRESS \
---enclave-key io-master-cert.der \
---code-hash CONTRACT_CODE_HASH \ # you should have that from the contract deployment. stored if you filled the table above
---sequence MULTISIG_ACCOUNT_SEQUENCE \
---account-number MULTISIG_ACCOUNT_NUMBER \
-> unsignedTx.tx
+  '{"mint": {"recipient": "RECIPIENT_ADDRESS", "amount": "42000000000000000000" }}' \
+  --generate-only \
+  --chain-id secret-2                \
+  --gas 450000                        \
+  --from MULTISIG_ACCOUNT_ADDRESS      \
+  --enclave-key io-master-cert.der      \
+  --code-hash CONTRACT_CODE_HASH         \
+  --sequence MULTISIG_ACCOUNT_SEQUENCE    \
+  --account-number MULTISIG_ACCOUNT_NUMBER \
+  > unsigned.tx.json
 ```
 
-If everything went well in the output file which we named `unsignedTx.tx` you should have an output similar to the one below:
+If everything went well in the output file which we named `unsigned.tx.json` you should have an output similar to the one below:
 
 ```json=
 {
@@ -211,7 +211,7 @@ If everything went well in the output file which we named `unsignedTx.tx` you sh
 
 Now that we have the prepared transaction its time to collect the signatures required.
 Depending on the threshold that was set for the multisig - you can distribute the file
-`unsignedTx.tx` to the required amount of signers by any means of communication
+`unsigned.tx.json` to the required amount of signers by any means of communication
 (IM, email, etc.).
 
 </td><td>
@@ -221,7 +221,7 @@ Depending on the threshold that was set for the multisig - you can distribute th
 Each of the signers should individually sign the file as so:
 
 ```bash
-secretcli tx sign unsignedTx.tx \
+secretcli tx sign unsigned.tx.json \
 --multisig=MULTISIG_ADDRESS \
 --offline \
 --account-number=MULTISIG_ACCOUNT_NUMBER \
@@ -253,23 +253,23 @@ Example file output:
 
 ### 5. Preparing signed transaction using the collected signatures
 
-After the signatures has been collected you should have a set of multiple files containing signatures for the accounts participating in the multisig and the `unsignedTx.tx` file that contains the transaction information.
+After the signatures has been collected you should have a set of multiple files containing signatures for the accounts participating in the multisig and the `unsigned.tx.json` file that contains the transaction information.
 
 ```bash
 # Multisign the transaction with the collected signatures
-secretcli tx multisign unsignedTx.tx \
+secretcli tx multisign unsigned.tx.json \
  MULTISIG_ALIAS \
  mint_signed_participant1.json \
  mint_signed_participant2.json \
  --offline \
  --account-number=MULTISIG_ACCOUNT_NUMBER \
  --sequence=MULTISIG_ACCOUNT_SEQUENCE \
- > signedTx.json
+ > signed.tx.json
 ```
 
 </td><td>
 
-Example output content of the `signedTx.json` file:
+Example output content of the `signed.tx.json` file:
 ```json=
 {
   "type": "cosmos-sdk/StdTx",
@@ -337,7 +337,7 @@ Example output content of the `signedTx.json` file:
 Now all that is left is to broadcast the transaction to the network.
 
 ```bash
-secretcli tx broadcast signedTx.json
+secretcli tx broadcast signed.tx.json
 ```
 
 As a response you will see the transaction hash similar to this:
