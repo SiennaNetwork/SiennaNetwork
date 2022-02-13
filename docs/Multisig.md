@@ -179,7 +179,7 @@ If everything went well in the output file which we named `unsignedTx.tx` you sh
         "value": {
           "sender": "secret1ngfu3dkawmswrpct4r6wvx223f5pxfsryffc7a",
           "contract": "secret1wgeqzh7dd7l2wwllyky0dh052hmzsp903fhfnj",
-          "msg": "0e10K13qPzYt7M+8RPzdbXwQbZExR0k5ZELM3n4DFKO4V+4MhX0kX5ekh7w12sz85tQz2OLjcloMrPSeur8xMOaNRY04zxp1CTTszwh3qA/bndYjTRJOqvj1tvOT9OyFeAApxRGrJgUPztNQlAb/8uzy4VSbxAm291oVy69FYOxzRorJOSyWDMW7g3UTzI6BvarSWz4ppH8N7NNKqWgQIXL+qlx4cwGxTLcqrn/XewQann7o53iPkxVUWgKm6Kp9QYysE8+hoQXhAbn/b1jUkbjv7LWGjr6RUdqWTjsQ5WSB1GiyJ1UJSEL+D/g2GVxKF4BguQHcBuB1",
+          "msg": "...LONG BASE64-ENCODED CIPHERTEXT...",
           "callback_code_hash": "",
           "sent_funds": [],
           "callback_sig": null
@@ -241,7 +241,7 @@ Example file output:
     "type": "tendermint/PubKeySecp256k1",
     "value": "AusMnK+0hQCDvZZ8QPNXazpA2NCy1/WoTlgUMyVOJZxI"
   },
-  "signature": "jAisaC3E91B0d49KMSxOLKH9gsI5Rq05ZCc4sNWXz1990OBui0flUisY6PRuv48g75rzTS0CloyGbk+x23LqKg=="
+  "signature": "...LONG BASE64-ENCODED SIGNATURE..."
 }
 ```
 
@@ -318,7 +318,7 @@ Example output content of the `signedTx.json` file:
             ]
           }
         },
-        "signature": "CgUIAxIBoBJAFz0znTHsesC2m+b63Lyt+2AI5P6pxaYuoCV1hah6cfhFtUhh8f/69q5t9EzJyCBoBHymRdsHB//D03SoEQY/YhJAjAisaC3E91B0d49KMSxOLKH9gsI5Rq05ZCc4sNWXz1990OBui0flUisY6PRuv48g75rzTS0CloyGbk+x23LqKg=="
+        "signature": "...LONG BASE64-ENCODED SIGNATURE..."
       }
     ],
     "memo": ""
@@ -359,7 +359,7 @@ If all went well you should see similar output:
 ```json=
 {
   "type": "execute",
-  "raw_input": "c1dc8261059fee1de9f1873cd1359ccd7a6bc5623772661fa3d55332eb652084{\"mint\":{\"recipient\":\"secret14rn2yd4wke7gfu7tga6l37k4lz2p8rh8chp07z\", \"amount\": \"20000000000000000000\" }}",
+  "raw_input": "...HEXADECIMAL CODE HASH AND PLAINTEXT MESSAGE...",
   "input": null,
   "output_data": "...LONG BASE64-ENCODED CIPHERTEXT...",
   "output_data_as_string": "{\"mint\":{\"status\":\"success\"}}                                                                                                                                                                                                                                   ",
