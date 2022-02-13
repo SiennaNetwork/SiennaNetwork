@@ -12,6 +12,14 @@
 * [Configure](#configure)
 * [Use](#use)
 
+* [Emergency mode](#Emergency-mode)
+  * Pausing contract
+  * Resuming normal operation
+  * Deploying an updated version of the contract
+  * Pausing all transactions with the token
+* [Launch vesting](#Launch-Vesting)
+  * [Adding a new account to vesting](#Adding-a-new-account-to-vesting)
+
 ## Contents
 
 * `snip20-sienna` - Core SIENNA token for Secret Network
@@ -297,6 +305,138 @@ Example output:
 
 * RPT can be freely reconfigured by its admin
   as long as the budget adds up to the original amount (2500 SIENNA).
+
+<table>
+<tr><td>
+
+### Read the current vesting schedule
+
+```bash
+secretcli q compute query secret1kn6kvc97nvu69dqten0w9p9e95dw6d6luv3dfx '{"schedule":{}}'
+```
+
+</td><td>
+
+Example output:
+
+```jsonc
+{
+   "schedule":{
+      "schedule":{
+         "total":"10000000000000000000000000",
+         "pools":[
+            {
+               "partial":true,
+               "name":"Investors",
+               "total":"2000000000000000000000000",
+               "accounts":[
+                  {
+                     "name":"978",
+                     "address":"secret1leulrux3emu7c34jux0n8x0v6y9cfhl4k8xk08",
+                     "amount":"155000000000000000000000",
+                     "cliff":"0",
+                     "start_at":7776000,
+                     "interval":86400,
+                     "duration":41472000
+                  }
+                  // ...
+               ]
+            },
+            // ...
+            {
+               "partial":false,
+               "name":"MintingPool",
+               "total":"3900000000000000000000000",
+               "accounts":[
+                  {
+                     "name":"LPF",
+                     "address":"secret1wdhvhe0wd5ufhx4jwfv29se74u45m2xjkqm2ld",
+                     "amount":"300000000000000000000000",
+                     "cliff":"300000000000000000000000",
+                     "start_at":0,
+                     "interval":0,
+                     "duration":0
+                  },
+                  {
+                     "name":"RPT",
+                     "address":"secret107j8czcysrkvxsllvhqj4mhmcegt9hx2ra3x42",
+                     "amount":"3600000000000000000000000",
+                     "cliff":"0",
+                     "start_at":0,
+                     "interval":86400,
+                     "duration":124416000
+                  }
+               ]
+            }
+         ]
+      }
+   }
+}
+```
+
+</td></tr>
+<tr><!--separator--></tr>
+
+<tr><td>
+
+### Add a new account to vesting
+
+Send this message in a transaction from the admin address to the MGMT contract to unlock 1 SIENNA immediately for address `secret1ngfu3dkawmswrpct4r6wvx223f5pxfsryffc7a`:
+
+```json
+{"add_account":{"pool":"Investors","account":{"name":"someone","amount":"1000000000000000000","address":"secret1ngfu3dkawmswrpct4r6wvx223f5pxfsryffc7a","start_at":0,"interval":0,"duration":0,"cliff":"1000000000000000000"}}
+```
+
+</td><td>
+
+Example:
+```bash
+# Sample transaction to add 1 SIENNA with immediate vesting to sample account
+secretcli tx compute execute MGMT_CONTRACT_ADDRESS '{"add_account":{"pool_name":"Investors","account":{"name":"someone","amount":"1000000000000000000","address":"secret1ngfu3dkawmswrpct4r6wvx223f5pxfsryffc7a","start_at":0,"interval":0,"duration":0,"cliff":"1000000000000000000"}}}' --from ADMIN_KEY_ALIAS --chain-id NETWORK_ID --gas 450000
+```
+
+>ℹ️ `start_at`, `interval`, `duration` are in seconds (1 day = 86400 seconds). For immediate vesting, set them all to 0 and `cliff` = `amount`. 
+
+>ℹ️ `amount` and `cliff` are in attoSIENNA (multiply by `1000000000000000000` - 1 with 18 zeros - to get SIENNA), and must be in double quotes (`"`) - because JSON doesn't support numbers that big.
+
+>⚠️ Be careful - errors here are permanent and can't be remedied without a full migration (untested procedure!)
+
+</td></tr>
+
+</table>
+
+<table>
+<tr><td>
+
+### Launch the vesting
+
+Launch the vesting with this message.
+
+Configure and sign the transaction the multisig transaction,
+just the receiving contract should be MGMT (which you have deployed already).
+
+Transaction message: 
+
+```bash
+{"launch":{}}
+```
+
+</td><td>
+
+Example:
+```bash
+# Start vesting
+secretcli tx compute execute MGMT_CONTRACT_ADDRESS '{"launch":{}}' --from ADMIN_KEY_ALIAS --chain-id NETWORK_ID --gas 450000
+```
+
+> ℹ️ NETWORK_ID is holodeck-2 for testnet & secret-2 for mainnet
+```
+# Confirm the transaction succeeded
+secretcli q compute tx TRANSACTION_HASH | jq '.'
+```
+
+</td></tr>
+</table>
 
 ## Use
 
