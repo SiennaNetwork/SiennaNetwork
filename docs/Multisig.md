@@ -171,7 +171,7 @@ You need these to create an unsigned transaction file.
 
 **Output files of step 2:**
 
-```jsonc
+```json
 // io-master-cert.der
 ```
 
@@ -358,7 +358,7 @@ secretcli tx multisign  \
   "$UNSIGNED"            \
   "$MULTISIG"             \
   "Signature_1.json"       \
-  "Signature_2.json"        \ # ...ad finem...
+  "Signature_2.json"        \ # repeat for all signatures
   --offline                  \
   --account-number="$ACCOUNT" \
   --sequence="$SEQUENCE" > Signed.json
@@ -457,8 +457,6 @@ secretcli q compute tx TX_HASH
 ```
 
 **Example output of `secretcli q compute tx`:**
-
-If all went well you should see similar output:
 
 ```json=
 {
