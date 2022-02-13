@@ -45,10 +45,8 @@ This example assumes you already have your own key in `secretcli`,
 and are creating a 2-of-3 multisig with you and two other users.
 
 ```bash
-secretcli keys add participant2 \
-  --pubkey=secretpub1addwnpepqtd28uwa0yxtwal5223qqr5aqf5y57tc7kk7z8qd4zplrdlk5ez5kdnlrj4
-secretcli keys add participant3 \
-  --pubkey=secretpub1addwnpepqgj04jpm9wrdml5qnss9kjxkmxzywuklnkj0g3a3f8l5wx9z4ennz84ym5t
+secretcli keys add participant2 --pubkey=secretpub1...
+secretcli keys add participant3 --pubkey=secretpub1...
 ```
 
 </td></tr>
@@ -182,7 +180,7 @@ export SEQUENCE='...' # from `secretcli q account`
 {
   "type": "cosmos-sdk/Account",
   "value": {
-    "address": "secret1gerc2dh5mxejushnn3vs9j4l09z800y8dduwf9",
+    "address": "secret1...",
     "coins": [
       {
         "denom": "uscrt",
@@ -247,7 +245,7 @@ secretcli tx compute execute  \
         "value": {
           "sender": "secret1...",
           "contract": "secret1...",
-          "msg": "...LONG BASE64-ENCODED CIPHERTEXT...",
+          "msg": "BASE64 CIPHERTEXT...",
           "callback_code_hash": "",
           "sent_funds": [],
           "callback_sig": null
@@ -328,9 +326,9 @@ EOF
 {
   "pub_key": {
     "type": "tendermint/PubKeySecp256k1",
-    "value": "BASE64-ENCODED PUBLIC KEY"
+    "value": "BASE64 PUBLIC KEY"
   },
-  "signature": "BASE64-ENCODED SIGNATURE"
+  "signature": "BASE64 SIGNATURE"
 }
 ```
 
@@ -354,7 +352,7 @@ secretcli tx multisign  \
   "$UNSIGNED"            \
   "$MULTISIG"             \
   "Signature_1.json"       \
-  "Signature_2.json"        \ # repeat for all signatures
+  "Signature_2.json"        \
   --offline                  \
   --account-number="$ACCOUNT" \
   --sequence="$SEQUENCE" > Signed.json
@@ -376,7 +374,7 @@ secretcli tx multisign  \
         "value": {
           "sender": "secret1...",
           "contract": "secret1...",
-          "msg": "BASE64-ENCODED CIPHERTEXT",
+          "msg": "BASE64 CIPHERTEXT",
           "callback_code_hash": "",
           "sent_funds": [],
           "callback_sig": null
@@ -401,20 +399,20 @@ secretcli tx multisign  \
             "pubkeys": [
               {
                 "type": "tendermint/PubKeySecp256k1",
-                "value": "BASE64-ENCODED PUBKEY"
+                "value": "BASE64 PUBKEY"
               },
               {
                 "type": "tendermint/PubKeySecp256k1",
-                "value": "BASE64-ENCODED PUBKEY"
+                "value": "BASE64 PUBKEY"
               },
               {
                 "type": "tendermint/PubKeySecp256k1",
-                "value": "BASE64-ENCODED PUBKEY"
+                "value": "BASE64 PUBKEY"
               }
             ]
           }
         },
-        "signature": "BASE64-ENCODED MULTI-SIGNATURE"
+        "signature": "BASE64 SIGNATURE"
       }
     ],
     "memo": ""
@@ -449,7 +447,7 @@ secretcli q compute tx TX_HASH
 **Example output of `secretcli tx broadcast`:**
 
 ```json
-{"height":"0","txhash":"BASE16-ENCODED TRANSACTION HASH","raw_log":"[]"}
+{"height":"0","txhash":"BASE16 TX HASH","raw_log":"[]"}
 ```
 
 **Example output of `secretcli q compute tx`:**
@@ -457,10 +455,10 @@ secretcli q compute tx TX_HASH
 ```json
 {
   "type": "execute",
-  "raw_input": "BASE16-ENCODED CODE HASH AND PLAINTEXT MESSAGE",
+  "raw_input": "BASE16 CODE HASH AND PLAINTEXT MESSAGE",
   "input": null,
-  "output_data": "BASE64-ENCODED CIPHERTEXT",
-  "output_data_as_string": "JSON-ENCODED OUTPUT OF TRANSACTION",
+  "output_data": "BASE64 CIPHERTEXT",
+  "output_data_as_string": "JSON OUTPUT OF TRANSACTION",
   "output_log": [],
   "output_error": {},
   "plaintext_error": ""
