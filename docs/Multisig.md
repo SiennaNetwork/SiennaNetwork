@@ -163,10 +163,6 @@ export ACCOUNT='...'  # from `secretcli q account`
 export SEQUENCE='...' # from `secretcli q account`
 ```
 
-You need these to create an unsigned transaction file.
-* The `account_number` remains constant for the address.
-* The `sequence` increments with every transaction from that address to prevent replay attacks.
-
 </td><td valign="top">
 
 **Output files of step 2:**
@@ -177,8 +173,8 @@ You need these to create an unsigned transaction file.
 
 **Output environment of step 2:**
 
-* `ACCOUNT`
-* `SEQUENCE`
+* `ACCOUNT` - Needed to create a new transaction. Remains constant.
+* `SEQUENCE` - Needed to create a new transaction. Increments to prevent replay attacks.
 
 **Example output of `secretcli q account`:**
 
