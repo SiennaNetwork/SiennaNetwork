@@ -26,6 +26,18 @@ cargo test -p rpt
 <table>
 <tr><td>
 
+* Place the deploying seed in a `.secret` file
+  in `/contracts/tge/wrapped`.
+
+* Make sure the account has enough funds for deployment.
+
+* In `migrations/2_deploy_contracts.js`,
+  make sure the address for the **bridge** is the correct one
+  for the network you are planning to deploy the contracts on
+  (see below)
+
+</td><td>
+
 Use these commands to deploy `wSIENNA` on Ethereum mainnet
 
 ```bash
@@ -45,17 +57,6 @@ npx truffle test
 npx truffle migrate --network <network>
 ```
 
-* Place the deploying seed in a `.secret` file
-  in `/contracts/tge/wrapped`.
-
-* Make sure the account has enough funds for deployment.
-
-* In `migrations/2_deploy_contracts.js`,
-  make sure the address for the **bridge** is the correct one
-  for the network you are planning to deploy the contracts on
-  (see below)
-
-</td><td>
 </td></tr>
 </table>
 
