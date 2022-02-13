@@ -19,37 +19,50 @@ which can later be used for execution of different admin actions.*
   * Individual signing
   * Preparing signed transaction using the collected signatures
   * Broadcasting the tx
-* [Emergency mode](#Emergency-mode)
-  * Pausing contract
-  * Resuming normal operation
-  * Deploying an updated version of the contract
-  * Pausing all transactions with the token
-* [Launch vesting](#Launch-Vesting)
-  * [Adding a new account to vesting](#Adding-a-new-account-to-vesting)
 
 ## Create a multisig account
 
-1. Creating the multisig account locally
+<table>
 
-In order to create the account first you need to collect all of the relevant participating parties' public keys.
+<tr><td>
 
-*Hint: You can also refer to the official secretcli documentation as a helper [here](https://build.scrt.network/validators-and-full-nodes/secretcli.html#multisig-transactions).*
+### Step 1. Collect signers' public keys
 
-In the example bellow we'd assume you already have your key imported in the `secretcli` with an alias of preference:
+In order to create the account first you need to collect
+all of the relevant participating parties' public keys.
+
+*Hint: You can also refer to the official secretcli documentation
+as a helper [here](https://build.scrt.network/validators-and-full-nodes/secretcli.html#multisig-transactions).*
+
+</td><td>
+
+In the example bellow we'd assume you already have your key
+imported in the `secretcli` with an alias of preference:
 
 ```bash
 # import the first participant's pubkey with the alias `participant2`
 secretcli keys add participant2 --pubkey=secretpub1addwnpepqtd28uwa0yxtwal5223qqr5aqf5y57tc7kk7z8qd4zplrdlk5ez5kdnlrj4
 
 # import the first participant's pubkey with the alias `participant3`
-secretcli keys add participant3 --pubkey=secretpub1addwnpepqgj04jpm9wrdml5qnss9kjxkmxzywuklnkj0g3a3f8l5wx9z4ennz84ym5t 
+secretcli keys add participant3 --pubkey=secretpub1addwnpepqgj04jpm9wrdml5qnss9kjxkmxzywuklnkj0g3a3f8l5wx9z4ennz84ym5t
 ```
 
-2. Creating the multisig account
+</td></tr>
+
+<tr><!--spacer--></tr>
+
+<tr><td>
+
+### Step 2. Create multisig wallet
 
 Use the aliases of the imported accounts to form a new multisig account.
 
-Set up the desired threshold of required signatures for a valid transaction. In the example below threshold of 2 would mean 2 singatures from all of the multisig parties are enough to create and execute a valid transaction.
+Set up the desired threshold of required signatures for a valid transaction.
+
+</td><td>
+
+In the example below, threshold of 2 would mean 2 signatures
+from all of the multisig parties are enough to create and execute a valid transaction.
 
 ```bash
 # create the multisig account with alias `MULTISIG_ACCOUNT`
@@ -59,11 +72,16 @@ secretcli keys add \
   --multisig=MY_ACCOUNT_ALIAS,participant2,participant3
 ```
 
+To confirm the above command worked:
+
 ```bash
-# To confirm the above command worked:
 secretcli keys show MULTISIG_ACCOUNT -a
 # As output you should see the multisig account address
 ```
+
+</td></tr>
+
+</table>
 
 ## Prepare, sign, and broadcast multisig transactions
 
@@ -178,7 +196,7 @@ secretcli tx sign unsignedTx.tx \
 --output-document=mint_signed_participant_N.json
 ```
 
->ℹ️ name the different files with the number of the signer for conveinience. 
+>ℹ️ name the different files with the number of the signer for conveinience.
 
 Example file output:
 
@@ -299,86 +317,3 @@ If all went well you should see similar output:
   "plaintext_error": ""
 }
 ```
-
-## Emergency mode
-
-In case of unexpected events,
-the admin of the contracts
-(normally, the multisig wallet)
-can send one of the following transactions
-to allow for manual recovery.
-
-### Pausing contract 
-
-Transaction message:
-
-```json
-{"set_status":{"level":"Paused","reason":"This contract is paused because someone did a silly thing"}}
-```
-
-Sending this message to MGMT or RPT would pause that contract.
-Any transactions will return an error message containing the specified reason.
-
->ℹ️ Note that you can do this separately for each of the two.
->If you pause MGMT, RPT will be unable to claim any additional funds from it.
->If you pause RPT, MGMT continues operating normally.
-
-### Resuming normal operation
-
-Transaction message:
-
-```json
-{"set_status":{"level":"Operational","reason":""}}
-```
-
-This returns a paused contract to its `Operational` state,
-allowing transactions to proceed normally.
-
->ℹ️ When MGMT or RPT is paused, time continues to pass for the vesting.
->When it is resumed, users will be able claim the funds accumulated in the meantime.
-      
-### Deploying an updated version of the contract
-
-Transaction message:
-
-```json
-{"set_status":{"level":"Migrating","reason":"He's dead, Jim"}}
-```
-
-This pauses the contract **permanently**. Once you've deployed an updated version,
-you can send another `set_status` to provide the new contract address
-that will be presented to users in the error message.
-
-Transaction message: 
-
-```json
-{"set_status":{"level":"Migrating","reason":"Fixed!","new_address":"secret1....."}}
-```
-
->ℹ️ Actual migrations are manual.
->Other than permanently stopping the contract and telling users the new address,
->the `Migrating` state performs no other operations. Future versions may implement
->automated migration logic as needed.
-
-### Pausing all transactions with the token
-
-The TOKEN has its own built-in pause mechanism. To switch the TOKEN to the equivalent of emergency mode,
-you need to first switch MGMT to `Migrating`.
-
-Besides disabling MGMT, this will transfer
-admin rights on the token (which are normally held by MGMT itself)
-to the admin of MGMT (normally, the multisig wallet).
-
-Then, the admin needs to send the following message in a transaction to the token contract:
-
-```json
-{"set_contract_status":{"level":"StopAll"}}
-```
-
->⚠️ Migrating TOKEN balances is currently not supported, as exporting them en masse is
->not possible with the Secret Network privacy model. A future SNIP20 implementation could allow
->token holders to privately migrate their balances on a self-serve basis.
-
->ℹ️ As the `Redeem` SNIP20 method is not part of Sienna's model,
->the `StopAllButRedeems` level that you might see in other SNIP20 implementations
->is not supported.

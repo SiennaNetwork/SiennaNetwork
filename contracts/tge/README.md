@@ -172,9 +172,11 @@ export SECRET_NETWORK_MAINNET_MNEMONIC=
 
 <tr><!--spacer--></tr>
 
-<tr><td>
+<tr><td valign="top">
 
-If the deployment succeeds, you should see a table in your terminal,
+### Done!
+
+If the deployment succeeds, you should now see a table in your terminal,
 containing the addresses and code hashes needed to interface with the deployed contracts.
 
 * Give the TOKEN address/hash to users of the token,
@@ -272,7 +274,7 @@ Example:
 # Transfer ownership
 secretcli tx compute execute secret1ayr3226h2xkzr59juw8cq2v5wt7cuc3cmvfn6e \
  '{"set_owner":{"new_admin":"secret1ngfu3dkawmswrpct4r6wvx223f5pxfsryffc7a"}}' \
- --from alabala \ 
+ --from alabala \
  --chain-id holodeck-2 \
  --gas 450000
 # Confirm the transaction succeeded
@@ -370,7 +372,7 @@ Example:
 secretcli tx compute execute MGMT_CONTRACT_ADDRESS '{"add_account":{"pool_name":"Investors","account":{"name":"someone","amount":"1000000000000000000","address":"secret1ngfu3dkawmswrpct4r6wvx223f5pxfsryffc7a","start_at":0,"interval":0,"duration":0,"cliff":"1000000000000000000"}}}' --from ADMIN_KEY_ALIAS --chain-id NETWORK_ID --gas 450000
 ```
 
->ℹ️ `start_at`, `interval`, `duration` are in seconds (1 day = 86400 seconds). For immediate vesting, set them all to 0 and `cliff` = `amount`. 
+>ℹ️ `start_at`, `interval`, `duration` are in seconds (1 day = 86400 seconds). For immediate vesting, set them all to 0 and `cliff` = `amount`.
 
 >ℹ️ `amount` and `cliff` are in attoSIENNA (multiply by `1000000000000000000` - 1 with 18 zeros - to get SIENNA), and must be in double quotes (`"`) - because JSON doesn't support numbers that big.
 
@@ -389,7 +391,7 @@ Launch the vesting with this message.
 Configure and sign the transaction the multisig transaction,
 just the receiving contract should be MGMT (which you have deployed already).
 
-Transaction message: 
+Transaction message:
 
 ```bash
 {"launch":{}}
@@ -416,3 +418,86 @@ secretcli q compute tx TRANSACTION_HASH | jq '.'
 
 * To claim funds from MGMT, send it `{"claim":{}}`.
 * To make RPT send funds to the reward pools, send it `{"vest":{}}`
+
+## Emergency mode
+
+In case of unexpected events,
+the admin of the contracts
+(normally, the multisig wallet)
+can send one of the following transactions
+to allow for manual recovery.
+
+### Pausing contract
+
+Transaction message:
+
+```json
+{"set_status":{"level":"Paused","reason":"This contract is paused because someone did a silly thing"}}
+```
+
+Sending this message to MGMT or RPT would pause that contract.
+Any transactions will return an error message containing the specified reason.
+
+>ℹ️ Note that you can do this separately for each of the two.
+>If you pause MGMT, RPT will be unable to claim any additional funds from it.
+>If you pause RPT, MGMT continues operating normally.
+
+### Resuming normal operation
+
+Transaction message:
+
+```json
+{"set_status":{"level":"Operational","reason":""}}
+```
+
+This returns a paused contract to its `Operational` state,
+allowing transactions to proceed normally.
+
+>ℹ️ When MGMT or RPT is paused, time continues to pass for the vesting.
+>When it is resumed, users will be able claim the funds accumulated in the meantime.
+
+### Deploying an updated version of the contract
+
+Transaction message:
+
+```json
+{"set_status":{"level":"Migrating","reason":"He's dead, Jim"}}
+```
+
+This pauses the contract **permanently**. Once you've deployed an updated version,
+you can send another `set_status` to provide the new contract address
+that will be presented to users in the error message.
+
+Transaction message:
+
+```json
+{"set_status":{"level":"Migrating","reason":"Fixed!","new_address":"secret1....."}}
+```
+
+>ℹ️ Actual migrations are manual.
+>Other than permanently stopping the contract and telling users the new address,
+>the `Migrating` state performs no other operations. Future versions may implement
+>automated migration logic as needed.
+
+### Pausing all transactions with the token
+
+The TOKEN has its own built-in pause mechanism. To switch the TOKEN to the equivalent of emergency mode,
+you need to first switch MGMT to `Migrating`.
+
+Besides disabling MGMT, this will transfer
+admin rights on the token (which are normally held by MGMT itself)
+to the admin of MGMT (normally, the multisig wallet).
+
+Then, the admin needs to send the following message in a transaction to the token contract:
+
+```json
+{"set_contract_status":{"level":"StopAll"}}
+```
+
+>⚠️ Migrating TOKEN balances is currently not supported, as exporting them en masse is
+>not possible with the Secret Network privacy model. A future SNIP20 implementation could allow
+>token holders to privately migrate their balances on a self-serve basis.
+
+>ℹ️ As the `Redeem` SNIP20 method is not part of Sienna's model,
+>the `StopAllButRedeems` level that you might see in other SNIP20 implementations
+>is not supported.
