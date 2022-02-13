@@ -129,7 +129,7 @@ export MESSAGE='...'
 
 **Example value for `MESSAGE`:**
 
-```json=
+```json
 {"mint":{"recipient":"some-address","amount":"10000"}}
 ```
 
@@ -171,7 +171,7 @@ You need these to create an unsigned transaction file.
 
 **Output files of step 2:**
 
-```json=
+```json
 // io-master-cert.der
 ```
 
@@ -182,7 +182,7 @@ You need these to create an unsigned transaction file.
 
 **Example output of `secretcli q account`:**
 
-```json=
+```json
 {
   "type": "cosmos-sdk/Account",
   "value": {
@@ -241,7 +241,7 @@ secretcli tx compute execute  \
 
 **Example contents of unsigned transaction:**
 
-```json=
+```json
 {
   "type": "cosmos-sdk/StdTx",
   "value": {
@@ -328,7 +328,7 @@ EOF
 
 **Example contents of signature file:**
 
-```json=
+```json
 {
   "pub_key": {
     "type": "tendermint/PubKeySecp256k1",
@@ -370,7 +370,7 @@ secretcli tx multisign  \
 - `Signed.json` - signed transaction
 
 **Example contents of signed transaction file:**
-```json=
+```json
 {
   "type": "cosmos-sdk/StdTx",
   "value": {
@@ -452,13 +452,13 @@ secretcli q compute tx TX_HASH
 
 **Example output of `secretcli tx broadcast`:**
 
-```json=
+```json
 {"height":"0","txhash":"BASE16-ENCODED TRANSACTION HASH","raw_log":"[]"}
 ```
 
 **Example output of `secretcli q compute tx`:**
 
-```json=
+```json
 {
   "type": "execute",
   "raw_input": "BASE16-ENCODED CODE HASH AND PLAINTEXT MESSAGE",
