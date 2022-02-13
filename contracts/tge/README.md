@@ -315,7 +315,7 @@ Example output:
 secretcli q compute query secret1kn6kvc97nvu69dqten0w9p9e95dw6d6luv3dfx '{"schedule":{}}'
 ```
 
-</td><td>
+</td><td valign="top">
 
 Example output:
 
@@ -332,8 +332,8 @@ Example output:
                "accounts":[
                   {
                      "name":"978",
-                     "address":"secret1leulrux3emu7c34jux0n8x0v6y9cfhl4k8xk08",
-                     "amount":"155000000000000000000000",
+                     "address":"secret1...",
+                     "amount":"155000000000000000",
                      "cliff":"0",
                      "start_at":7776000,
                      "interval":86400,
@@ -341,33 +341,8 @@ Example output:
                   }
                   // ...
                ]
-            },
-            // ...
-            {
-               "partial":false,
-               "name":"MintingPool",
-               "total":"3900000000000000000000000",
-               "accounts":[
-                  {
-                     "name":"LPF",
-                     "address":"secret1wdhvhe0wd5ufhx4jwfv29se74u45m2xjkqm2ld",
-                     "amount":"300000000000000000000000",
-                     "cliff":"300000000000000000000000",
-                     "start_at":0,
-                     "interval":0,
-                     "duration":0
-                  },
-                  {
-                     "name":"RPT",
-                     "address":"secret107j8czcysrkvxsllvhqj4mhmcegt9hx2ra3x42",
-                     "amount":"3600000000000000000000000",
-                     "cliff":"0",
-                     "start_at":0,
-                     "interval":86400,
-                     "duration":124416000
-                  }
-               ]
             }
+            // ...
          ]
       }
    }
@@ -377,7 +352,7 @@ Example output:
 </td></tr>
 <tr><!--separator--></tr>
 
-<tr><td>
+<tr><td valign="top">
 
 ### Add a new account to vesting
 
@@ -403,10 +378,9 @@ secretcli tx compute execute MGMT_CONTRACT_ADDRESS '{"add_account":{"pool_name":
 
 </td></tr>
 
-</table>
+<tr><!--spacer--></tr>
 
-<table>
-<tr><td>
+<tr><td valign="top">
 
 ### Launch the vesting
 
