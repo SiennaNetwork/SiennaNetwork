@@ -41,6 +41,8 @@ as a helper [here](https://build.scrt.network/validators-and-full-nodes/secretcl
 
 </td><td>
 
+### <!-- spacer -->
+
 This example assumes you already have your own key in `secretcli`,
 and are creating a 2-of-3 multisig with you and two other users.
 
