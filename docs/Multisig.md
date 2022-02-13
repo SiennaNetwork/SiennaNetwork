@@ -352,6 +352,8 @@ Then you can verify the transaction was executed succesfully via the following:
 secretcli q compute tx TX_HASH
 ```
 
+</td><td>
+
 If all went well you should see similar output:
 
 ```json=
@@ -366,8 +368,6 @@ If all went well you should see similar output:
   "plaintext_error": ""
 }
 ```
-
-</td><td>
 
 </td></tr>
 
