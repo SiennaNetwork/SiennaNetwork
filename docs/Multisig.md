@@ -280,7 +280,7 @@ Example output content of the `signedTx.json` file:
         "value": {
           "sender": "secret1ngfu3dkawmswrpct4r6wvx223f5pxfsryffc7a",
           "contract": "secret1wgeqzh7dd7l2wwllyky0dh052hmzsp903fhfnj",
-          "msg": "0e10K13qPzYt7M+8RPzdbXwQbZExR0k5ZELM3n4DFKO4V+4MhX0kX5ekh7w12sz85tQz2OLjcloMrPSeur8xMOaNRY04zxp1CTTszwh3qA/bndYjTRJOqvj1tvOT9OyFeAApxRGrJgUPztNQlAb/8uzy4VSbxAm291oVy69FYOxzRorJOSyWDMW7g3UTzI6BvarSWz4ppH8N7NNKqWgQIXL+qlx4cwGxTLcqrn/XewQann7o53iPkxVUWgKm6Kp9QYysE8+hoQXhAbn/b1jUkbjv7LWGjr6RUdqWTjsQ5WSB1GiyJ1UJSEL+D/g2GVxKF4BguQHcBuB1",
+          "msg": "...LONG BASE64-ENCODED CIPHERTEXT...",
           "callback_code_hash": "",
           "sent_funds": [],
           "callback_sig": null
@@ -361,7 +361,7 @@ If all went well you should see similar output:
   "type": "execute",
   "raw_input": "c1dc8261059fee1de9f1873cd1359ccd7a6bc5623772661fa3d55332eb652084{\"mint\":{\"recipient\":\"secret14rn2yd4wke7gfu7tga6l37k4lz2p8rh8chp07z\", \"amount\": \"20000000000000000000\" }}",
   "input": null,
-  "output_data": "eyJtaW50Ijp7InN0YXR1cyI6InN1Y2Nlc3MifX0gICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIA==",
+  "output_data": "...LONG BASE64-ENCODED CIPHERTEXT...",
   "output_data_as_string": "{\"mint\":{\"status\":\"success\"}}                                                                                                                                                                                                                                   ",
   "output_log": [],
   "output_error": {},
