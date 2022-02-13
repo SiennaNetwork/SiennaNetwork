@@ -174,30 +174,18 @@ containing the addresses and code hashes needed to interface with the deployed c
 
 ### Transfering ownership to the multisig account
 
-<table>
-<tr><td>
-
-You should now have 3 contracts:
-* **TOKEN**
-* **MGMT**
-* **RPT**
-
-They are owned by the deployer wallet.
+You should now have 3 contracts owned by the deployer wallet:
+**TOKEN**, **MGMT**, and **RPT**.
 
 They are all interconnected:
 * MGMT is admin and sole minter of TOKEN
 * MGMT and RPT point to each other
 
-Hence, to transfer control over them to the multisig account,
+To transfer control over them to the multisig account,
 you need to do perform the following steps:
 
-</td><td>
-
-</td></tr>
-
-<tr><!--spacer--></tr>
-
-<tr><td>
+<table>
+<tr><td valign="top">
 
 ##### Transfer ownership of MGMT
 
@@ -243,7 +231,7 @@ Example output:
 
 <tr><!--spacer--></tr>
 
-<tr><td>
+<tr><td valign="top">
 
 ##### Transfer ownership of RPT
 
@@ -286,8 +274,6 @@ Example output:
 ```
 
 </td></tr>
-
-<tr><!--spacer--></tr>
 
 </table>
 
