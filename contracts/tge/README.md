@@ -26,17 +26,6 @@ cargo test -p rpt
 <table>
 <tr><td>
 
-* Place the deploying seed in a `.secret` file
-  in `/contracts/tge/wrapped`.
-
-* Make sure the account has enough funds for deployment.
-
-* In `migrations/2_deploy_contracts.js`,
-  make sure the address for the **bridge** is the correct one
-  for the network you are planning to deploy the contracts on
-  (see below)
-</td><td>
-
 Use these commands to deploy `wSIENNA` on Ethereum mainnet
 
 ```bash
@@ -55,6 +44,18 @@ npx truffle test
 # choose `mainnet` for mainnet deployment and `rinkeby` for testnet
 npx truffle migrate --network <network>
 ```
+
+</td><td>
+
+* Place the deploying seed in a `.secret` file
+  in `/contracts/tge/wrapped`.
+
+* Make sure the account has enough funds for deployment.
+
+* In `migrations/2_deploy_contracts.js`,
+  make sure the address for the **bridge** is the correct one
+  for the network you are planning to deploy the contracts on
+  (see below)
 
 </td></tr>
 </table>
@@ -103,7 +104,7 @@ secretcli keys add DeploySIENNA
 </td></tr>
 </table>
 
-#### Deploying
+### Deploying the TGE contracts
 
 <table>
 <tr><td>
@@ -152,6 +153,7 @@ export SECRET_NETWORK_MAINNET_MNEMONIC=
 <tr><!--spacer--></tr>
 
 <tr><td>
+
 If the deployment succeeds, you should see a table in your terminal,
 containing the addresses and code hashes needed to interface with the deployed contracts.
 
@@ -169,12 +171,12 @@ containing the addresses and code hashes needed to interface with the deployed c
 |**RPT**<br>Remaining pool tokens |...|
 
 </td></tr>
-
 </table>
 
-#### Transfering ownership to the multisig account
+### Transfering ownership to the multisig account
 
-> TODO: This section is quite outdated.
+<table>
+<tr><td>
 
 You should now have 3 contracts:
 * **TOKEN**
@@ -189,6 +191,11 @@ They are all interconnected:
 
 Hence, to transfer control over them to the multisig account,
 you need to do perform the following steps:
+
+</td><td>
+
+</td></tr>
+</table>
 
 ##### Transfer ownership of MGMT
 
