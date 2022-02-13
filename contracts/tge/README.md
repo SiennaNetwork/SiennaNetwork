@@ -21,9 +21,7 @@ cargo test -p mgmt
 cargo test -p rpt
 ```
 
-## Deploy
-
-### Deploying `wSIENNA` on Ethereum
+## Deploying `wSIENNA` on Ethereum
 
 <table>
 <tr><td>
@@ -35,12 +33,8 @@ cargo test -p rpt
 
 * In `migrations/2_deploy_contracts.js`,
   make sure the address for the **bridge** is the correct one
-  for the network you are planning to deploy the contracts on.
-
-| Network           | SCRT-ETH Bridge Address                        |
-| ----------------- | ---------------------------------------------- |
-| Rinkeby (testnet) | **0xFA22c1BF3b076D2B5785A527C38949be47Ea1082** |     |
-| Mainnet           | **0xf4b00c937b4ec4bb5ac051c3c719036c668a31ec** |   |
+  for the network you are planning to deploy the contracts on
+  (see below)
 </td><td>
 
 Use these commands to deploy `wSIENNA` on Ethereum mainnet
@@ -65,45 +59,73 @@ npx truffle migrate --network <network>
 </td></tr>
 </table>
 
-### Deploying `SIENNA` on Secret Network
+### Addresses of SCRT-ETH bridges
 
-#### Before deploying
+| Network           | SCRT-ETH Bridge Address                        |
+| ----------------- | ---------------------------------------------- |
+| Rinkeby (testnet) | **0xFA22c1BF3b076D2B5785A527C38949be47Ea1082** |     |
+| Mainnet           | **0xf4b00c937b4ec4bb5ac051c3c719036c668a31ec** |   |
 
-**Make sure you have prepared the correct vesting schedule
-in `settings/schedule.ods` before proceeding further.**
+## Deploying `SIENNA` on Secret Network
 
-* Make sure you're running in a secure environment
-with a reliable Internet connection.
+### Preparing the deploy wallet
 
-* Make sure that you have the plaintext mnemonic for the mainnet wallet
-  that you will use to deploy the contracts. Make sure you've added them
-  to `secretcli` as well:
+<table>
+<tr><td>
+
+* Make sure that you have access to a mainnet wallet with
+  at least **8 SCRT**. We'll call this the **deploy wallet**.
+
+* Make sure the deploy wallet is added to `secretcli`.
+
+</td><td>
+
+Use this command to add a wallet to `secretcli`:
 
 ```bash
-secretcli keys add DeploySIENNA --recover # imports the mnemonic
-secretcli keys show -a DeploySIENNA       # shows you the address
+secretcli keys add DeploySIENNA --recover
+# enter mnemonic
 ```
 
-* If you don't have an existing deploy wallet you can create one with
+Use this command to see the address for a wallet:
 
 ```bash
-secretcli keys add DeploySIENNA # make sure to save the mnemonic!
+secretcli keys show -a DeploySIENNA
 ```
 
-* Make sure the deploy wallet has at least 8 SCRT in it,
-  to cover gas costs for all the deployments on Secret Network.
+Use this command to create a new wallet:
 
-* You will need the following standard tools installed:
-  - bash
-  - git
-  - jq
-  - docker
-  - node.js + yarn
-  - secretcli
+```bash
+secretcli keys add DeploySIENNA
+# make sure to save the generated mnemonic!
+```
+
+</td></tr>
+</table>
 
 #### Deploying
 
-> TODO: This section is quite outdated.
+<table>
+<tr><td>
+
+* Make sure you have prepared the correct vesting schedule
+in `settings/schedule.ods`.
+
+* Make sure you're running in a secure environment
+  with a reliable Internet connection.
+
+* Make sure you have access to the following tools in your
+  environment:
+  - Bash
+  - Git
+  - jq
+  - Docker
+  - Node.JS + Yarn
+  - secretcli
+
+</td><td>
+
+> **FIXME:** These commands are out of date.
 
 ```bash
 # 1. clone the repo
@@ -112,20 +134,33 @@ git clone --recursive https://github.com/SiennaNetwork/sienna-secret-token
 # 2. Install dependencies
 yarn
 
-# 3. Run sienna deploy
+# 3. Configure environment
 export SECRET_NETWORK_MAINNET_ADDRESS='your address'
 export SECRET_NETWORK_MAINNET_MNEMONIC='your mnemonic'
+
+# 5. Run sienna deploy
 ./sienna.js deploy mainnet # testnet for holodeck-2
 
-# 4. Remove your mnemonic from the environment immediately afterwards!
+# 5. Remove your mnemonic from the environment immediately afterwards!
 export SECRET_NETWORK_MAINNET_MNEMONIC=
 ```
 
-This command will build, upload, and instantiate the contracts.
+> ℹ️  Replace `mainnet` with `testnet` to deploy on the holodeck-2 testnet (via our hardcoded test account, `secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy`).
 
->ℹ️ Replace `mainnet` with `testnet` to deploy on the holodeck-2 testnet (via our hardcoded test account, `secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy`).
+</td></tr>
 
-If the deployment succeeds, you should see a table of the following format in your terminal:
+<tr><!--spacer--></tr>
+
+<tr><td>
+If the deployment succeeds, you should see a table in your terminal,
+containing the addresses and code hashes needed to interface with the deployed contracts.
+
+* Give the TOKEN address/hash to users of the token,
+* Give the MGMT address/hash to recipients of the vesting.
+
+>ℹ️ This table is extracted from the full build results, which are stored in `./artifacts/checksums.sha256.txt`, `./artifacts/<chain-id>/uploads/` and `./artifacts/<chain-id>/instances/`.
+
+</td><td>
 
 | Contract<br>Description | Address<br>Code hash |
 |-|-|
@@ -133,10 +168,9 @@ If the deployment succeeds, you should see a table of the following format in yo
 |**MGMT**<br>Vesting |...|
 |**RPT**<br>Remaining pool tokens |...|
 
-This will contain the addresses and code hashes needed to interface with the deployed contracts.
-You can now give the TOKEN address/hash to users of the token, and the MGMT address/hash to recipients of the vesting.
+</td></tr>
 
->ℹ️ This table is extracted from the full build results, which are stored in `./artifacts/checksums.sha256.txt`, `./artifacts/<chain-id>/uploads/` and `./artifacts/<chain-id>/instances/`.
+</table>
 
 #### Transfering ownership to the multisig account
 
