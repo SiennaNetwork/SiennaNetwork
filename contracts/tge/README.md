@@ -1,5 +1,17 @@
 # Sienna TGE/Vesting
 
+* [Contents](#contents) of this directory
+* [Compile for production](#compile-for-production)
+* [Run tests](#run-tests)
+* [Deploy `wSIENNA` on Ethereum](#deploy-wsienna-on-ethereum)
+  * [Addresses of SCRT-ETH bridges](#addresses-of-scrt-eth-bridges)
+* [Deploy `SIENNA` on Secret Network](#deploy-sienna-on-secret-network)
+  * [Prepare the deploy wallet](#prepare-the-deploy-wallet)
+  * [Deploy the TGE contracts](#deploy-the-tge-contracts)
+  * [Transfer ownership to multisig account](#transfer-ownership-to-multisig-account)
+* [Configure](#configure)
+* [Use](#use)
+
 ## Contents
 
 * `snip20-sienna` - Core SIENNA token for Secret Network
@@ -21,7 +33,7 @@ cargo test -p mgmt
 cargo test -p rpt
 ```
 
-## Deploying `wSIENNA` on Ethereum
+## Deploy `wSIENNA` on Ethereum
 
 <table>
 <tr><td>
@@ -67,9 +79,9 @@ npx truffle migrate --network <network>
 | Rinkeby (testnet) | **0xFA22c1BF3b076D2B5785A527C38949be47Ea1082** |     |
 | Mainnet           | **0xf4b00c937b4ec4bb5ac051c3c719036c668a31ec** |   |
 
-## Deploying `SIENNA` on Secret Network
+## Deploy `SIENNA` on Secret Network
 
-### Preparing the deploy wallet
+### Prepare the deploy wallet
 
 <table>
 <tr><td>
@@ -104,7 +116,7 @@ secretcli keys add DeploySIENNA
 </td></tr>
 </table>
 
-### Deploying the TGE contracts
+### Deploy the TGE contracts
 
 <table>
 <tr><td>
@@ -173,7 +185,7 @@ containing the addresses and code hashes needed to interface with the deployed c
 </td></tr>
 </table>
 
-### Transfering ownership to the multisig account
+### Transfer ownership to multisig account
 
 You should now have 3 contracts owned by the deployer wallet:
 **TOKEN**, **MGMT**, and **RPT**.
