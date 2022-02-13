@@ -1,4 +1,4 @@
-# SIENNA - Multisig, deployment and setup
+# SIENNA: Multisig manual
 
 *Note: Because of the recently found issues with instantiating
 multisig contracts via the official Secret Network CLI,
@@ -116,7 +116,7 @@ export CODE_HASH='...'
 export MESSAGE='...'
 ```
 
-</td><td>
+</td><td valign="top">
 
 **Output environment of step 1:**
 
@@ -167,7 +167,7 @@ You need these to create an unsigned transaction file.
 * The `account_number` remains constant for the address.
 * The `sequence` increments with every transaction from that address to prevent replay attacks.
 
-</td><td>
+</td><td valign="top">
 
 **Output files of step 2:**
 
@@ -233,7 +233,7 @@ secretcli tx compute execute  \
 >it will write the unsigned transaction to `foo.json` in the
 >current directory.
 
-</td><td>
+</td><td valign="top">
 
 **Output files of step 3:**
 
@@ -277,7 +277,7 @@ secretcli tx compute execute  \
 
 <tr><!--spacer--></tr>
 
-<tr><td>
+<tr><td valign="top">
 
 ### Step 4. Collect signatures
 
@@ -318,7 +318,7 @@ EOF
 
 * Collect the signatures that the signers have generated using the signing instructions.
 
-</td><td>
+</td><td valign="top">
 
 **Output files of step 4:**
 - `Signature_1.json`
@@ -342,7 +342,7 @@ EOF
 
 <tr><!--spacer--></tr>
 
-<tr><td>
+<tr><td valign="top">
 
 ### Step 5. Prepare the multisigned transaction using the collected signatures
 
@@ -364,7 +364,7 @@ secretcli tx multisign  \
   --sequence="$SEQUENCE" > Signed.json
 ```
 
-</td><td>
+</td><td valign="top">
 
 **Output files of step 5:**
 - `Signed.json` - signed transaction
@@ -430,7 +430,7 @@ secretcli tx multisign  \
 
 <tr><!--spacer--></tr>
 
-<tr><td>
+<tr><td valign="top">
 
 ### Step 6. Broadcast the multisigned transaction
 
@@ -448,7 +448,7 @@ Then you can verify the transaction was executed succesfully via the following:
 secretcli q compute tx TX_HASH
 ```
 
-</td><td>
+</td><td valign="top">
 
 **Example output of `secretcli tx broadcast`:**
 
