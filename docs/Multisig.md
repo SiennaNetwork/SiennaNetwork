@@ -22,6 +22,11 @@ which can later be used for execution of different admin actions.*
 
 ## Create a multisig account
 
+A multisig account is used for collective ownership of the administrative access
+over the platform's core smart contracts (MGMT, RPT, AMM Factory, Rewards).
+
+Here's how to create one.
+
 <table>
 
 <tr><td valign="top">
@@ -84,27 +89,46 @@ secretcli keys show MULTISIG_ACCOUNT -a
 
 ## Performing multisig transactions
 
+So you have the admin of the contract set to a multisig account.
+How to collectively administrate the contract then?
+
+Send transactions signed by at least N of the owners of the multisig,
+where N is the value of `--multisig-threshold` used when creating the
+multisig.
+
+Here's how to send a single multisig transaction using just `secretcli`.
+To send a bundle of transactions from the multisig account, use Fadroma.
+
 <table>
-<tr><td valign="top">
 
-### Step 1. Get the required certificates for the chain
+<tr valign="top"><td>
 
-These certificates are needed to encrypt the transaction data for the node's secure enclave.
+### Step 1. Define the transaction that you will be executing.
 
-Run the following command:
+Open a new Bash shell and define the following environment variables:
 
 ```bash
-secretcli query register secret-network-params
+export MULTISIG='secret1...'       
+export CONTRACT='secret1...'       
+export UNSIGNED='unsigned.tx.json' 
+export CODE_HASH='...'             
+export MESSAGE='{"mint": {"recipient": "secret1...", "amount": "10000" }}'
 ```
-
-> This will download the certificates in the current directory.
-> Make sure you don't leave it for the next steps -
-> or modify them to point to the certificate path.
 
 </td><td>
 
-```jsonc
-// TODO: example of what the certificates look like
+**Output environment of step 1:**
+
+* `MULTISIG`  - address or name of multisig from "Create a multisig account"
+* `CONTRACT`  - the address of the contract that you'll be calling
+* `UNSIGNED`  - name of file in which to store the unsigned transaction
+* `CODE_HASH` - the code hash of the contract that you'll be calling
+* `MESSAGE`   - the message to execute
+
+**Example value for `MESSAGE`:**
+
+```json
+{"mint":{"recipient":"some-address","amount":"10000"}}
 ```
 
 </td></tr>
@@ -113,36 +137,48 @@ secretcli query register secret-network-params
 
 <tr><td valign="top">
 
-### Step 2. Get the account number and sequence for the multisig account
+### Step 1. Populate the signing environment
 
-You need the `account_number` and `sequence` of the multisig account to create
-an unsigned transaction file.
-  * The `account_number` remains constant for the address.
-  * The `sequence` increments with every transaction from that address to prevent replay attacks.
-
-Now is a good time to set the address of the multisig account in your shell session,
-so you don't have to manually type it into the following commands.
+Download the chain's global certificates to the current directory
+with this command:
 
 ```bash
-export MULTISIG='secret1...' # see "Create a multisig account"
+secretcli query register secret-network-params
 ```
 
-Get the account number and sequence:
+> Make sure to stay in the same directory throughout.
+
+Get the account number and chain ID for the multisig with this command:
 
 ```bash
 secretcli q account "$MULTISIG"
 ```
 
-Now is a good time to set the account number and sequence in your shell session:
+Export them to your Bash shell session with:
 
 ```bash
-export ACCOUNT='...'  # values from `secretcli q account`
-export SEQUENCE='...'
+export ACCOUNT='...'  # from `secretcli q account`
+export SEQUENCE='...' # from `secretcli q account`
 ```
+
+You need these to create an unsigned transaction file.
+* The `account_number` remains constant for the address.
+* The `sequence` increments with every transaction from that address to prevent replay attacks.
 
 </td><td>
 
-Example output of `secretcli q account`:
+**Output files of step 2:**
+
+```jsonc
+// io-master-cert.der
+```
+
+**Output environment of step 1:**
+
+* `ACCOUNT`
+* `SEQUENCE`
+
+**Example output of `secretcli q account`:**
 
 ```json=
 {
@@ -168,6 +204,16 @@ Example output of `secretcli q account`:
 
 <tr><td valign="top">
 
+### Step 2. Get the account number and sequence for the multisig account
+
+</td><td>
+
+</td></tr>
+
+<tr><!--spacer--></tr>
+
+<tr><td valign="top">
+
 ### Step 3. Create the unsigned transaction file
 
 This file contains the messages that you want to send,
@@ -177,17 +223,12 @@ Now is a good time to set the address and code hash of the contract
 that you will be calling in your shell session:
 
 ```bash
-export CONTRACT='secret1...' # this should be the address of the contract
 ```
 
 To create an unsigned transaction file containing one
 `execute` call:
 
 ```bash
-export UNSIGNED='unsigned.tx.json' # name of file in which to store the unsigned transaction
-export CONTRACT='secret1...'       # the address of the contract that you'll be calling
-export CODE_HASH='...'             # the code hash of the contract that you'll be calling
-export MESSAGE='{"mint": {"recipient": "secret1...", "amount": "10000" }}' # the message to execute
 secretcli tx compute execute "$CONTRACT" "$MESSAGE" \
   --code-hash "$CODE_HASH"   \
   --gas 450000                \
@@ -266,10 +307,9 @@ You can use standard communication channels such as text messaging, email, etc.
 directory in which they downloaded the unsigned transaction file.
 
 * Collect the individual `signed_N.tx.json` files collected from the signers.
+  Rename each file with the number of the signer so you have `signed_1.tx.json`, `signed_2.tx.json`.
 
 </td><td>
-
->ℹ️ name the different files with the number of the signer for conveinience.
 
 Example file output:
 
