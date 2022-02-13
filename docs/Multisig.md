@@ -103,7 +103,7 @@ To send a bundle of transactions from the multisig account, use Fadroma.
 
 <tr valign="top"><td>
 
-### Step 1. Define the transaction that you will be executing.
+### Step 1. Define the transaction that you will be signing
 
 Open a new Bash shell and define the following environment variables:
 
@@ -111,9 +111,9 @@ Open a new Bash shell and define the following environment variables:
 export CHAIN='secret-4'
 export MULTISIG='secret1...'       
 export CONTRACT='secret1...'       
-export UNSIGNED='unsigned.tx.json' 
+export UNSIGNED='UnsignedTX.json' 
 export CODE_HASH='...'             
-export MESSAGE='{"mint": {"recipient": "secret1...", "amount": "10000" }}'
+export MESSAGE='...'
 ```
 
 </td><td>
@@ -237,7 +237,7 @@ secretcli tx compute execute  \
 
 **Output files of step 3:**
 
-- `$UNSIGNED` Unsigned transaction file (e.g. `unsigned.tx.json`)
+- `$UNSIGNED` Unsigned transaction file (e.g. `UnsignedTX.json`)
 
 **Example contents of unsigned transaction:**
 
@@ -302,7 +302,7 @@ Run the following command to sign:
   --from="$MULTISIG"         \
   --account-number="$ACCOUNT" \
   --sequence="$SEQUENCE"       \
-  --output-document=SignedTX.json
+  --output-document=Signature.json
 
 Or use Motika (https://github.com/hackbg/motika)
 for a graphical signing experience.
@@ -316,18 +316,17 @@ EOF
 >You can use standard communication channels such as text messaging, email, etc.
 >The contents of the unsigned transaction are not a cryptographic secret.
 
-* Collect the signed transactions that the signers have generated using the
-  signing instructions.
+* Collect the signatures that the signers have generated using the signing instructions.
 
 </td><td>
 
 **Output files of step 4:**
-- `SignedTX_1.json`
-- `SignedTX_2.json`
+- `Signature_1.json`
+- `Signature_2.json`
 - ...
-- `SignedTX_N.json`
+- `Signature_N.json`
 
-**Example contents of signed transaction file:**
+**Example contents of signature file:**
 
 ```json=
 {
@@ -345,25 +344,32 @@ EOF
 
 <tr><td>
 
-### 5. Preparing signed transaction using the collected signatures
+### Step 5. Prepare the multisigned transaction using the collected signatures
 
-After the signatures has been collected you should have a set of multiple files containing signatures for the accounts participating in the multisig and the `unsigned.tx.json` file that contains the transaction information.
+After the signatures has been collected,
+you should have a set of multiple files containing signatures
+for the accounts participating in the multisig, and the unsigned transaction file
+that contains the transaction information.
+
+Run the following commant to multisign the transaction with the collected signatures:
 
 ```bash
-# Multisign the transaction with the collected signatures
-secretcli tx multisign unsigned.tx.json \
- MULTISIG_ALIAS \
- mint_signed_participant1.json \
- mint_signed_participant2.json \
- --offline \
- --account-number=MULTISIG_ACCOUNT_NUMBER \
- --sequence=MULTISIG_ACCOUNT_SEQUENCE \
- > signed.tx.json
+secretcli tx multisign  \
+  "$UNSIGNED"            \
+  "$MULTISIG"             \
+  "Signature_1.json"       \
+  "Signature_2.json"        \ # ...ad finem...
+  --offline                  \
+  --account-number="$ACCOUNT" \
+  --sequence="$SEQUENCE" > Signed.json
 ```
 
 </td><td>
 
-Example output content of the `signed.tx.json` file:
+**Output files of step 5:**
+- `Signed.json` - signed transaction
+
+**Example contents of signed transaction file:**
 ```json=
 {
   "type": "cosmos-sdk/StdTx",
@@ -372,9 +378,9 @@ Example output content of the `signed.tx.json` file:
       {
         "type": "wasm/MsgExecuteContract",
         "value": {
-          "sender": "secret1ngfu3dkawmswrpct4r6wvx223f5pxfsryffc7a",
-          "contract": "secret1wgeqzh7dd7l2wwllyky0dh052hmzsp903fhfnj",
-          "msg": "...LONG BASE64-ENCODED CIPHERTEXT...",
+          "sender": "secret1...",
+          "contract": "secret1...",
+          "msg": "BASE64-ENCODED CIPHERTEXT",
           "callback_code_hash": "",
           "sent_funds": [],
           "callback_sig": null
@@ -399,20 +405,20 @@ Example output content of the `signed.tx.json` file:
             "pubkeys": [
               {
                 "type": "tendermint/PubKeySecp256k1",
-                "value": "A3/Q8RYuU+ZhDr4CUK4sXbHTJmfVfS7dSSvIPGnV0NPM"
+                "value": "BASE64-ENCODED PUBKEY"
               },
               {
                 "type": "tendermint/PubKeySecp256k1",
-                "value": "A4dNqo9MTkhWzPMylM4P1C+yQMy2D0hfyTxBaobfqKW7"
+                "value": "BASE64-ENCODED PUBKEY"
               },
               {
                 "type": "tendermint/PubKeySecp256k1",
-                "value": "AusMnK+0hQCDvZZ8QPNXazpA2NCy1/WoTlgUMyVOJZxI"
+                "value": "BASE64-ENCODED PUBKEY"
               }
             ]
           }
         },
-        "signature": "...LONG BASE64-ENCODED SIGNATURE..."
+        "signature": "BASE64-ENCODED MULTI-SIGNATURE"
       }
     ],
     "memo": ""
@@ -426,7 +432,7 @@ Example output content of the `signed.tx.json` file:
 
 <tr><td>
 
-### 6. Broadcasting the tx
+### Step 6. Broadcast the multisigned transaction
 
 Now all that is left is to broadcast the transaction to the network.
 
@@ -436,10 +442,6 @@ secretcli tx broadcast signed.tx.json
 
 As a response you will see the transaction hash similar to this:
 
-```json
-{"height":"0","txhash":"1DBFA76575F52C2C45D61432912E7376C7C9C2B43ACB545DA9DE1757F1E5E529","raw_log":"[]"}
-```
-
 Then you can verify the transaction was executed succesfully via the following:
 
 ```bash
@@ -448,15 +450,23 @@ secretcli q compute tx TX_HASH
 
 </td><td>
 
+**Example output of `secretcli tx broadcast`:**
+
+```json
+{"height":"0","txhash":"BASE16-ENCODED TRANSACTION HASH","raw_log":"[]"}
+```
+
+**Example output of `secretcli q compute tx`:**
+
 If all went well you should see similar output:
 
 ```json=
 {
   "type": "execute",
-  "raw_input": "...HEXADECIMAL CODE HASH AND PLAINTEXT MESSAGE...",
+  "raw_input": "BASE16-ENCODED CODE HASH AND PLAINTEXT MESSAGE",
   "input": null,
-  "output_data": "...LONG BASE64-ENCODED CIPHERTEXT...",
-  "output_data_as_string": "{\"mint\":{\"status\":\"success\"}},
+  "output_data": "BASE64-ENCODED CIPHERTEXT",
+  "output_data_as_string": "JSON-ENCODED OUTPUT OF TRANSACTION",
   "output_log": [],
   "output_error": {},
   "plaintext_error": ""
@@ -464,10 +474,6 @@ If all went well you should see similar output:
 ```
 
 </td></tr>
-
-<tr><!--spacer--></tr>
-
-<tr><td></td><td></td></tr>
 
 <tr><!--spacer--></tr>
 
