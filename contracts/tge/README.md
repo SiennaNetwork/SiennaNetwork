@@ -25,6 +25,26 @@ cargo test -p rpt
 
 ### Deploying `wSIENNA` on Ethereum
 
+<table>
+<tr><td>
+
+* Place the deploying seed in a `.secret` file
+  in `/contracts/tge/wrapped`.
+
+* Make sure the account has enough funds for deployment.
+
+* In `migrations/2_deploy_contracts.js`,
+  make sure the address for the **bridge** is the correct one
+  for the network you are planning to deploy the contracts on.
+
+| Network           | SCRT-ETH Bridge Address                        |
+| ----------------- | ---------------------------------------------- |
+| Rinkeby (testnet) | **0xFA22c1BF3b076D2B5785A527C38949be47Ea1082** |     |
+| Mainnet           | **0xf4b00c937b4ec4bb5ac051c3c719036c668a31ec** |   |
+</td><td>
+
+Use these commands to deploy `wSIENNA` on Ethereum mainnet
+
 ```bash
 # clone the project
 git clone https://github.com/SiennaNetwork/wrapped-sienna
@@ -37,31 +57,13 @@ npx truffle compile
 
 # test the contract
 npx truffle test
-```
 
-* Place the deploying seed in a `.secret` file
-  in `/contracts/tge/wrapped`.
-
-* Make sure the account has enough funds for deployment.
-
-* Open `migrations/2_deploy_contracts.js` and in it:
-  * Make sure the address for the bridge is the correct one
-    for the network you are planning to deploy the contracts on.
-  * Replace the address on line 6 with the address for the bridge
-    for the relevant network you are planning to deploy on.
-    Take a look at the table below:
-
-| Network           | SCRT-ETH Bridge Address                        |
-| ----------------- | ---------------------------------------------- |
-| Rinkeby (testnet) | **0xFA22c1BF3b076D2B5785A527C38949be47Ea1082** |     |
-| Mainnet           | **0xf4b00c937b4ec4bb5ac051c3c719036c668a31ec** |   |
-
-* Deploy `wSIENNA` on Ethereum mainnet:
-
-```bash
 # choose `mainnet` for mainnet deployment and `rinkeby` for testnet
 npx truffle migrate --network <network>
 ```
+
+</td></tr>
+</table>
 
 ### Deploying `SIENNA` on Secret Network
 
