@@ -3,12 +3,10 @@ use serde::{Deserialize, Serialize};
 
 use fadroma::*;
 
-use crate::account::{Account, IAccount};
 use crate::auth::Auth;
 use crate::errors::poll_expired;
 
 use super::poll::UpdateResultDto;
-use super::poll_result::{IPollResult, PollResult};
 use super::validator;
 use super::{
     config::{GovernanceConfig, IGovernanceConfig},
@@ -16,7 +14,7 @@ use super::{
     governance::Governance,
     poll::{IPoll, Poll},
     poll_metadata::PollMetadata,
-    vote::{IVote, Vote, VoteType},
+    vote::{ VoteType},
 };
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -91,7 +89,7 @@ where
                     poll_id,
                     env.message.sender,
                     UpdateResultDto::AddVote { power, variant },
-                );
+                )?;
 
                 Ok(HandleResponse::default())
             }

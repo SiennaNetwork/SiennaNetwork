@@ -39,7 +39,7 @@ where
     Q: Querier,
     C: Governance<S, A, Q>,
 {
-    fn polls(core: &C, take: u64, page: u64, asc: bool) -> StdResult<Self> {
+    fn polls(core: &C, take: u64, page: u64, _asc: bool) -> StdResult<Self> {
         let take = min(take, 10);
 
         let total = Poll::total(core)?;

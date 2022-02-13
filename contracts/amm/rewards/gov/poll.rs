@@ -194,11 +194,11 @@ where
                 result.add_vote(core, variant, power, sender)?.store(core)?;
             }
             UpdateResultDto::ChangeVotePower { power } => {
-                result.change_vote_power(core, power, sender)?.store(core)?;
+                result.set_vote_power(core, power, sender)?.store(core)?;
             }
             UpdateResultDto::ChangeVoteVariant { variant } => {
                 result
-                    .change_vote_variant(core, variant, sender)?
+                    .change_choice(core, variant, sender)?
                     .store(core)?;
             }
             UpdateResultDto::RemoveVote {} => {

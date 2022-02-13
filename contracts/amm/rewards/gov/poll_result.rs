@@ -1,3 +1,5 @@
+use std::convert::TryInto;
+
 use fadroma::{Api, HumanAddr, Querier, StdError, StdResult, Storage, Uint128};
 use serde::{Deserialize, Serialize};
 
@@ -15,27 +17,26 @@ pub struct PollResult {
 impl PollResult {
     pub const SELF: &'static [u8] = b"/gov/result";
 
-    pub fn decrement_yes(&mut self, amount: u128) -> StdResult<()> {
-        self.yes_votes.checked_sub(amount).ok_or_else(|| {
-            StdError::generic_err(format!(
-                "Can't remove more voting power than it's available. Overflow",
-            ))
-        })?;
+    
+    pub fn append_votes(&mut self, amount: i128, choice: VoteType) -> StdResult<()>{
+
+        let try_add = |vote: &mut u128, amount:i128| {
+            if amount > 0 {
+                *vote += amount as u128;
+            } else {
+                vote
+                    .checked_sub(amount.abs() as u128)
+                    .ok_or(StdError::generic_err(format!("Not enough voting power available")))
+                    .unwrap();
+            }
+         };
+
+        if let VoteType::Yes = choice {
+            try_add(&mut self.yes_votes, amount);
+        } else {
+            try_add(&mut self.no_votes, amount);
+        }
         Ok(())
-    }
-    pub fn decrement_no(&mut self, amount: u128) -> StdResult<()> {
-        self.no_votes.checked_sub(amount).ok_or_else(|| {
-            StdError::generic_err(format!(
-                "Can't remove more voting power than it's available. Overflow",
-            ))
-        })?;
-        Ok(())
-    }
-    pub fn increment_yes(&mut self, amount: u128) {
-        self.yes_votes += amount;
-    }
-    pub fn increment_no(&mut self, amount: u128) {
-        self.no_votes += amount;
     }
 }
 
@@ -51,19 +52,22 @@ where
     fn store(&self, core: &mut C) -> StdResult<()>;
     fn get(core: &C, poll_id: u64) -> StdResult<Self>;
 
-    fn change_vote_power(
+    fn set_vote_power(
         &mut self,
         core: &mut C,
         power: Uint128,
         sender: HumanAddr,
     ) -> StdResult<&mut Self>;
-    fn change_vote_variant(
+
+    fn change_choice(
         &mut self,
         core: &mut C,
-        variant: VoteType,
+        choice: VoteType,
         sender: HumanAddr,
     ) -> StdResult<&mut Self>;
+
     fn remove_vote(&mut self, core: &mut C, sender: HumanAddr) -> StdResult<&mut Self>;
+
     fn add_vote(
         &mut self,
         core: &mut C,
@@ -97,60 +101,54 @@ where
         }
     }
 
-    fn change_vote_power(
+    fn set_vote_power(
         &mut self,
         core: &mut C,
         power: Uint128,
         sender: HumanAddr,
     ) -> StdResult<&mut Self> {
         let mut vote = Vote::get(core, sender.clone(), self.poll_id)?;
-        if let VoteType::Yes = vote.variant {
-            self.decrement_yes(vote.vote_power)?;
-            self.increment_yes(power.u128());
-        } else {
-            self.decrement_no(vote.vote_power)?;
-            self.increment_no(power.u128());
-        }
+        let power_diff = power.u128() - vote.vote_power;
+        self.append_votes(power_diff.try_into().unwrap(), vote.variant.clone())?;
+
         vote.vote_power = power.u128();
-        vote.store(core, sender, self.poll_id)?;
+        vote.store(core, sender.clone(), self.poll_id)?;
 
         Ok(self)
     }
 
-    fn change_vote_variant(
+    fn change_choice(
         &mut self,
         core: &mut C,
         variant: VoteType,
         sender: HumanAddr,
     ) -> StdResult<&mut Self> {
-        let mut vote = Vote::get(core, sender, self.poll_id)?;
+        let mut vote = Vote::get(core, sender.clone(), self.poll_id)?;
         if vote.variant == variant {
             return Err(StdError::generic_err(
                 "Your vote is not changed. You tried to cast the same vote. ",
             ));
         };
 
+        let voting_power: i128 = vote.vote_power.try_into().unwrap();
         if let VoteType::Yes = variant {
-            self.increment_yes(vote.vote_power);
-            self.decrement_no(vote.vote_power)?;
+            self.append_votes(voting_power, VoteType::Yes)?;
+            self.append_votes(- voting_power, VoteType::No)?;
         } else {
-            self.decrement_yes(vote.vote_power)?;
-            self.increment_no(vote.vote_power);
+            self.append_votes(voting_power, VoteType::Yes)?;
+            self.append_votes(- voting_power, VoteType::No)?;
         }
 
         vote.variant = variant;
-        vote.store(core, sender, self.poll_id)?;
+        vote.store(core, sender.clone(), self.poll_id)?;
         Ok(self)
     }
 
     fn remove_vote(&mut self, core: &mut C, sender: HumanAddr) -> StdResult<&mut Self> {
         let vote = Vote::get(core, sender.clone(), self.poll_id)?;
-        match vote.variant {
-            VoteType::No => self.decrement_no(vote.vote_power)?,
-            VoteType::Yes => self.decrement_yes(vote.vote_power)?,
-        };
+        let vote_power: i128 = vote.vote_power.try_into().unwrap();
+        self.append_votes(- vote_power, vote.variant)?;
         Vote::remove(core, sender, self.poll_id)?;
-
         Ok(self)
     }
 
@@ -172,11 +170,7 @@ where
             self.poll_id,
         )?;
 
-        if let VoteType::Yes = variant {
-            self.increment_yes(power.u128());
-        } else {
-            self.increment_no(power.u128());
-        };
+        self.append_votes(power.u128().try_into().unwrap(), variant)?;
 
         Ok(self)
     }
