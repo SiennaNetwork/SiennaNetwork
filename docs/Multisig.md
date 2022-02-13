@@ -362,7 +362,7 @@ If all went well you should see similar output:
   "raw_input": "...HEXADECIMAL CODE HASH AND PLAINTEXT MESSAGE...",
   "input": null,
   "output_data": "...LONG BASE64-ENCODED CIPHERTEXT...",
-  "output_data_as_string": "{\"mint\":{\"status\":\"success\"}}                                                                                                                                                                                                                                   ",
+  "output_data_as_string": "{\"mint\":{\"status\":\"success\"}},
   "output_log": [],
   "output_error": {},
   "plaintext_error": ""
