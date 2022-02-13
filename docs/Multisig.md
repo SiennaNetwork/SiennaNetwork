@@ -87,42 +87,62 @@ secretcli keys show MULTISIG_ACCOUNT -a
 <table>
 <tr><td valign="top">
 
-### Step 1. Get the required certificates
+### Step 1. Get the required certificates for the chain
 
-These certificates are needed to encrypt the tx data with the node's secure enclave.
+These certificates are needed to encrypt the transaction data for the node's secure enclave.
 
-</td><td>
+Run the following command:
 
 ```bash
 secretcli query register secret-network-params
 ```
 
-*The command above will download the needed certificates in the current directory,
-make sure you proceed further within the same directory or address the path to the
-certificate properly in the next steps.*
+> This will download the certificates in the current directory.
+> Make sure you don't leave it for the next steps -
+> or modify them to point to the certificate path.
+
+</td><td>
+
+```jsonc
+// TODO: example of what the certificates look like
+```
 
 </td></tr>
 
 <tr><!--spacer--></tr>
 
-<tr><td>
+<tr><td valign="top">
 
-### 2. Prepare offline transaction for the multisig account
+### Step 2. Get the account number and sequence for the multisig account
 
-In the example below we will demonstrate how to prepare a multisig transaction
-that executes a smart contract method. For example minting tokens from a SNIP20
-contract via the `mint` method, assuming the contract is owned by the multisig
-and the multisig account has minter access granted.
+You need the `account_number` and `sequence` of the multisig account to create
+an unsigned transaction file.
+  * The `account_number` remains constant for the address.
+  * The `sequence` increments with every transaction from that address to prevent replay attacks.
+
+Now is a good time to set the address of the multisig account in your shell session,
+so you don't have to manually type it into the following commands.
+
+```bash
+export MULTISIG='secret1...' # see "Create a multisig account"
+```
+
+Get the account number and sequence:
+
+```bash
+secretcli q account "$MULTISIG"
+```
+
+Now is a good time to set the account number and sequence in your shell session:
+
+```bash
+export ACCOUNT='...'  # values from `secretcli q account`
+export SEQUENCE='...'
+```
 
 </td><td>
 
-The command above will give you the information about `MULTISIG_ACCOUNT_SEQUENCE` and `MULTISIG_ACCOUNT_NUMBER` that you will need in order to proceed further and succesfully create an offline multisig tx.
-
-```bash
-# Get multisig sequence and account number
-secretcli q account MULTISIG_ACCOUNT_ADDRESS
-
-Example output:
+Example output of `secretcli q account`:
 
 ```json=
 {
@@ -146,28 +166,42 @@ Example output:
 
 <tr><!--spacer--></tr>
 
-<tr><td>
+<tr><td valign="top">
 
-Continue with preparation of the transaction towards the `SMART_CONTRACT_ADDRESS`, containing the message that we want to send.
+### Step 3. Create the unsigned transaction file
+
+This file contains the messages that you want to send,
+encrypted with the smart contract's code hash.
+
+Now is a good time to set the address and code hash of the contract
+that you will be calling in your shell session:
+
+```bash
+export CONTRACT='secret1...' # this should be the address of the contract
+```
+
+To create an unsigned transaction file containing one
+`execute` call:
+
+```bash
+export UNSIGNED='unsigned.tx.json' # name of file in which to store the unsigned transaction
+export CONTRACT='secret1...'       # the address of the contract that you'll be calling
+export CODE_HASH='...'             # the code hash of the contract that you'll be calling
+export MESSAGE='{"mint": {"recipient": "secret1...", "amount": "10000" }}' # the message to execute
+secretcli tx compute execute "$CONTRACT" "$MESSAGE" \
+  --code-hash "$CODE_HASH"   \
+  --gas 450000                \
+  --chain-id secret-4          \
+  --from "$MULTISIG"            \
+  --sequence "$SEQUENCE"         \
+  --account-number "$ACCOUNT"     \
+  --enclave-key io-master-cert.der \
+  --generate-only > unsigned.tx.json
+```
 
 </td><td>
 
-```bash
-# Prepare the offline transaction
-secretcli tx compute execute SMART_CONTRACT_ADDRESS \
-  '{"mint": {"recipient": "RECIPIENT_ADDRESS", "amount": "42000000000000000000" }}' \
-  --generate-only \
-  --chain-id secret-2                \
-  --gas 450000                        \
-  --from MULTISIG_ACCOUNT_ADDRESS      \
-  --enclave-key io-master-cert.der      \
-  --code-hash CONTRACT_CODE_HASH         \
-  --sequence MULTISIG_ACCOUNT_SEQUENCE    \
-  --account-number MULTISIG_ACCOUNT_NUMBER \
-  > unsigned.tx.json
-```
-
-If everything went well in the output file which we named `unsigned.tx.json` you should have an output similar to the one below:
+Example contents of `unsigned.tx.json`:
 
 ```json=
 {
@@ -177,8 +211,8 @@ If everything went well in the output file which we named `unsigned.tx.json` you
       {
         "type": "wasm/MsgExecuteContract",
         "value": {
-          "sender": "secret1ngfu3dkawmswrpct4r6wvx223f5pxfsryffc7a",
-          "contract": "secret1wgeqzh7dd7l2wwllyky0dh052hmzsp903fhfnj",
+          "sender": "secret1...",
+          "contract": "secret1...",
           "msg": "...LONG BASE64-ENCODED CIPHERTEXT...",
           "callback_code_hash": "",
           "sent_funds": [],
@@ -207,29 +241,33 @@ If everything went well in the output file which we named `unsigned.tx.json` you
 
 <tr><td>
 
-### 3. Distribute for signatures
+### Step 4. Collect signatures
 
-Now that we have the prepared transaction its time to collect the signatures required.
-Depending on the threshold that was set for the multisig - you can distribute the file
-`unsigned.tx.json` to the required amount of signers by any means of communication
-(IM, email, etc.).
+Now that we have the prepared transaction, it's time to collect the signatures required.
 
-</td><td>
-
-### 4. Individual signing
-
-Each of the signers should individually sign the file as so:
+Run the following command to generate the actual signing command:
 
 ```bash
-secretcli tx sign unsigned.tx.json \
---multisig=MULTISIG_ADDRESS \
---offline \
---account-number=MULTISIG_ACCOUNT_NUMBER \
---sequence=MULTISIG_ACCOUNT_SEQUENCE \
---chain-id=secret-2 \
---from=ACCOUNT_ALIAS \
---output-document=mint_signed_participant_N.json
+secretcli tx sign "$UNSIGNED" \
+--offline               \
+--multisig="$MULTISIG"   \
+--chain-id=secret-4       \
+--from="$MULTISIG"         \
+--account-number="$ACCOUNT" \
+--sequence="$SEQUENCE"       \
+--output-document=signed_N.tx.json
 ```
+
+* Distribute the file `unsigned.tx.json`, and the generated signing command,
+to as many signers as needed to achieve the threshold originally defined for the multisig.
+You can use standard communication channels such as text messaging, email, etc.
+
+* Instruct the signers to sign the transaction by running the generated command in the
+directory in which they downloaded the unsigned transaction file.
+
+* Collect the individual `signed_N.tx.json` files collected from the signers.
+
+</td><td>
 
 >ℹ️ name the different files with the number of the signer for conveinience.
 
