@@ -45,8 +45,6 @@ npx truffle test
 npx truffle migrate --network <network>
 ```
 
-</td><td>
-
 * Place the deploying seed in a `.secret` file
   in `/contracts/tge/wrapped`.
 
@@ -57,6 +55,7 @@ npx truffle migrate --network <network>
   for the network you are planning to deploy the contracts on
   (see below)
 
+</td><td>
 </td></tr>
 </table>
 
@@ -195,7 +194,10 @@ you need to do perform the following steps:
 </td><td>
 
 </td></tr>
-</table>
+
+<tr><!--spacer--></tr>
+
+<tr><td>
 
 ##### Transfer ownership of MGMT
 
@@ -208,6 +210,8 @@ secretcli tx compute execute MGMT_ADDRESS \
 ```
 
 > Replace `secret-2` with `holodeck-2` if deploying to testnet)
+
+</td><td>
 
 Example:
 ```bash
@@ -235,6 +239,12 @@ Example output:
 }
 ```
 
+</td></tr>
+
+<tr><!--spacer--></tr>
+
+<tr><td>
+
 ##### Transfer ownership of RPT
 
 ```bash
@@ -245,6 +255,8 @@ secretcli tx compute execute RPT_ADDRESS \
   --gas 450000
 ```
 (Replace `secret-2` with `holodeck-2` if deploying to testnet)
+
+</td><td>
 
 Example:
 ```bash
@@ -272,6 +284,12 @@ Example output:
   "plaintext_error": ""
 }
 ```
+
+</td></tr>
+
+<tr><!--spacer--></tr>
+
+</table>
 
 ## Configure
 
