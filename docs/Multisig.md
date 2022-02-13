@@ -108,6 +108,7 @@ To send a bundle of transactions from the multisig account, use Fadroma.
 Open a new Bash shell and define the following environment variables:
 
 ```bash
+export CHAIN='secret-4'
 export MULTISIG='secret1...'       
 export CONTRACT='secret1...'       
 export UNSIGNED='unsigned.tx.json' 
@@ -119,6 +120,7 @@ export MESSAGE='{"mint": {"recipient": "secret1...", "amount": "10000" }}'
 
 **Output environment of step 1:**
 
+* `CHAIN`     - ID of executing chain
 * `MULTISIG`  - address or name of multisig from "Create a multisig account"
 * `CONTRACT`  - the address of the contract that you'll be calling
 * `UNSIGNED`  - name of file in which to store the unsigned transaction
@@ -137,7 +139,7 @@ export MESSAGE='{"mint": {"recipient": "secret1...", "amount": "10000" }}'
 
 <tr><td valign="top">
 
-### Step 1. Populate the signing environment
+### Step 2. Populate the signing environment
 
 Download the chain's global certificates to the current directory
 with this command:
@@ -173,7 +175,7 @@ You need these to create an unsigned transaction file.
 // io-master-cert.der
 ```
 
-**Output environment of step 1:**
+**Output environment of step 2:**
 
 * `ACCOUNT`
 * `SEQUENCE`
@@ -204,45 +206,40 @@ You need these to create an unsigned transaction file.
 
 <tr><td valign="top">
 
-### Step 2. Get the account number and sequence for the multisig account
-
-</td><td>
-
-</td></tr>
-
-<tr><!--spacer--></tr>
-
-<tr><td valign="top">
-
 ### Step 3. Create the unsigned transaction file
 
-This file contains the messages that you want to send,
+This file will contain the messages that you want to send,
 encrypted with the smart contract's code hash.
 
-Now is a good time to set the address and code hash of the contract
-that you will be calling in your shell session:
-
-```bash
-```
-
 To create an unsigned transaction file containing one
-`execute` call:
+`execute`, run this command:
 
 ```bash
-secretcli tx compute execute "$CONTRACT" "$MESSAGE" \
-  --code-hash "$CODE_HASH"   \
-  --gas 450000                \
-  --chain-id secret-4          \
-  --from "$MULTISIG"            \
-  --sequence "$SEQUENCE"         \
-  --account-number "$ACCOUNT"     \
-  --enclave-key io-master-cert.der \
-  --generate-only > unsigned.tx.json
+secretcli tx compute execute  \
+  "$CONTRACT"                  \
+  "$MESSAGE"                    \
+  --code-hash       "$CODE_HASH" \
+  --gas             450000        \
+  --chain-id        "$CHAIN"       \
+  --from            "$MULTISIG"     \
+  --sequence        "$SEQUENCE"      \
+  --account-number  "$ACCOUNT"        \
+  --enclave-key     io-master-cert.der \
+  --generate-only > "$UNSIGNED"
 ```
+
+>This will create a file named after the value of the
+>`UNSIGNED` environment variable. E.g. if `UNSIGNED=foo.json`
+>it will write the unsigned transaction to `foo.json` in the
+>current directory.
 
 </td><td>
 
-Example contents of `unsigned.tx.json`:
+**Output files of step 3:**
+
+- `$UNSIGNED` Unsigned transaction file (e.g. `unsigned.tx.json`)
+
+**Example contents of unsigned transaction:**
 
 ```json=
 {
@@ -284,42 +281,61 @@ Example contents of `unsigned.tx.json`:
 
 ### Step 4. Collect signatures
 
-Now that we have the prepared transaction, it's time to collect the signatures required.
+Now that we have prepared the unsigned transaction,
+it's time to collect the signatures required.
 
-Run the following command to generate the actual signing command:
+Run the following command to generate an instruction file
+containing the actual signing command:
 
 ```bash
-secretcli tx sign "$UNSIGNED" \
---offline               \
---multisig="$MULTISIG"   \
---chain-id=secret-4       \
---from="$MULTISIG"         \
---account-number="$ACCOUNT" \
---sequence="$SEQUENCE"       \
---output-document=signed_N.tx.json
+envsubst << EOF > INSTRUCTIONS.txt
+
+Your signature has been requested on
+the transaction contained in "$UNSIGNED".
+
+Run the following command to sign:
+
+  secretcli tx sign "$UNSIGNED" \
+  --offline               \
+  --multisig="$MULTISIG"   \
+  --chain-id=secret-4       \
+  --from="$MULTISIG"         \
+  --account-number="$ACCOUNT" \
+  --sequence="$SEQUENCE"       \
+  --output-document=SignedTX.json
+
+Or use Motika (https://github.com/hackbg/motika)
+for a graphical signing experience.
+
+EOF
 ```
 
-* Distribute the file `unsigned.tx.json`, and the generated signing command,
-to as many signers as needed to achieve the threshold originally defined for the multisig.
-You can use standard communication channels such as text messaging, email, etc.
+* Distribute the **unsigned transaction file** and the **signing instructions**,
+  to as many signers as needed to achieve the threshold originally defined for the multisig.
 
-* Instruct the signers to sign the transaction by running the generated command in the
-directory in which they downloaded the unsigned transaction file.
+>You can use standard communication channels such as text messaging, email, etc.
+>The contents of the unsigned transaction are not a cryptographic secret.
 
-* Collect the individual `signed_N.tx.json` files collected from the signers.
-  Rename each file with the number of the signer so you have `signed_1.tx.json`, `signed_2.tx.json`.
+* Collect the signed transactions that the signers have generated using the
+  signing instructions.
 
 </td><td>
 
-Example file output:
+**Output files of step 4:**
+- `SignedTX_1.json`
+- `SignedTX_2.json`
+- ...
+- `SignedTX_N.json`
+
+**Example contents of signed transaction file:**
 
 ```json=
 {
   "pub_key": {
     "type": "tendermint/PubKeySecp256k1",
-    "value": "AusMnK+0hQCDvZZ8QPNXazpA2NCy1/WoTlgUMyVOJZxI"
+    "value": "BASE64-ENCODED PUBLIC KEY"
   },
-  "signature": "...LONG BASE64-ENCODED SIGNATURE..."
+  "signature": "BASE64-ENCODED SIGNATURE"
 }
 ```
 
