@@ -3,7 +3,7 @@ use crate::{
     errors,
     gov::user::{IUser, User},
     time_utils::{Duration, Moment},
-    total::{ITotal, Total},
+    total::{ITotal, Total}, bus_queue::BusQueue,
 };
 use fadroma::*;
 use schemars::JsonSchema;
@@ -65,7 +65,7 @@ where
     S: Storage,
     A: Api,
     Q: Querier,
-    C: Composable<S, A, Q>,
+    C: Composable<S, A, Q> + BusQueue<S, A, Q>,
 {
     /// Get the transaction initiator's account at current time
     fn from_env(core: &C, env: &Env) -> StdResult<Self>;
@@ -97,7 +97,7 @@ where
     S: Storage,
     A: Api,
     Q: Querier,
-    C: Composable<S, A, Q>,
+    C: Composable<S, A, Q> + BusQueue<S, A, Q>,
 {
     fn from_env(core: &C, env: &Env) -> StdResult<Self> {
         Self::from_addr(core, &env.message.sender, env.block.time)
@@ -229,6 +229,8 @@ where
         } else {
             let active_polls =
                 User::get_active_polls(core, self.address.clone(), self.total.clock.now)?;
+            // testing pub/sub between traits. Message string will be enum, not a string
+            let polls = core.broadcast::<Moment, Vec<u64>>("get_active_polls", self.total.clock.now)?;
             if active_polls.len() > 0 {
                 errors::unstake_disallowed()?
             }
