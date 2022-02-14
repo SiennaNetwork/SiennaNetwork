@@ -155,6 +155,33 @@ Fadroma.command('upgrade rewards v2_to_v3',
 ```typescript
 import { ScrtAgentTX, Scrt_1_2 } from '@hackbg/fadroma'
 
+Fadroma.command('generate amm-pause-v1-init-v2',
+  Deployments.activate,
+  forMainnet,
+  async ({agent, txAgent, deployment, run, cmdArgs})=>{
+
+    const [ newAddress = null ] = cmdArgs
+
+    await txAgent.bundle().wrap(async deployAgent=>{
+
+      const factory_v1 = new API.AMMFactoryClient.v1({
+        ...deployment.get('AMM[v1].Factory'),
+        agent: deployAgent
+      })
+
+      await factory_v1.setStatus(
+        "Paused",
+        null,
+        "Migration to AMMv2 has begun."
+      )
+
+      await run(API.AMMFactoryContract.v1.upgrade.v2_factory, { deployAgent })
+
+    })
+
+  }
+)
+
 Fadroma.command('generate amm-v1-pause',
   Deployments.activate,
   forMainnet,

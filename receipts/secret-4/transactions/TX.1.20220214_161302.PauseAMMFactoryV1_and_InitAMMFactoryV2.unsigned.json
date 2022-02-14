@@ -1,0 +1,44 @@
+{
+  "body": {
+    "messages": [
+      {
+        "@type": "/secret.compute.v1beta1.MsgExecuteContract",
+        "sender": "secret1qtsqzezrkcs73j29mlf88xg8zavl9czukpfu46",
+        "contract": "secret1zvk7pvhtme6j8yw3ryv0jdtgg937w0g0ggu8yy",
+        "msg": "wCrz0Ugof60W3lMk+0ZykNUuOOyVsYQWH24Eegqf3DWKvI3YA+O0ms7aduzEoa9dycr1Bgw4pmRJvcK0M+ItUU0W8XdtG9HKnvq1sKdxEnzTuKDvFK9ak/sJCrZ9DLHjcKI0VlerEQSRjW/pdVtYS6w1RrlhaePzfnFJFW0Rm8TEYMQoReFLYPW9Sk0+8Vp82clNozHNGzsDqz8cK+LQuDDr1d24Dy5kwc3KxY4TsC0kLn20paHjyNKpF7zwnKRQx7RD3w+vT24M1vdDZ/lhsPgx2sgM6QzySaUoypgwsF3seGLmTqH5M/mMGTqq",
+        "callback_code_hash": "",
+        "sent_funds": [],
+        "callback_sig": null
+      },
+      {
+        "@type": "/secret.compute.v1beta1.MsgInstantiateContract",
+        "sender": "secret1qtsqzezrkcs73j29mlf88xg8zavl9czukpfu46",
+        "callback_code_hash": "",
+        "code_id": "360",
+        "label": "prod/AMM[v2].Factory+20220214_161302",
+        "init_msg": "YyDmJ9/kToXepRDmtpEyCKx8ckbolQmcBxwPNGmgTKgyJ6QII15EY++M+l71ynfOQeWDVyHt2cTB78cFC++gMumDnALDfHuJj/CvHD1lY7r1lKrMnEpMTycYiymzsU1HlSqp1Kodos0yDCRrTvEveg7i3cpHz9mSJoDzVLsGhEnIWXgHvV0u5yN868gYfd0u5cP8LE9fh9BshqJxrxdn1d+hxgf9aGoNTCwFb6WRfeK1TfsQN7As12BwijXP92aqYgdKyCo5pkdYbG6UQhHRU8PrwnMHfd7+ZKWbzmOTAs3KRCCEraQvbPmDtZNL0QUKztZAkznfA2IPETSPV092DHu6bh9zrIviOylv5df8HL3e6gtiJfPQH6uLOl67EN4097zjz63CT+H+636Gdly4liL0Qn4d6JLzvmeu4Q7EVUGb8cljIUEBYw9lEGOFfGql6au4PaTv08QSK+ft2w2xI1etFCRQCevT4mHX0+9GNTt/ED3lNskxjNP2uFDnkICJ516p+VW3A0NJE09kcCaBkVBdgw1xr5gG+VEo0FV+EyKdtstr4A+ql3+1YhSAtp2SGagvUzcNGb4LJZeVp0Awq/sJ/NxyQ3DJzqEsNTuB1OjYR/n7BwrD/6jL8tnAQxmrbkU8GDlb/sOYIZZ+GDS7YSm3oL4v/f4rpEikITfPsT4FW3vdyAVZOIO0ob4Bl4PIqtrS82GeBP2XM9VUuXS/5oKVq9J+wGkOCNcR+tZxwN4q/pQvnRfL86x9zdHpMhOCBEEXC4ZBRedZkDU5VxlOeVxEZvg98cNqfeLDZ4/NZL9rhcmHh5TxOvu14PwZCS35uHlHlrR085hD+XBxj4ZbNcMggufiLxc5joSOpAePHNLzq8fnhfMS",
+        "init_funds": [],
+        "callback_sig": null
+      }
+    ],
+    "memo": "TX.1.20220214_161302",
+    "timeout_height": "0",
+    "extension_options": [],
+    "non_critical_extension_options": []
+  },
+  "auth_info": {
+    "signer_infos": [],
+    "fee": {
+      "amount": [
+        {
+          "amount": "10000000",
+          "denom": "uscrt"
+        }
+      ],
+      "payer": "",
+      "granter": "",
+      "gas_limit": "10000000"
+    }
+  },
+  "signatures": []
+}
