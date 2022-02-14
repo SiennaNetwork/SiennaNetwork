@@ -94,7 +94,7 @@ export abstract class AMMFactoryContract extends Scrt_1_2.Contract<AMMFactoryCli
   static v2 = class AMMFactoryContract_v2 extends AMMFactoryContract {
     version = 'v2' as AMMVersion
     name    = `AMM[${this.version}].Factory`
-    source  = { workspace, crate: 'factory', ref: 'HEAD' }
+    source  = { workspace, crate: 'factory', ref: '39e87e4' }
     Client  = AMMFactoryClient[this.version]
     static deploy = async function deployAMM_v2 (input) {
       return deployAMM({ ...input, ammVersion: 'v2'})

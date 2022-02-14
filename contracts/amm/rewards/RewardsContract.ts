@@ -68,9 +68,10 @@ export abstract class RewardsContract extends Scrt_1_2.Contract<RewardsClient> {
 
   static "v2" = class RewardsContract_v2 extends RewardsContract {
 
+    version = "v2" as RewardsAPIVersion
     name    = `Rewards[${this.version}]`
     source = { workspace, crate: 'sienna-rewards', ref: 'rewards-2.1.2' }
-    version = "v2" as RewardsAPIVersion
+
     initMsg?: any // TODO v2 init type
     Client = RewardsClient['v2']
 
@@ -102,6 +103,8 @@ export abstract class RewardsContract extends Scrt_1_2.Contract<RewardsClient> {
 
     version = "v3" as RewardsAPIVersion
     name    = `Rewards[${this.version}]`
+    source  = { workspace, crate: 'sienna-rewards', ref: '39e87e4' }
+
     initMsg?: Init
     Client = RewardsClient['v3']
 

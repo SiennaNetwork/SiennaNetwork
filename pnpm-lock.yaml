@@ -85,9 +85,11 @@ importers:
   contracts/amm/lp-token:
     specifiers:
       '@hackbg/fadroma': workspace:../../../deps/fadroma
+      '@sienna/exchange': workspace:*
       '@sienna/settings': workspace:^1.0.0
     dependencies:
       '@hackbg/fadroma': link:../../../deps/fadroma
+      '@sienna/exchange': link:../exchange
       '@sienna/settings': link:../../../settings
 
   contracts/amm/rewards:

@@ -2,6 +2,7 @@
 
 ```typescript
 import Fadroma, { bold, timestamp, Console } from '@hackbg/fadroma'
+import * as API from '@sienna/api'
 const console = new Console('@sienna/scripts/Ops')
 ```
 
@@ -38,6 +39,26 @@ Fadroma.command('reset', async ({ chain }) => {
   } else {
     console.warn(bold(process.env.FADROMA_CHAIN), 'not a localnet')
   }
+})
+```
+
+## Uploads
+
+### AMMv2 + Rewardsv3 contracts to mainnet
+
+```typescript
+Fadroma.command('upload amm-v2-rewards-v3', async ({ agent })=>{
+  const [
+    newAMMFactoryTemplate,
+    newAMMExchangeTemplate,
+    newAMMLPTokenTemplate,
+    newRewardsTemplate
+  ] = await agent.buildAndUpload([
+    new API.AMMFactoryContract.v2()
+    new API.AMMExchangeContract.v2()
+    new API.LPTokenContract.v2()
+    new API.RewardsContract.v3()
+  ])
 })
 ```
 
@@ -123,7 +144,6 @@ Fadroma.command('upgrade rewards v2_to_v3',
 
 ```typescript
 import { ScrtAgentTX, Scrt_1_2 } from '@hackbg/fadroma'
-import * as API from '@sienna/api'
 
 Fadroma.command('generate amm-v1-pause',
   Deployments.activate,

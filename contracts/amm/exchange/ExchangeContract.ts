@@ -34,9 +34,10 @@ export abstract class AMMExchangeContract extends Scrt_1_2.Contract<AMMExchangeC
     source  = { workspace, crate: 'exchange', ref: 'a99d8273b4' }
   }
 
-  static "v2" = class AMMExchangeContract_v1 extends AMMExchangeContract {
+  static "v2" = class AMMExchangeContract_v2 extends AMMExchangeContract {
     name   = 'AMM[v2].Exchange'
     version = "v2" as AMMVersion
+    source  = { workspace, crate: 'exchange', ref: '39e87e4' }
   }
 
   /** Procedure. Deploy a new exchange.
