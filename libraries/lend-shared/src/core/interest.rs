@@ -28,7 +28,7 @@ impl JumpRateInterest {
         blocks_year: Option<u64>
     ) -> StdResult<Self> {
         let blocks_year = blocks_year.unwrap_or(BLOCKS_PER_YEAR);
-        let blocks = Decimal256(Uint256::from(blocks_year).0);
+        let blocks = Decimal256::from_uint256(Uint256::from(blocks_year))?;
 
         Ok(Self {
             base_rate_block: (base_rate_year / blocks)?,
@@ -46,7 +46,7 @@ impl JumpRateInterest {
         blocks_year: Option<u64>
     ) -> StdResult<Self> {
         let blocks_year = blocks_year.unwrap_or(BLOCKS_PER_YEAR);
-        let blocks = Decimal256(Uint256::from(blocks_year).0);
+        let blocks = Decimal256::from_uint256(Uint256::from(blocks_year))?;
 
         Ok(Self {
             base_rate_block: (base_rate_year / blocks)?,
@@ -130,7 +130,7 @@ mod tests {
     #[test]
     fn borrow_rate_v1() {
         let blocks_year_raw = 2102400;
-        let blocks_year = Decimal256(Uint256::from(blocks_year_raw).0);
+        let blocks_year = Decimal256::from_uint256(Uint256::from(blocks_year_raw)).unwrap();
 
         let tests = [
             (
