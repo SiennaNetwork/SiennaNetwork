@@ -1,0 +1,28 @@
+{
+  "type": "cosmos-sdk/StdTx",
+  "value": {
+    "msg": [
+      {
+        "type": "wasm/MsgInstantiateContract",
+        "value": {
+          "sender": "secret1qtsqzezrkcs73j29mlf88xg8zavl9czukpfu46",
+          "code_id": "360",
+          "init_msg": "+2hLcRaKe2bZkY/1Rs1ZQA3fFWd4QToDUGjO/ObDP3GIl1QvH7+PTkcOh4lARocdk4Y/sz35pIXmzrfN/NSjS2fhsWXq92plqhIiP/MRKcT2LKC6rKCj7kiMNCclSf8TSAY0FSVnu6pmCs7tHOy7zku5xwHSnOE4UaYDJR421AFMFBBe0UzV588elKFBmO/8yAAboaDr8+P+eBv9luLgMehuyzT9d7fyinct6Q4+iwWqgRC8yq/7fFOsyTuBhzisumZ7Mp9c3g7i1/GPX91+cwiMZdxeLRv2Br7HPYKCUJ9MBqA7eiZ/FotZ+eZ+6JxM/hFGXhWhx5JbfuyVSaK/YnTKzgDOfsKg0S+aRyRdDIHRFHBtXYN6zfHKC7z3hS0IHuL22HBvTKtZfbWVMFEXgrYKnZX4ZXq9ajD7rXuxAUmEVD9j4LuiafBcPqZ4UsAXGnGP0a7J6ubyG0EfMwgQJ8vP5nzTba7g5uR0CMCR7um3aeIL0Mbz9mE3jikWEkhgdX2bkvlriRNR4N3yVF6IgYxcpbkSiV5H3P26qltXwTGkfv3UkvTrdcXAjERwPGIX6NxVKsotHUFkBEJqdR4l2Ri6PDowPkJY3VYYW8XEeAIhxcSmKavJspmMa1ytjNBtnL8mDVciNBpRajM8f3s88ellvD4JNHzlYqJvTjcEkDkhH09d5fjJ0KgdVxOIXWVatZnV5WtlPqBIeOKRi+Nqn6n++1Z2dg+T2rZ11py/5VFofHXJx0ldIS+eGpV0IOiTTza3PhCkNWl76MbRKi0CppGCJpqYNg9OhzaFkB9Vwu9fnvdZMYr6OJn1KohOgeopFPAKsTETwJJnOYDBv09jfRAuKBm9dPRRJc3w3p8yCd4Ey7zsZmIL",
+          "label": "prod/AMM[v2].Factory+20220214_145421",
+          "init_funds": []
+        }
+      }
+    ],
+    "fee": {
+      "amount": [
+        {
+          "amount": "10000000",
+          "denom": "uscrt"
+        }
+      ],
+      "gas": "10000000"
+    },
+    "signatures": null,
+    "memo": "TX.1.20220214_145421"
+  }
+}
