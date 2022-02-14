@@ -99,9 +99,12 @@ export abstract class AMMFactoryClient extends Client {
 
     const newPairs = []
 
+    console.log(pairs)
     await this.agent.bundle().wrap(async bundle=>{
       const bundledThis = this.switchAgent(bundle)
-      for (let { name, pair: { token_0, token_1 } } of pairs) {
+      for (let { name, pair, raw } of pairs) {
+        let token_0 = pair?.token_0 || raw?.token_0
+        let token_1 = pair?.token_1 || raw?.token_1
         if (token_0 instanceof Snip20Client) token_0 = token_0.asCustomToken
         if (token_1 instanceof Snip20Client) token_1 = token_1.asCustomToken
         const exchange = await bundledThis.createExchange(token_0, token_1)

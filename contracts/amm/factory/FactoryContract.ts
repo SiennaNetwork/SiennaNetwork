@@ -191,10 +191,11 @@ async function upgradeAMM (context: MigrationContext & {
   if (!generateMigration) {
     // turn the list of pairs to create
     // into a list of created exchange instances
+    console.log({newPairs})
     newExchanges = await Promise.all(newPairs.map(
-      ({TOKEN_0, TOKEN_1})=>newFactory.getExchange(
-        TOKEN_0.asCustomToken,
-        TOKEN_1.asCustomToken
+      ({token_0, token_1, TOKEN_0, TOKEN_1})=>newFactory.getExchange(
+        token_0||TOKEN_0.asCustomToken,
+        token_1||TOKEN_1.asCustomToken
       )
     ))
     const inventory  = await newFactory.getContracts()
