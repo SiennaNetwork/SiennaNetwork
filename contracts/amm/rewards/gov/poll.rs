@@ -207,6 +207,7 @@ where
         }
 
         //determine new poll status and change it
+        
 
         //todo, issue testing with balances, need to query total funds in pool
 

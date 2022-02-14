@@ -7,6 +7,7 @@ use crate::auth::Auth;
 use crate::errors::poll_expired;
 
 use super::poll::UpdateResultDto;
+use super::user::{IUser, User};
 use super::validator;
 use super::{
     config::{GovernanceConfig, IGovernanceConfig},
@@ -14,7 +15,7 @@ use super::{
     governance::Governance,
     poll::{IPoll, Poll},
     poll_metadata::PollMetadata,
-    vote::{ VoteType},
+    vote::VoteType,
 };
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -87,9 +88,11 @@ where
                 Poll::update_result(
                     core,
                     poll_id,
-                    env.message.sender,
+                    env.message.sender.clone(),
                     UpdateResultDto::AddVote { power, variant },
                 )?;
+
+                User::append_active_poll(core, env.message.sender, poll_id, env.block.time)?;
 
                 Ok(HandleResponse::default())
             }
@@ -116,9 +119,11 @@ where
                 Poll::update_result(
                     core,
                     poll_id,
-                    env.message.sender,
+                    env.message.sender.clone(),
                     UpdateResultDto::RemoveVote {},
                 )?;
+
+                User::remove_active_poll(core, env.message.sender, poll_id, env.block.time)?;
 
                 Ok(HandleResponse::default())
             }

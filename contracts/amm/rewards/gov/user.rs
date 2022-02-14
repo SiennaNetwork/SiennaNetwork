@@ -34,6 +34,13 @@ where
         timestamp: u64,
     ) -> StdResult<()>;
     fn set_active_polls(core: &mut C, address: HumanAddr, polls: Vec<u64>) -> StdResult<()>;
+    fn remove_active_poll(
+        core: &mut C,
+        address: HumanAddr,
+        poll_id: u64,
+        timestamp: u64,
+    ) -> StdResult<()>;
+
     fn get(core: &C, address: HumanAddr) -> StdResult<User>;
 }
 
@@ -103,6 +110,22 @@ where
 
         core.set_ns(Self::ACTIVE_POLLS, address.as_slice(), polls)?;
 
+        Ok(())
+    }
+
+    fn remove_active_poll(
+        core: &mut C,
+        address: HumanAddr,
+        poll_id: u64,
+        timestamp: u64,
+    ) -> StdResult<()> {
+        let active_polls = Self::get_active_polls(core, address.clone(), timestamp)?;
+        let active_polls = active_polls
+            .iter()
+            .map(|id| *id)
+            .filter(|id| *id != poll_id)
+            .collect();
+        Self::set_active_polls(core, address, active_polls)?;
         Ok(())
     }
 }
