@@ -1,4 +1,6 @@
-import { Console, bold, colors, timestamp, randomHex, Template, ScrtBundle } from '@hackbg/fadroma'
+import {
+  Console, bold, colors, timestamp, randomHex, Template, ScrtBundle, Contract
+} from '@hackbg/fadroma'
 
 const console = Console('@sienna/amm/Factory')
 
@@ -264,24 +266,37 @@ export async function deployAMMFactory (context: MigrationContext & {
   return factory.client(agent)
 }
 
-async function buildTemplates (agent: Agent, version: 'v1'|'v2') {
-  const AMMTOKEN  = new AMMSNIP20Contract()
-  const LPTOKEN   = new LPTokenContract()
-  const EXCHANGE  = new AMMExchangeContract[version]()
-  const LAUNCHPAD = new LaunchpadContract() // special cased because versions
-  const IDO       = new IDOContract()
-  for (const contract of [AMMTOKEN, LPTOKEN, EXCHANGE, LAUNCHPAD, IDO]) {
+async function buildTemplates (agent: Agent, version: 'v1'|'v2'):
+  Promise<Record<string, {id:number,code_hash:string}>>
+{
+  const contracts: Record<string, Contract<any>> = {
+    LPTOKEN:  new LPTokenContract[version](),
+    EXCHANGE: new AMMExchangeContract[version]()
+  }
+  if (version === 'v1') {
+    Object.assign(contracts, {
+      AMMTOKEN:  new AMMSNIP20Contract(),
+      LAUNCHPAD: new LaunchpadContract(),
+      IDO:       new IDOContract()
+    })
+  }
+  for (const contract of Object.values(contracts)) {
     await agent.buildAndUpload([contract]) // TODO parallel
   }
   const template = contract => ({
     id:        Number(contract.template.codeId),
     code_hash: contract.template.codeHash
   })
-  return {
-    snip20_contract:    template(AMMTOKEN),
-    pair_contract:      template(EXCHANGE),
-    lp_token_contract:  template(LPTOKEN),
-    ido_contract:       template(IDO),
-    launchpad_contract: template(LAUNCHPAD),
+  const templates = {
+    pair_contract:      template(contracts.EXCHANGE),
+    lp_token_contract:  template(contracts.LPTOKEN),
   }
+  if (version === 'v1') {
+    Object.assign(templates, {
+      snip20_contract:    template(contracts.AMMTOKEN),
+      ido_contract:       template(contracts.IDO),
+      launchpad_contract: template(contracts.LAUNCHPAD),
+    })
+  }
+  return templates
 }
