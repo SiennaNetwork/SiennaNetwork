@@ -244,6 +244,9 @@ async function upgradeRewards (context: MigrationContext & {
   const RPT = new RPTClient({ ...deployment.get('RPT'), agent })
 
   const OldRewardsClient = RewardsClient[oldVersion]
+
+  console.log(Object.keys(deployment.receipts).sort())
+
   const oldRewardPools = Object.keys(deployment.receipts)
     .filter(name=>name.endsWith(`.Rewards[${oldVersion}]`))
     .map(name=>new OldRewardsClient({ ...deployment.receipts[name], agent }))

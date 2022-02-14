@@ -175,7 +175,7 @@ codeId:              2812
 codeHash:            267b2b1d48d0acc173677e29c76bb63cd2e368bca7d55e56a16c048a90b6e6f3
 address:             secret1k37uzetp7rzuj4fa3adhhy3g4se36ummjjhxtq
 ---
-name:     Rewards[v2].SSSSS
+name:     SIENNA.Rewards[v2]
 codeId:   2814
 codeHash: b9e9e1f2f98ae5d6e257d1f395e8bc210f68be974b55ae3b2621bbe6a79ca859
 address:  secret17f8vnr2reje6eu85t0ve30mut3ptkea9skpss7
@@ -183,7 +183,7 @@ label:    20220203_161134/Rewards[v2].SSSSS
 initTx:   3888141E53A413E8B4BD4ECF7AD207DA10CF271E79E427C4D642E9FC613804E3
 gasUsed:  '47933'
 ---
-name:     Rewards[v2].SIENNA-SSCRT
+name:     AMM[v1].SIENNA-SSCRT.LP.Rewards[v2]
 codeId:   2814
 codeHash: b9e9e1f2f98ae5d6e257d1f395e8bc210f68be974b55ae3b2621bbe6a79ca859
 address:  secret1nul5rja408yryvc7dfr5cwvqag2w7v8w5k2qpz
@@ -191,7 +191,7 @@ label:    20220203_161134/Rewards[v2].SIENNA-SSCRT
 initTx:   368C69251C5CB890133F61E6179C7F9FBC47DBDBCC07775E81C1234AD4420CB0
 gasUsed:  '48038'
 ---
-name:     Rewards[v2].SIENNA-SETH
+name:     AMM[v1].SIENNA-SETH.LP.Rewards[v2]
 codeId:   2814
 codeHash: b9e9e1f2f98ae5d6e257d1f395e8bc210f68be974b55ae3b2621bbe6a79ca859
 address:  secret1djstp3zlfp3wd8wd6z053xj3suxnfp5wyded2v
@@ -199,7 +199,7 @@ label:    20220203_161134/Rewards[v2].SIENNA-SETH
 initTx:   DE0CB87F0EEA5347E3FF6F48B558B3792E21ADDD7C1CB5F18BB2BEA130C9318B
 gasUsed:  '48023'
 ---
-name:     Rewards[v2].SSCRT-SUSDT
+name:     AMM[v1].SSCRT-SUSDT.LP.Rewards[v2]
 codeId:   2814
 codeHash: b9e9e1f2f98ae5d6e257d1f395e8bc210f68be974b55ae3b2621bbe6a79ca859
 address:  secret1a8zep7txl9xm8xvnx8ld35ahsucc3d0e0c4azj
@@ -361,37 +361,45 @@ codeId:              2812
 codeHash:            267b2b1d48d0acc173677e29c76bb63cd2e368bca7d55e56a16c048a90b6e6f3
 address:             secret1faun8z755xnhxmkz5c9srstaf76hth0a8wr384
 ---
-name:     Rewards[v3].SSSSS
-codeId:   2816
-codeHash: aff0f4ddc962e1d12603e387235543ae394d017931b9453dba9d71328f25555f
-address:  secret1s9v6sarqm8fhcuyf9ldk4grpcw6ye4ny4mwzwu
-label:    20220203_161134/Rewards[v3].SSSSS
-initTx:   A029A4BCFB0080D80DD1DA0C42728966B39E39CA2525185A35C09B47FF12450B
-gasUsed:  '48426'
+name:     SIENNA.Rewards[v3]
+sender:   secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy
+tx:       3972C5384A688987A5812C60E5DC590B41C4BDF74E2A52221AE9CCAC6C8C6396
+type:     wasm/MsgInstantiateContract
+chainId:  pulsar-2
+label:    20220203_161134.yml/SIENNA.Rewards[v3]
+address:  secret1mez6jtq9s554kl98rad7n7kmf74gaht0n50snv
+codeId:   '4973'
+codeHash: 8e272c6d17a7b1d740fa0067113bff42934ebdcac461da4307021e1629d3e7ce
 ---
-name:     Rewards[v3].SIENNA-SSCRT
-codeId:   2816
-codeHash: aff0f4ddc962e1d12603e387235543ae394d017931b9453dba9d71328f25555f
-address:  secret1zhjs08gpruquxm0zd0rae2rvj7edq39nrpr3rg
-label:    20220203_161134/Rewards[v3].SIENNA-SSCRT
-initTx:   D3E34806EAA2FBF4A6441531C2892443FDAAADEE49FC439E9CE0558A89EF022C
-gasUsed:  '48531'
+name:     AMM[v2].SIENNA-SSCRT.LP.Rewards[v3]
+sender:   secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy
+tx:       3972C5384A688987A5812C60E5DC590B41C4BDF74E2A52221AE9CCAC6C8C6396
+type:     wasm/MsgInstantiateContract
+chainId:  pulsar-2
+label:    20220203_161134.yml/AMM[v2].SIENNA-SSCRT.LP.Rewards[v3]
+address:  secret1mnwcfxfuzzwj46ve080llranmnterlv37m707y
+codeId:   '4973'
+codeHash: 8e272c6d17a7b1d740fa0067113bff42934ebdcac461da4307021e1629d3e7ce
 ---
-name:     Rewards[v3].SIENNA-SETH
-codeId:   2816
-codeHash: aff0f4ddc962e1d12603e387235543ae394d017931b9453dba9d71328f25555f
-address:  secret1qc2jcz56eqv6338zfxzyggjcqyzakytsje8zy9
-label:    20220203_161134/Rewards[v3].SIENNA-SETH
-initTx:   B3A4354E2803D10C43F601317EF6112C677CD988FFDE538649901A3BB92887CE
-gasUsed:  '48516'
+name:     AMM[v2].SIENNA-SETH.LP.Rewards[v3]
+sender:   secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy
+tx:       3972C5384A688987A5812C60E5DC590B41C4BDF74E2A52221AE9CCAC6C8C6396
+type:     wasm/MsgInstantiateContract
+chainId:  pulsar-2
+label:    20220203_161134.yml/AMM[v2].SIENNA-SETH.LP.Rewards[v3]
+address:  secret1jlfmfyam5prdhhkyeeys8ad5hufrryyaphgtv0
+codeId:   '4973'
+codeHash: 8e272c6d17a7b1d740fa0067113bff42934ebdcac461da4307021e1629d3e7ce
 ---
-name:     Rewards[v3].SSCRT-SUSDT
-codeId:   2816
-codeHash: aff0f4ddc962e1d12603e387235543ae394d017931b9453dba9d71328f25555f
-address:  secret1jm2s7pswrltu7sk2qnmpxlnm5j6n7s7lq2f5at
-label:    20220203_161134/Rewards[v3].SSCRT-SUSDT
-initTx:   C75B3DC2F76D3B9C0FF37104973B44F575C0896DAF3112EC5A7488F7FD41DFAB
-gasUsed:  '48516'
+name:     AMM[v2].SSCRT-SUSDT.LP.Rewards[v3]
+sender:   secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy
+tx:       3972C5384A688987A5812C60E5DC590B41C4BDF74E2A52221AE9CCAC6C8C6396
+type:     wasm/MsgInstantiateContract
+chainId:  pulsar-2
+label:    20220203_161134.yml/AMM[v2].SSCRT-SUSDT.LP.Rewards[v3]
+address:  secret15aney382w0uzdvww8ukgc4gu3fz3cj30y3pxre
+codeId:   '4973'
+codeHash: 8e272c6d17a7b1d740fa0067113bff42934ebdcac461da4307021e1629d3e7ce
 ---
 name:                AMM[v2].SSCRT-SETH
 exchange:
