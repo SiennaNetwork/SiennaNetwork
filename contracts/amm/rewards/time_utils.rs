@@ -7,7 +7,6 @@ use crate::{
     config::{RewardsConfig, IRewardsConfig},
     errors,
     total::Total,
-    Rewards,
 };
 
 /// A moment in time, as represented by the current value of env.block.time
@@ -45,7 +44,7 @@ where
     S: Storage,
     A: Api,
     Q: Querier,
-    C: Rewards<S, A, Q>,
+    C: Composable<S, A, Q>,
 {
     /// Get the current state of the epoch clock.
     fn get(core: &C, now: Moment) -> StdResult<Clock>;
@@ -57,7 +56,7 @@ where
     S: Storage,
     A: Api,
     Q: Querier,
-    C: Rewards<S, A, Q>,
+    C: Composable<S, A, Q>,
 {
     fn get(core: &C, now: Moment) -> StdResult<Clock> {
         let mut clock = Self::default();

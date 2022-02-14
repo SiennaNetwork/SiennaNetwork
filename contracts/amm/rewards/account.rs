@@ -4,7 +4,6 @@ use crate::{
     gov::user::{IUser, User},
     time_utils::{Duration, Moment},
     total::{ITotal, Total},
-    Rewards,
 };
 use fadroma::*;
 use schemars::JsonSchema;
@@ -66,7 +65,7 @@ where
     S: Storage,
     A: Api,
     Q: Querier,
-    C: Rewards<S, A, Q>,
+    C: Composable<S, A, Q>,
 {
     /// Get the transaction initiator's account at current time
     fn from_env(core: &C, env: &Env) -> StdResult<Self>;
@@ -98,7 +97,7 @@ where
     S: Storage,
     A: Api,
     Q: Querier,
-    C: Rewards<S, A, Q>,
+    C: Composable<S, A, Q>,
 {
     fn from_env(core: &C, env: &Env) -> StdResult<Self> {
         Self::from_addr(core, &env.message.sender, env.block.time)

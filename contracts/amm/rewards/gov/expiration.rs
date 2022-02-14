@@ -5,6 +5,8 @@ use serde::{Serialize, Deserialize};
 
 use core::fmt;
 
+use crate::time_utils::Moment;
+
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum Expiration {
@@ -20,7 +22,7 @@ impl fmt::Display for Expiration {
 }
 
 impl Expiration {
-    pub fn is_expired(&self, timestamp: u64) -> bool {
+    pub fn is_expired(&self, timestamp: Moment) -> bool {
         match self {
             Expiration::AtTime(time) => timestamp >= *time,
         }

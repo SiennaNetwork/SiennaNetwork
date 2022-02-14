@@ -67,7 +67,11 @@ pub trait Contract<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         -> StdResult<HandleResponse> { msg.dispatch_handle(self, env) }
     fn query (&self, msg: Query)
         -> StdResult<Response>       { msg.dispatch_query(self) }
-}
+
+    // fn bind() {
+    //     on("get_active_polls", User::get_active_polls());
+    // }
+    }
 
 
 pub trait Rewards<S: Storage, A: Api, Q: Querier>:

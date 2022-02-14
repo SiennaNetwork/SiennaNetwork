@@ -2,7 +2,6 @@ use crate::{
     account::CloseSeal,
     errors,
     time_utils::{Duration, DAY},
-    Rewards,
 };
 use fadroma::*;
 use schemars::JsonSchema;
@@ -33,7 +32,7 @@ where
     S: Storage,
     A: Api,
     Q: Querier,
-    C: Rewards<S, A, Q>,
+    C: Composable<S, A, Q>,
 {
     /// Commit initial contract configuration to storage.
     fn initialize(&mut self, core: &mut C, env: &Env) -> StdResult<Vec<CosmosMsg>>;
@@ -61,7 +60,7 @@ where
     S: Storage,
     A: Api,
     Q: Querier,
-    C: Rewards<S, A, Q>,
+    C: Composable<S, A, Q>,
 {
     fn from_storage(core: &C) -> StdResult<Self> {
         Ok(Self {

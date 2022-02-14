@@ -3,7 +3,6 @@ use crate::{
     config::{RewardsConfig, IRewardsConfig},
     errors,
     time_utils::{Clock, IClock, Duration, Moment, DAY},
-    Rewards,
 };
 use fadroma::*;
 use schemars::JsonSchema;
@@ -46,7 +45,7 @@ where
     S: Storage,
     A: Api,
     Q: Querier,
-    C: Rewards<S, A, Q>,
+    C: Composable<S, A, Q>,
 {
     /// Load and compute the up-to-date totals for a given moment in time
     fn from_time(core: &C, time: Moment) -> StdResult<Self>;
@@ -68,7 +67,7 @@ where
     S: Storage,
     A: Api,
     Q: Querier,
-    C: Rewards<S, A, Q>,
+    C: Composable<S, A, Q>,
 {
     fn from_time(core: &C, time: Moment) -> StdResult<Self> {
         Self::get(core, Clock::get(core, time)?)

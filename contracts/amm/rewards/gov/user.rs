@@ -116,7 +116,7 @@ where
         core: &mut C,
         address: HumanAddr,
         poll_id: u64,
-        timestamp: u64,
+        timestamp: Moment,
     ) -> StdResult<()> {
         let active_polls = Self::get_active_polls(core, address.clone(), timestamp)?;
         let active_polls = active_polls
