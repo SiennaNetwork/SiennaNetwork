@@ -7,9 +7,11 @@ use gov::governance::Governance;
 use gov::handle::GovernanceHandle;
 use gov::query::GovernanceQuery;
 use gov::response::GovernanceResponse;
+use gov::user::{User, IUser};
 use handle::RewardsHandle;
 use account::{Account, *};
 use query::{RewardsQuery, RewardsResponse};
+use bus_queue::BusQueue;
 // pub mod algo;      use crate::algo::{*, RewardsResponse};
 pub mod auth;      use crate::auth::{*, Auth};
 pub mod drain;     use crate::drain::Drain;
@@ -24,7 +26,7 @@ pub mod errors;
 pub mod handle;
 pub mod query;
 pub mod time_utils;
-
+pub mod bus_queue;
 
 #[cfg(test)] #[macro_use] extern crate prettytable;
 #[cfg(test)] mod test;
@@ -59,6 +61,7 @@ pub trait Contract<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     + Emigration<S, A, Q>
     + KeplrCompat<S, A, Q>
     + Drain<S, A, Q>
+    + BusQueue<S, A, Q>
     + Sized
 {
     fn init (&mut self, env: Env, msg: Init)
@@ -68,10 +71,12 @@ pub trait Contract<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     fn query (&self, msg: Query)
         -> StdResult<Response>       { msg.dispatch_query(self) }
 
-    // fn bind() {
-    //     on("get_active_polls", User::get_active_polls());
-    // }
+    fn init_bindings(&mut self) { //core: &mut C) {
+        // self.bind("get_active_polls", || {
+        //     User::get_active_polls(self, HumanAddr::default(), 200)
+        // });
     }
+}
 
 
 pub trait Rewards<S: Storage, A: Api, Q: Querier>:
@@ -202,6 +207,19 @@ pub enum Response {
         impl<S: Storage, A: Api, Q: Querier> Rewards<S, A, Q> for $Core {}
 
         impl<S: Storage, A: Api, Q: Querier> Governance<S, A, Q> for $Core {}
+
+        impl<S: Storage, A: Api, Q: Querier> BusQueue<S, A, Q> for $Core {
+            fn init_bindings(&mut self) {
+
+            }
+            fn bind<T>(&mut self, msg: &str, func: fn() -> T) where T: Default {
+
+            }
+
+            fn broadcast<T>(msg: &str) -> StdResult<T> where T: Default{
+                Ok(T::default())
+            }
+        }
 
         impl<S: Storage, A: Api, Q: Querier> crate::keplr::KeplrCompat<S, A, Q> for $Core {
             fn token_info (&self) -> StdResult<Response> {
