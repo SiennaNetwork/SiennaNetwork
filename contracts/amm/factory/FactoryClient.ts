@@ -8,9 +8,9 @@ import { TokenType, TokenPair, ContractStatusLevel, HumanAddr } from './schema/h
 import { Exchange } from './schema/query_response.d'
 
 export type AMMFactoryTemplates = {
+  pair_contract:       ContractInstantiationInfo
+  lp_token_contract:   ContractInstantiationInfo
   snip20_contract?:    ContractInstantiationInfo
-  pair_contract?:      ContractInstantiationInfo
-  lp_token_contract?:  ContractInstantiationInfo
   ido_contract?:       ContractInstantiationInfo
   launchpad_contract?: ContractInstantiationInfo
   router_contract?:    ContractInstantiationInfo

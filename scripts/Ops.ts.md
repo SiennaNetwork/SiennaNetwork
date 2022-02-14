@@ -129,9 +129,19 @@ Fadroma.command('test legacy',
 #### Locally:
 
 ```typescript
-Fadroma.command('upgrade amm v1_to_v2',
+Fadroma.command('upgrade amm v1_to_v2 all',
   Deployments.activate,
   AMMFactoryContract.v1.upgrade.v2
+)
+
+Fadroma.command('upgrade amm v1_to_v2 factory',
+  Deployments.activate,
+  AMMFactoryContract.v1.upgrade.v2_factory
+)
+
+Fadroma.command('upgrade amm v1_to_v2 exchanges',
+  Deployments.activate,
+  AMMFactoryContract.v1.upgrade.v2_exchanges
 )
 
 Fadroma.command('upgrade rewards v2_to_v3',

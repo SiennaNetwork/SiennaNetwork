@@ -54,15 +54,15 @@ export abstract class AMMFactoryContract extends Scrt_1_2.Contract<AMMFactoryCli
         const v1: Record<string, any> = {}
         v1.name      = `AMM[v1].Factory`
         v1.factory   = new AMMFactoryClient.v1({ ...deployment.get(v1.name), agent: clientAgent })
-        v1.templates = await v1.factory.getContracts()
+        //v1.templates = await v1.factory.getContracts()
         const v2: Record<string, any> = {}
         v2.contract  = new AMMFactoryContract.v2({ prefix, suffix })
         v2.template  = (await uploadAgent.buildAndUpload([v2.contract]))[0]
-        v2.contracts = await run(deployAMMFactory, {
+        v2.contract  = await run(deployAMMFactory, {
           agent:     deployAgent,
           version:   'v2',
           template:  v2.template,
-          templates: v1.templates,
+          //templates: v1.templates,
           suffix
         })
         return { v1, v2 }
@@ -83,6 +83,7 @@ export abstract class AMMFactoryContract extends Scrt_1_2.Contract<AMMFactoryCli
         v2.templates = await v2.factory.getContracts()
         v2.factory   = v2.factory.switchAgent(deployAgent)
         v2.pairs     = await v2.factory.createExchanges({ templates: v2.templates, pairs: v1.pairs })
+        v2.exchanges = await saveExchangeReceipts(deployment, 'v2', v2.factory, v2.pairs)
         return { v1, v2 }
       }
 
@@ -189,21 +190,13 @@ async function upgradeAMM (context: MigrationContext & {
 
   let newExchanges
   if (!generateMigration) {
-    // turn the list of pairs to create
-    // into a list of created exchange instances
-    console.log({newPairs})
-    newExchanges = await Promise.all(newPairs.map(
-      ({token_0, token_1, TOKEN_0, TOKEN_1})=>newFactory.getExchange(
-        token_0||TOKEN_0.asCustomToken,
-        token_1||TOKEN_1.asCustomToken
-      )
-    ))
-    const inventory  = await newFactory.getContracts()
-    const ammVersion = newVersion
-    // save the newly created contracts to the deployment
-    newExchanges.forEach((exchange)=>AMMExchangeContract.save({
-      deployment, ammVersion, inventory, exchange
-    }))
+    console.log(newPairs.sort())
+    newExchanges = await saveExchangeReceipts(
+      deployment,
+      newVersion,
+      newFactory,
+      newPairs
+    )
   }
 
   return generateMigration ? bundle : {
@@ -212,6 +205,27 @@ async function upgradeAMM (context: MigrationContext & {
     // The AMM exchanges that were created as a result of the upgrade.
     EXCHANGES: newExchanges
   }
+}
+
+export async function saveExchangeReceipts (
+  deployment,
+  ammVersion: AMMVersion,
+  factory:    AMMFactoryClient,
+  pairs:      any[]
+) {
+  // turn the list of pairs to create
+  // into a list of created exchange instances
+  const exchanges = await Promise.all(pairs.map(
+    ({token_0, token_1, TOKEN_0, TOKEN_1})=>factory.getExchange(
+      token_0||TOKEN_0.asCustomToken,
+      token_1||TOKEN_1.asCustomToken
+    )
+  ))
+  const inventory = await factory.getContracts()
+  // save the newly created contracts to the deployment
+  exchanges.forEach((exchange)=>AMMExchangeContract.save({
+    deployment, ammVersion, inventory, exchange
+  }))
 }
 
 /** Deploy the Factory contract which is the hub of the AMM.
