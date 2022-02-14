@@ -222,7 +222,7 @@ pub enum PollStatus {
     Passed,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum UpdateResultDto {
     ChangeVotePower { power: Uint128 },
     ChangeVoteVariant { variant: VoteType },

@@ -77,7 +77,7 @@ where
             }
             GovernanceHandle::Vote { variant, poll_id } => {
                 let expiration = Poll::expiration(core, poll_id)?;
-                if expiration.is_expired(&env.block) {
+                if expiration.is_expired(env.block.time) {
                     return poll_expired();
                 }
 
@@ -95,7 +95,7 @@ where
             }
             GovernanceHandle::ChangeVote { variant, poll_id } => {
                 let expiration = Poll::expiration(core, poll_id)?;
-                if expiration.is_expired(&env.block) {
+                if expiration.is_expired(env.block.time) {
                     return poll_expired();
                 }
                 Poll::update_result(
@@ -109,7 +109,7 @@ where
             }
             GovernanceHandle::Unvote { poll_id } => {
                 let expiration = Poll::expiration(core, poll_id)?;
-                if expiration.is_expired(&env.block) {
+                if expiration.is_expired(env.block.time) {
                     return poll_expired();
                 }
 

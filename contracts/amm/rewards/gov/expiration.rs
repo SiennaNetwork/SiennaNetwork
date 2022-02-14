@@ -20,9 +20,9 @@ impl fmt::Display for Expiration {
 }
 
 impl Expiration {
-    pub fn is_expired(&self, block: &BlockInfo) -> bool {
+    pub fn is_expired(&self, timestamp: u64) -> bool {
         match self {
-            Expiration::AtTime(time) => block.time >= *time,
+            Expiration::AtTime(time) => timestamp >= *time,
         }
     }
 }
