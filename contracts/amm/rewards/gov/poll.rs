@@ -4,7 +4,6 @@ use serde::{Deserialize, Serialize};
 
 use super::{
     expiration::Expiration,
-    governance::Governance,
     poll_metadata::{IPollMetaData, PollMetadata},
     poll_result::{IPollResult, PollResult},
     vote::VoteType,
@@ -34,7 +33,7 @@ where
     S: Storage,
     A: Api,
     Q: Querier,
-    C: Governance<S, A, Q>,
+    C: Composable<S, A, Q>,
     Self: Sized,
 {
     fn create_id(core: &mut C) -> StdResult<u64>;
@@ -76,7 +75,7 @@ where
     S: Storage,
     A: Api,
     Q: Querier,
-    C: Governance<S, A, Q>,
+    C: Composable<S, A, Q>,
 {
     fn create_id(core: &mut C) -> StdResult<u64> {
         let total = Self::total(core)?;

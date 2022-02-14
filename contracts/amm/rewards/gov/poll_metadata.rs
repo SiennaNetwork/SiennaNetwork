@@ -2,7 +2,6 @@ use fadroma::*;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use super::governance::Governance;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
@@ -22,7 +21,7 @@ where
     S: Storage,
     A: Api,
     Q: Querier,
-    C: Governance<S, A, Q>,
+    C: Composable<S, A, Q>,
     Self: Sized,
 {
     fn store(&self, core: &mut C, poll_id: u64) -> StdResult<()>;
@@ -40,7 +39,7 @@ where
     S: Storage,
     A: Api,
     Q: Querier,
-    C: Governance<S, A, Q>,
+    C: Composable<S, A, Q>,
 {
     fn store(&self, core: &mut C, poll_id: u64) -> StdResult<()> {
         self.commit_title(core, poll_id)?;

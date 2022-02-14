@@ -2,8 +2,6 @@ use fadroma::*;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use super::governance::Governance;
-
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum VoteType {
@@ -26,7 +24,7 @@ where
     S: Storage,
     A: Api,
     Q: Querier,
-    C: Governance<S, A, Q>,
+    C: Composable<S, A, Q>,
     Self: Sized,
 {
     fn store(self, core: &mut C, address: HumanAddr, poll_id: u64) -> StdResult<Self>;
@@ -41,7 +39,7 @@ where
     S: Storage,
     A: Api,
     Q: Querier,
-    C: Governance<S, A, Q>,
+    C: Composable<S, A, Q>,
     Self: Sized,
 {
     fn store(self, core: &mut C, address: HumanAddr, poll_id: u64) -> StdResult<Self> {

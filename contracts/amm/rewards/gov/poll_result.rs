@@ -1,10 +1,9 @@
 use std::convert::TryInto;
 
-use fadroma::{Api, HumanAddr, Querier, StdError, StdResult, Storage, Uint128};
+use fadroma::{Api, HumanAddr, Querier, StdError, StdResult, Storage, Uint128, Composable};
 use serde::{Deserialize, Serialize};
 
 use super::{
-    governance::Governance,
     vote::{IVote, Vote, VoteType},
 };
 
@@ -45,7 +44,7 @@ where
     S: Storage,
     A: Api,
     Q: Querier,
-    C: Governance<S, A, Q>,
+    C: Composable<S, A, Q>,
     Self: Sized,
 {
     fn new(core: &C, poll_id: u64) -> Self;
@@ -82,7 +81,7 @@ where
     S: Storage,
     A: Api,
     Q: Querier,
-    C: Governance<S, A, Q>,
+    C: Composable<S, A, Q>,
 {
     fn store(&self, core: &mut C) -> StdResult<()> {
         core.set_ns(Self::SELF, &self.poll_id.to_be_bytes(), &self)

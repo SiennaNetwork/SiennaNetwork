@@ -1,10 +1,9 @@
-use fadroma::{Api, HumanAddr, Querier, StdResult, Storage};
+use fadroma::{Api, HumanAddr, Querier, StdResult, Storage, Composable};
 use serde::{Deserialize, Serialize};
 
 use crate::time_utils::Moment;
 
 use super::{
-    governance::Governance,
     poll::{IPoll, Poll},
 };
 
@@ -22,7 +21,7 @@ where
     S: Storage,
     A: Api,
     Q: Querier,
-    C: Governance<S, A, Q>,
+    C: Composable<S, A, Q>,
     Self: Sized,
 {
     fn store(&self, core: &mut C, address: HumanAddr) -> StdResult<()>;
@@ -31,14 +30,14 @@ where
         core: &mut C,
         address: HumanAddr,
         poll_id: u64,
-        timestamp: u64,
+        timestamp: Moment,
     ) -> StdResult<()>;
     fn set_active_polls(core: &mut C, address: HumanAddr, polls: Vec<u64>) -> StdResult<()>;
     fn remove_active_poll(
         core: &mut C,
         address: HumanAddr,
         poll_id: u64,
-        timestamp: u64,
+        timestamp: Moment,
     ) -> StdResult<()>;
 
     fn get(core: &C, address: HumanAddr) -> StdResult<User>;
@@ -49,7 +48,7 @@ where
     S: Storage,
     A: Api,
     Q: Querier,
-    C: Governance<S, A, Q>,
+    C: Composable<S, A, Q>,
 {
     fn get_active_polls(core: &C, address: HumanAddr, timestamp: Moment) -> StdResult<Vec<u64>> {
         let user = Self::get(core, address)?;
@@ -71,13 +70,13 @@ where
     }
 
     /**
-     * Adds the id to the saved vector
+     Adds the id to the saved vector
      */
     fn append_active_poll(
         core: &mut C,
         address: HumanAddr,
         poll_id: u64,
-        timestamp: u64,
+        timestamp: Moment,
     ) -> StdResult<()> {
         let mut active_polls = Self::get_active_polls(core, address.clone(), timestamp)?;
         active_polls.push(poll_id);
@@ -103,7 +102,7 @@ where
     }
 
     /**
-     * Overwrites the saved active polls for given user
+     Overwrites the saved active polls for given user
      */
     fn set_active_polls(core: &mut C, address: HumanAddr, polls: Vec<u64>) -> StdResult<()> {
         let address = core.canonize(address)?;

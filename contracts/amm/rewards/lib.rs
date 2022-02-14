@@ -73,7 +73,6 @@ pub trait Contract<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
 pub trait Rewards<S: Storage, A: Api, Q: Querier>:
 Composable<S, A, Q> // to compose with other modules
 + Auth<S, A, Q>     // to authenticate txs/queries
-+ Governance<S, A, Q>
 + Sized             // to pass mutable self-reference to Total and Account
 {
 /// Configure the rewards module
