@@ -208,11 +208,6 @@ where
             let why = why.clone();
             return self.force_exit(core, when, why);
         } else {
-            let active_polls =
-                User::get_active_polls(core, self.address.clone(), self.total.updated)?;
-            if active_polls.len() > 0 {
-                errors::unstake_disallowed()?
-            }
             self.commit_deposit(core, amount)?;
             let lp_token = RewardsConfig::lp_token(core)?;
             let self_link = RewardsConfig::self_link(core)?;
@@ -233,6 +228,11 @@ where
         } else if self.total.staked < amount {
             errors::withdraw_fatal(self.total.staked, amount)
         } else {
+            let active_polls =
+                User::get_active_polls(core, self.address.clone(), self.total.clock.now)?;
+            if active_polls.len() > 0 {
+                errors::unstake_disallowed()?
+            }
             self.commit_withdrawal(core, amount)?;
             let mut response = HandleResponse::default();
             // If all tokens were withdrawn
