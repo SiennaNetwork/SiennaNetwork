@@ -1,9 +1,11 @@
 use fadroma::{Api, HumanAddr, Querier, StdResult, Storage};
 use serde::{Deserialize, Serialize};
 
+use crate::time_utils::Moment;
+
 use super::{
     governance::Governance,
-    poll::{self, IPoll, Poll},
+    poll::{IPoll, Poll},
 };
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -24,7 +26,7 @@ where
     Self: Sized,
 {
     fn store(&self, core: &mut C, address: HumanAddr) -> StdResult<()>;
-    fn get_active_polls(core: &C, address: HumanAddr, timestamp: u64) -> StdResult<Vec<u64>>;
+    fn get_active_polls(core: &C, address: HumanAddr, timestamp: Moment) -> StdResult<Vec<u64>>;
     fn append_active_poll(
         core: &mut C,
         address: HumanAddr,
@@ -42,7 +44,7 @@ where
     Q: Querier,
     C: Governance<S, A, Q>,
 {
-    fn get_active_polls(core: &C, address: HumanAddr, timestamp: u64) -> StdResult<Vec<u64>> {
+    fn get_active_polls(core: &C, address: HumanAddr, timestamp: Moment) -> StdResult<Vec<u64>> {
         let user = Self::get(core, address)?;
 
         let filtered: Vec<u64> = user

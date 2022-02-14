@@ -96,3 +96,9 @@ pub fn poll_expired<T>() -> StdResult<T> {
         "Poll has expired. Can't perform anymore updates. ",
     ))
 }
+
+pub fn unstake_disallowed<T>() -> StdResult<T> {
+    Err(StdError::generic_err(format!(
+        "User voted in active polls, which prevents unstaking"
+    )))
+}

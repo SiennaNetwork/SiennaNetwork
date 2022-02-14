@@ -41,6 +41,7 @@ TDB:
     - Vote
     - UnVote
 
+
 * Changing voting power recalculates:
     - Vote 
     - PollResult 
