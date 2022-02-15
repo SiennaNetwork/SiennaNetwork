@@ -1,4 +1,9 @@
-import { Console, bold, Scrt_1_2, Snip20Contract, randomHex, timestamp } from "@hackbg/fadroma"
+import {
+  Console, bold,
+  Scrt_1_2, Snip20Contract,
+  randomHex, timestamp,
+  readFileSync
+} from "@hackbg/fadroma"
 
 const console = Console('@sienna/rewards/Contract')
 
@@ -39,7 +44,7 @@ const makeRewardInitMsg = {
     }
   },
 
-  "v3" (admin, staked, reward) {
+  "v3" (admin, timekeeper, staked, reward) {
     let bonding = 86400
     if (SIENNA_REWARDS_V3_BONDING) {
       console.warn(bold('Environment override'), 'SIENNA_REWARDS_V3_BONDING=', SIENNA_REWARDS_V3_BONDING)
@@ -49,9 +54,9 @@ const makeRewardInitMsg = {
       admin,
       config: {
         reward_vk:    randomHex(36),
-        timekeeper:   admin,
         lp_token:     { address: staked?.address, code_hash: staked?.codeHash },
         reward_token: { address: reward?.address, code_hash: reward?.codeHash },
+        timekeeper,
         bonding,
       }
     }
@@ -78,9 +83,9 @@ export abstract class RewardsContract extends Scrt_1_2.Contract<RewardsClient> {
 
     constructor ({ template, admin, staked, reward }: {
       template?: Template,
-      admin?:     string,
-      staked?:    Snip20Client,
-      reward?:    Snip20Client,
+      admin?:    string,
+      staked?:   Snip20Client,
+      reward?:   Snip20Client,
     } = {}) {
       super()
       if (template) this.template = template
@@ -109,15 +114,16 @@ export abstract class RewardsContract extends Scrt_1_2.Contract<RewardsClient> {
     initMsg?: Init
     Client = RewardsClient['v3']
 
-    constructor ({ template, admin, staked, reward }: {
-      template?: Template,
-      admin?:    string,
-      staked?:   Snip20Client,
-      reward?:   Snip20Client,
+    constructor ({ template, admin, timekeeper, staked, reward }: {
+      template?:   Template,
+      admin?:      string,
+      timekeeper?: string,
+      staked?:     Snip20Client,
+      reward?:     Snip20Client,
     } = {}) {
       super()
       if (template) this.template = template
-      this.initMsg = makeRewardInitMsg['v3'](admin, staked, reward)
+      this.initMsg = makeRewardInitMsg['v3'](admin, timekeeper, staked, reward)
     }
 
     /** Command. Deploy Rewards v3. */
@@ -131,6 +137,35 @@ export abstract class RewardsContract extends Scrt_1_2.Contract<RewardsClient> {
       "v3": function upgradeRewards_v2_to_v3 (input) {
         return RewardsContract.upgradeRewards({ ...input, oldVersion: 'v3', newVersion: 'v3', })
       }
+    }
+
+    /** Command. Import addresses from a bundle that initialized multiple
+      * rewards contracts, and query their configuration. */
+    static importReceipts = async function importRewardsReceipts ({
+      agent,
+      deployment
+    }) {
+      const bundleReceiptPath = agent.chain.stateRoot.resolve('rewards-v3.json')
+      const bundleReceiptData = JSON.parse(readFileSync(bundleReceiptPath, 'utf8'))
+      const addresses = bundleReceiptData.logs.map(({ msg_index, log, events: [ message, wasm ] })=>{
+        const address = message.attributes[4].value
+        console.log(address)
+        return address
+      })
+      const stakedTokens = new Map()
+      const stakedTokenNames = new Map()
+      const { codeId, codeHash } = agent.chain.uploads.load('sienna-rewards@39e87e4.wasm')
+      await Promise.all(addresses.map(async address=>{
+        const client = new RewardsClient.v3({ address, codeHash, agent })
+        const label = await client.label
+        deployment.add(label.split('/')[1], {
+          label,
+          codeId,
+          codeHash,
+          address,
+          initTx: bundleReceiptData.txhash
+        })
+      }))
     }
   }
 
@@ -212,16 +247,19 @@ async function deployRewards (context: MigrationContext & {
 async function upgradeRewards (context: MigrationContext & {
   /** Which address will be admin of the new reward pools.
     * Defaults to the executing agent. */
-  admin:         string,
+  admin:         string
+  /** Which address can call BeginEpoch on the new reward pools.
+    * Defaults to the value of `admin` */
+  timekeeper:    string
   /** The reward token.
     * Defaults to SIENNA */
-  reward:        Snip20Client,
+  reward:        Snip20Client
   /** Old version that we are migrating from. */
-  oldVersion:    RewardsAPIVersion,
+  oldVersion:    RewardsAPIVersion
   /** New version that we are migrating to. */
-  newVersion:    RewardsAPIVersion,
+  newVersion:    RewardsAPIVersion
   /** Code id and code hash of new version. */
-  template:      Template,
+  template:      Template
   /** Version of the AMM that the new reward pools will attach to. */
   newAmmVersion: AMMVersion
 }): Promise<{
@@ -233,7 +271,8 @@ async function upgradeRewards (context: MigrationContext & {
     deployAgent,
     clientAgent,
 
-    admin  = agent.address,
+    admin      = getSettings(agent.chain.id).admin      || agent.address,
+    timekeeper = getSettings(agent.chain.id).timekeeper || admin,
     reward = new Snip20Client({ ...deployment.get('SIENNA'), agent }),
     oldVersion,
     newVersion,
@@ -241,12 +280,12 @@ async function upgradeRewards (context: MigrationContext & {
     newAmmVersion = 'v2'
   } = context
 
-  const OldRewardsClient = RewardsClient[oldVersion]
-
   const isOldRewardPool =
     name => name.endsWith(`.Rewards[${oldVersion}]`)
   const oldRewardPoolNames =
     Object.keys(deployment.receipts).filter(isOldRewardPool)
+  const OldRewardsClient =
+    RewardsClient[oldVersion]
   const oldRewardPools =
     oldRewardPoolNames.map(name=>new OldRewardsClient({ ...deployment.receipts[name], agent }))
 
@@ -271,7 +310,13 @@ async function upgradeRewards (context: MigrationContext & {
   const newRewardPools = []
   for (const oldRewardPool of oldRewardPools) {
     const staked = stakedTokens.get(oldRewardPool)
-    const newRewardPool = new NewRewardsContract({ template, admin, staked, reward })
+    const newRewardPool = new NewRewardsContract({
+      template,
+      admin,
+      timekeeper,
+      staked,
+      reward
+    })
     let name
     if (staked.address === deployment.get('SIENNA').address) {
       name = `SIENNA.Rewards[${newVersion}]`

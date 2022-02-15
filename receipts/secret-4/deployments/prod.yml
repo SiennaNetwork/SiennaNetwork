@@ -3071,3 +3071,164 @@ token_1:
 codeId:              362
 codeHash:            1ff4fa35a56444e4a7aac68365a6259a74cc58d61a2ae71efedb3109c65246b4
 address:             secret18zhvfekrdygk5ua2g7g0nmy252ug8gzmnra9aq
+---
+name:     AMM[v2].SIENNA-SXMR.LP.Rewards[v3]
+label:    prod/AMM[v2].SIENNA-SXMR.LP.Rewards[v3]
+codeId:   363
+codeHash: 8e272c6d17a7b1d740fa0067113bff42934ebdcac461da4307021e1629d3e7ce
+address:  secret1ytxu82drp5w55qtxv9qx444zjw6hlr6cp5hqn5
+initTx:   3E145F19BEA5AE7063A3B92BF34D2CADAD425634265C415EB61E36E5111052EE
+---
+name:     AMM[v2].SIENNA-SUSDC.LP.Rewards[v3]
+label:    prod/AMM[v2].SIENNA-SUSDC.LP.Rewards[v3]
+codeId:   363
+codeHash: 8e272c6d17a7b1d740fa0067113bff42934ebdcac461da4307021e1629d3e7ce
+address:  secret14gfn4hcc9rk8efhtfvn3xa4vxvhert4mluzm56
+initTx:   3E145F19BEA5AE7063A3B92BF34D2CADAD425634265C415EB61E36E5111052EE
+---
+name:     AMM[v2].SIENNA-SETH.LP.Rewards[v3]
+label:    prod/AMM[v2].SIENNA-SETH.LP.Rewards[v3]
+codeId:   363
+codeHash: 8e272c6d17a7b1d740fa0067113bff42934ebdcac461da4307021e1629d3e7ce
+address:  secret1jqecc5qfvquqgdgvj2tn4tass2t28kpwpdk5zs
+initTx:   3E145F19BEA5AE7063A3B92BF34D2CADAD425634265C415EB61E36E5111052EE
+---
+name:     AMM[v2].SIENNA-SSCRT.LP.Rewards[v3]
+label:    prod/AMM[v2].SIENNA-SSCRT.LP.Rewards[v3]
+codeId:   363
+codeHash: 8e272c6d17a7b1d740fa0067113bff42934ebdcac461da4307021e1629d3e7ce
+address:  secret1msxp0ktn058dj7u0dlpa0lxtj7ec87vmefva8u
+initTx:   3E145F19BEA5AE7063A3B92BF34D2CADAD425634265C415EB61E36E5111052EE
+---
+name:     AMM[v2].SSCRT-SWBTC.LP.Rewards[v3]
+label:    prod/AMM[v2].SSCRT-SWBTC.LP.Rewards[v3]
+codeId:   363
+codeHash: 8e272c6d17a7b1d740fa0067113bff42934ebdcac461da4307021e1629d3e7ce
+address:  secret16wx6zvx0kg9zvrllqsdj2pw5x38rhu7a8z7r39
+initTx:   3E145F19BEA5AE7063A3B92BF34D2CADAD425634265C415EB61E36E5111052EE
+---
+name:     AMM[v2].SXMR-SWBTC.LP.Rewards[v3]
+label:    prod/AMM[v2].SXMR-SWBTC.LP.Rewards[v3]
+codeId:   363
+codeHash: 8e272c6d17a7b1d740fa0067113bff42934ebdcac461da4307021e1629d3e7ce
+address:  secret1s79879yanyupd0r0z2z3hdwj3qmhyn6ft45m2t
+initTx:   3E145F19BEA5AE7063A3B92BF34D2CADAD425634265C415EB61E36E5111052EE
+---
+name:     AMM[v2].SIENNA-RUNE.LP.Rewards[v3]
+label:    prod/AMM[v2].SIENNA-RUNE.LP.Rewards[v3]
+codeId:   363
+codeHash: 8e272c6d17a7b1d740fa0067113bff42934ebdcac461da4307021e1629d3e7ce
+address:  secret175vyrv96k03wdqmnysrc7yl7na2ufmvfhu9ly9
+initTx:   3E145F19BEA5AE7063A3B92BF34D2CADAD425634265C415EB61E36E5111052EE
+---
+name:     AMM[v2].SXMR-SSCRT.LP.Rewards[v3]
+label:    prod/AMM[v2].SXMR-SSCRT.LP.Rewards[v3]
+codeId:   363
+codeHash: 8e272c6d17a7b1d740fa0067113bff42934ebdcac461da4307021e1629d3e7ce
+address:  secret1x59rw60r2gfdk0475zprx0prtqcce3470x6c0j
+initTx:   3E145F19BEA5AE7063A3B92BF34D2CADAD425634265C415EB61E36E5111052EE
+---
+name:     AMM[v2].SIENNA-SUSDT.LP.Rewards[v3]
+label:    prod/AMM[v2].SIENNA-SUSDT.LP.Rewards[v3]
+codeId:   363
+codeHash: 8e272c6d17a7b1d740fa0067113bff42934ebdcac461da4307021e1629d3e7ce
+address:  secret1m78plye56tpuefvksawemh8esfaxw55v90gagp
+initTx:   3E145F19BEA5AE7063A3B92BF34D2CADAD425634265C415EB61E36E5111052EE
+---
+name:     AMM[v2].SOSMO-SIENNA.LP.Rewards[v3]
+label:    prod/AMM[v2].SOSMO-SIENNA.LP.Rewards[v3]
+codeId:   363
+codeHash: 8e272c6d17a7b1d740fa0067113bff42934ebdcac461da4307021e1629d3e7ce
+address:  secret1vzv4v4rvzfdvhjv6we0xt9knhwrgk42hrf90y4
+initTx:   3E145F19BEA5AE7063A3B92BF34D2CADAD425634265C415EB61E36E5111052EE
+---
+name:     AMM[v2].SLUNA-SIENNA.LP.Rewards[v3]
+label:    prod/AMM[v2].SLUNA-SIENNA.LP.Rewards[v3]
+codeId:   363
+codeHash: 8e272c6d17a7b1d740fa0067113bff42934ebdcac461da4307021e1629d3e7ce
+address:  secret1ycqpceswdqmy4ez4j6a85hfp59wlswk0lmqzg8
+initTx:   3E145F19BEA5AE7063A3B92BF34D2CADAD425634265C415EB61E36E5111052EE
+---
+name:     AMM[v2].SSCRT-SETH.LP.Rewards[v3]
+label:    prod/AMM[v2].SSCRT-SETH.LP.Rewards[v3]
+codeId:   363
+codeHash: 8e272c6d17a7b1d740fa0067113bff42934ebdcac461da4307021e1629d3e7ce
+address:  secret19x8cehl5czhct8qyvmsz8m7m4jrvaqruuxyzk3
+initTx:   3E145F19BEA5AE7063A3B92BF34D2CADAD425634265C415EB61E36E5111052EE
+---
+name:     AMM[v2].SSCRT-SLUNA.LP.Rewards[v3]
+label:    prod/AMM[v2].SSCRT-SLUNA.LP.Rewards[v3]
+codeId:   363
+codeHash: 8e272c6d17a7b1d740fa0067113bff42934ebdcac461da4307021e1629d3e7ce
+address:  secret1nfahup9lrftwl6xzcyh0ulfs7gcxn0q98cmhrt
+initTx:   3E145F19BEA5AE7063A3B92BF34D2CADAD425634265C415EB61E36E5111052EE
+---
+name:     AMM[v2].SSCRT-SUST.LP.Rewards[v3]
+label:    prod/AMM[v2].SSCRT-SUST.LP.Rewards[v3]
+codeId:   363
+codeHash: 8e272c6d17a7b1d740fa0067113bff42934ebdcac461da4307021e1629d3e7ce
+address:  secret1udv6pxj86drt6mlf7qsdhh0m8adqnzjevfqctf
+initTx:   3E145F19BEA5AE7063A3B92BF34D2CADAD425634265C415EB61E36E5111052EE
+---
+name:     AMM[v2].SIENNA-SEFI.LP.Rewards[v3]
+label:    prod/AMM[v2].SIENNA-SEFI.LP.Rewards[v3]
+codeId:   363
+codeHash: 8e272c6d17a7b1d740fa0067113bff42934ebdcac461da4307021e1629d3e7ce
+address:  secret1x29pcz8h7uvsjfwn0ce8qjg6fy98kk6c9jx5gk
+initTx:   3E145F19BEA5AE7063A3B92BF34D2CADAD425634265C415EB61E36E5111052EE
+---
+name:     AMM[v2].SIENNA-SWBTC.LP.Rewards[v3]
+label:    prod/AMM[v2].SIENNA-SWBTC.LP.Rewards[v3]
+codeId:   363
+codeHash: 8e272c6d17a7b1d740fa0067113bff42934ebdcac461da4307021e1629d3e7ce
+address:  secret1jea7f4gmpuz3njgwjguctzx355mf7rxsmrn9zf
+initTx:   3E145F19BEA5AE7063A3B92BF34D2CADAD425634265C415EB61E36E5111052EE
+---
+name:     AMM[v2].SUST-SIENNA.LP.Rewards[v3]
+label:    prod/AMM[v2].SUST-SIENNA.LP.Rewards[v3]
+codeId:   363
+codeHash: 8e272c6d17a7b1d740fa0067113bff42934ebdcac461da4307021e1629d3e7ce
+address:  secret1dq22t866gjh746d7luz0enzp2rtzylhfyd759f
+initTx:   3E145F19BEA5AE7063A3B92BF34D2CADAD425634265C415EB61E36E5111052EE
+---
+name:     AMM[v2].SIENNA-SDVPN.LP.Rewards[v3]
+label:    prod/AMM[v2].SIENNA-SDVPN.LP.Rewards[v3]
+codeId:   363
+codeHash: 8e272c6d17a7b1d740fa0067113bff42934ebdcac461da4307021e1629d3e7ce
+address:  secret1sjy9g64ptpngn8rkshlmf8wqvvscqrkh5vdhj7
+initTx:   3E145F19BEA5AE7063A3B92BF34D2CADAD425634265C415EB61E36E5111052EE
+---
+name:     SIENNA.Rewards[v3]
+label:    prod/SIENNA.Rewards[v3]
+codeId:   363
+codeHash: 8e272c6d17a7b1d740fa0067113bff42934ebdcac461da4307021e1629d3e7ce
+address:  secret1uta9zf3prn7lvc6whp8sqv7ynxmtz3jz9xkyu7
+initTx:   3E145F19BEA5AE7063A3B92BF34D2CADAD425634265C415EB61E36E5111052EE
+---
+name:     AMM[v2].SSCRT-SUSDC.LP.Rewards[v3]
+label:    prod/AMM[v2].SSCRT-SUSDC.LP.Rewards[v3]
+codeId:   363
+codeHash: 8e272c6d17a7b1d740fa0067113bff42934ebdcac461da4307021e1629d3e7ce
+address:  secret1rl40qmmh76e0ned3yjnvv74pjdmyxzt3nszh44
+initTx:   3E145F19BEA5AE7063A3B92BF34D2CADAD425634265C415EB61E36E5111052EE
+---
+name:     AMM[v2].SATOM-SIENNA.LP.Rewards[v3]
+label:    prod/AMM[v2].SATOM-SIENNA.LP.Rewards[v3]
+codeId:   363
+codeHash: 8e272c6d17a7b1d740fa0067113bff42934ebdcac461da4307021e1629d3e7ce
+address:  secret1gjxsk4twa2dhuaeeyk5qnaccrrxjy8z33zc5uy
+initTx:   3E145F19BEA5AE7063A3B92BF34D2CADAD425634265C415EB61E36E5111052EE
+---
+name:     AMM[v2].SIENNA-SBNB(BSC).LP.Rewards[v3]
+label:    prod/AMM[v2].SIENNA-SBNB(BSC).LP.Rewards[v3]
+codeId:   363
+codeHash: 8e272c6d17a7b1d740fa0067113bff42934ebdcac461da4307021e1629d3e7ce
+address:  secret1hyq5lcr43sh6dpar5sk68ypgu6r8ugc8mqyg7t
+initTx:   3E145F19BEA5AE7063A3B92BF34D2CADAD425634265C415EB61E36E5111052EE
+---
+name:     AMM[v2].SXMR-SUSDT.LP.Rewards[v3]
+label:    prod/AMM[v2].SXMR-SUSDT.LP.Rewards[v3]
+codeId:   363
+codeHash: 8e272c6d17a7b1d740fa0067113bff42934ebdcac461da4307021e1629d3e7ce
+address:  secret1t95m9w2sl4khxej4tgmjdujhfzgfvklak6q90f
+initTx:   3E145F19BEA5AE7063A3B92BF34D2CADAD425634265C415EB61E36E5111052EE

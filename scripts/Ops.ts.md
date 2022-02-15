@@ -38,7 +38,17 @@ generate the corresponding exchange contract receipts.
 ```typescript
 Fadroma.command('import receipts amm v2',
   Deployments.activate,
-  AMMFactoryContract.importReceipts
+  AMMFactoryContract.v2.importReceipts
+)
+```
+
+#### Import rewards receipts from bundle response
+
+```typescript
+Fadroma.command('import receipts rewards v3',
+  Deployments.activate,
+  API.RewardsContract.v3.importReceipts,
+  Deployments.status,
 )
 ```
 
@@ -257,6 +267,17 @@ Fadroma.command('generate rewards-deploy-v3',
   forMainnet,
   Deployments.activate,
   ({agent, txAgent, deployment, run}) => txAgent.bundle().wrap(deployAgent=>
+    run(API.RewardsContract.v2.upgrade.v3, {
+      deployAgent,
+      template: agent.chain.uploads.load('sienna-rewards@39e87e4.wasm')
+    })
+  )
+)
+
+Fadroma.command('deploy rewards-v3-mainnet',
+  forMainnet,
+  Deployments.activate,
+  ({agent, deployment, run}) => agent.bundle().wrap(deployAgent=>
     run(API.RewardsContract.v2.upgrade.v3, {
       deployAgent,
       template: agent.chain.uploads.load('sienna-rewards@39e87e4.wasm')
