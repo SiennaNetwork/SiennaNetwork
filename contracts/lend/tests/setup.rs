@@ -4,14 +4,11 @@ use lend_shared::fadroma::{
     ensemble::{ContractEnsemble, ContractHarness, MockDeps, MockEnv},
     from_binary, snip20_impl,
     snip20_impl::msg::{
-        HandleMsg as Snip20HandleMsg,
-        InitConfig as Snip20InitConfig,
-        InitMsg as Snip20InitMsg,
-        QueryMsg as Snip20QueryMsg,
-        QueryAnswer as Snip20QueryResp,
+        HandleMsg as Snip20HandleMsg, InitConfig as Snip20InitConfig, InitMsg as Snip20InitMsg,
+        QueryAnswer as Snip20QueryResp, QueryMsg as Snip20QueryMsg,
     },
-    to_binary, Binary, Composable, ContractLink, Decimal256, Env, HandleResponse, HumanAddr,
-    InitResponse, Permit, StdError, StdResult, Uint128, Uint256, ContractInstantiationInfo,
+    to_binary, Binary, Composable, ContractInstantiationInfo, ContractLink, Decimal256, Env,
+    HandleResponse, HumanAddr, InitResponse, Permit, StdError, StdResult, Uint128, Uint256,
 };
 
 use lend_shared::interfaces::{interest_model, market, overseer};
@@ -154,11 +151,11 @@ impl Lend {
                 interest.id,
                 &interest_model::InitMsg {
                     admin: None,
-                    base_rate_year: Decimal256::zero(),
-                    multiplier_year: Decimal256::one(),
-                    jump_multiplier_year: Decimal256::zero(),
-                    jump_threshold: Decimal256::zero(),
-                    blocks_year: Some(6311520),
+                    base_rate_year: Decimal256::from_str("0.02").unwrap(),
+                    multiplier_year: Decimal256::from_str("0.02").unwrap(),
+                    jump_multiplier_year: Decimal256::from_str("0.02").unwrap(),
+                    jump_threshold: Decimal256::from_str("0.09").unwrap(),
+                    blocks_year: None,
                 },
                 MockEnv::new(
                     ADMIN,
@@ -248,12 +245,12 @@ impl Lend {
     ) -> StdResult<overseer::Market<HumanAddr>> {
         let result = self.ensemble.query(
             underlying_asset.address.clone(),
-            Snip20QueryMsg::TokenInfo {}
+            Snip20QueryMsg::TokenInfo {},
         )?;
 
         let token_symbol = match result {
             Snip20QueryResp::TokenInfo { symbol, .. } => symbol,
-            _ => panic!("Expecting Snip20QueryResp::TokenInfo")
+            _ => panic!("Expecting Snip20QueryResp::TokenInfo"),
         };
 
         self.ensemble.execute(
@@ -266,7 +263,7 @@ impl Lend {
                     ltv_ratio,
                     config: market::Config {
                         initial_exchange_rate: exchange_rate.unwrap_or(Decimal256::one()),
-                        reserve_factor: Decimal256::one(),
+                        reserve_factor: Decimal256::zero(),
                         seize_factor: Decimal256::from_str("0.028").unwrap(),
                     },
                     interest_model_contract: self.interest_model.clone(),
@@ -315,25 +312,26 @@ impl Lend {
     ) {
         let address = address.into();
 
-        let token: ContractLink<HumanAddr> = self.ensemble.query(
-            market.clone(),
-            market::QueryMsg::UnderlyingAsset {}
-        ).unwrap();
+        let token: ContractLink<HumanAddr> = self
+            .ensemble
+            .query(market.clone(), market::QueryMsg::UnderlyingAsset {})
+            .unwrap();
 
         self.prefund_user(address.clone(), amount, token.clone());
 
-        self.ensemble.execute(
-            &Snip20HandleMsg::Send {
-                recipient: market,
-                recipient_code_hash: None,
-                amount,
-                msg: Some(to_binary(&market::ReceiverCallbackMsg::Deposit {}).unwrap()),
-                memo: None,
-                padding: None,
-            },
-            MockEnv::new(address, token),
-        )
-        .unwrap()
+        self.ensemble
+            .execute(
+                &Snip20HandleMsg::Send {
+                    recipient: market,
+                    recipient_code_hash: None,
+                    amount,
+                    msg: Some(to_binary(&market::ReceiverCallbackMsg::Deposit {}).unwrap()),
+                    memo: None,
+                    padding: None,
+                },
+                MockEnv::new(address, token),
+            )
+            .unwrap()
     }
 
     pub fn new_underlying_token(
@@ -370,59 +368,60 @@ impl Lend {
     pub fn account_info(
         &self,
         address: impl Into<HumanAddr>,
-        market: HumanAddr
+        market: HumanAddr,
     ) -> market::AccountInfo {
-        self.ensemble.query(
-            market.clone(),
-            market::QueryMsg::Account {
-                method: Permit::new(
-                    address,
-                    vec![ market::MarketPermissions::AccountInfo ],
-                    vec![ market ],
-                    "balance"
-                ).into(),
-                block: None
-            }
-        ).unwrap()
+        self.ensemble
+            .query(
+                market.clone(),
+                market::QueryMsg::Account {
+                    method: Permit::new(
+                        address,
+                        vec![market::MarketPermissions::AccountInfo],
+                        vec![market],
+                        "balance",
+                    )
+                    .into(),
+                    block: None,
+                },
+            )
+            .unwrap()
     }
 
     #[inline]
-    pub fn _underlying_balance(
-        &self,
-        address: impl Into<HumanAddr>,
-        market: HumanAddr
-    ) -> Uint256 {
-        self.ensemble.query(
-            market.clone(),
-            market::QueryMsg::BalanceUnderlying {
-                method: Permit::new(
-                    address,
-                    vec![ market::MarketPermissions::Balance ],
-                    vec![ market ],
-                    "balance"
-                ).into(),
-                block: None
-            }
-        ).unwrap()
+    pub fn _underlying_balance(&self, address: impl Into<HumanAddr>, market: HumanAddr) -> Uint256 {
+        self.ensemble
+            .query(
+                market.clone(),
+                market::QueryMsg::BalanceUnderlying {
+                    method: Permit::new(
+                        address,
+                        vec![market::MarketPermissions::Balance],
+                        vec![market],
+                        "balance",
+                    )
+                    .into(),
+                    block: None,
+                },
+            )
+            .unwrap()
     }
 
     #[inline]
-    pub fn id(
-        &self,
-        address: impl Into<HumanAddr>,
-        market: HumanAddr
-    ) -> Binary {
-        self.ensemble.query(
-            market.clone(),
-            market::QueryMsg::Id {
-                method: Permit::new(
-                    address,
-                    vec![ market::MarketPermissions::Id ],
-                    vec![ market ],
-                    "id"
-                ).into()
-            }
-        ).unwrap()
+    pub fn id(&self, address: impl Into<HumanAddr>, market: HumanAddr) -> Binary {
+        self.ensemble
+            .query(
+                market.clone(),
+                market::QueryMsg::Id {
+                    method: Permit::new(
+                        address,
+                        vec![market::MarketPermissions::Id],
+                        vec![market],
+                        "id",
+                    )
+                    .into(),
+                },
+            )
+            .unwrap()
     }
 }
 
