@@ -61,12 +61,21 @@ codeId:  119
 address: secret109g22wm3q3nfys0v6uh7lqg68cn6244n2he4t6
 initTx:  1685E98BDB2A69CAE9BC98C9AE2C3B7CD881C9CC02CF6AFC983350D23E6D726D
 ---
+name:     AMM[v2].Factory
+codeId:   360
+codeHash: a616944687060ea30286bdda81418fed399fe155741efdde7cdd9addfba486db
+initTx:   54993758E8C04C4F179E3B5006C7C98FA991639CB8B20C24BBF1DFDC2239329B
+address:  secret18sq0ux28kt2z7dlze2mu57d3ua0u5ayzwp6v2r
+label:    prod/AMM[v2].Factory+20220214_161302
+commit:   39e87e425f3ebabfbdc4e45d41026185e8ac2858
+---
 name:     AMM[v1].Factory
 label:    prod/SiennaAMMFactory
 codeId:   110
 codeHash: b1f8a2086c7ca3bf8a0866275885b21462829158927a2a757064ccd65a593b36
 initTx:   CB18E61BF0D5B65FAAB2E47CE19B50C1EC5B8BC241170399EAA6D9DC7E5832F2
 address:  secret1zvk7pvhtme6j8yw3ryv0jdtgg937w0g0ggu8yy
+status:   paused
 ---
 name:     AMM[v1].SIENNA-SEFI.LP.Rewards[v1]
 label:    prod/SiennaRewards_SIENNA-SEFI_Pool
