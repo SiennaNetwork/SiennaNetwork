@@ -256,9 +256,13 @@ Fadroma.command('generate amm-v1-terminate',
 Fadroma.command('generate rewards-deploy-v3',
   forMainnet,
   Deployments.activate,
-  async ({agent, txAgent, deployment, run}) => {
-    await run(API.RewardsContract.v2.upgrade.v3, { deployAgent: txAgent })
-  })
+  ({agent, txAgent, deployment, run}) => txAgent.bundle().wrap(deployAgent=>
+    run(API.RewardsContract.v2.upgrade.v3, {
+      deployAgent,
+      template: agent.chain.uploads.load('sienna-rewards@39e87e4.wasm')
+    })
+  )
+)
 
 Fadroma.command('generate rpt-rewards-v2-to-v3',
   forMainnet,
