@@ -1,5 +1,18 @@
 ---
-name: '0'
+name:     SIENNA
+codeHash: c1dc8261059fee1de9f1873cd1359ccd7a6bc5623772661fa3d55332eb652084
+address:  secret1rgm2m5t530tdzyd99775n6vzumxa5luxcllml4
+codeId:   44
+---
+name:     MGMT
+codeHash: b1e4c4d76a5aedd180d08d8fec99ad84ed1a8a08d6d8a32a30c8c0f9835f4fab
+address:  secret1kn6kvc97nvu69dqten0w9p9e95dw6d6luv3dfx
+codeId:   45
+---
+name:     RPT
+codeHash: a9bfc78d182eb8d3cbb74d4269ef1f529a607f7842d755f00fef7df13c02c5b4
+address:  secret107j8czcysrkvxsllvhqj4mhmcegt9hx2ra3x42
+codeId:   46
 ---
 name:   RPTConfig
 config:
@@ -36,23 +49,6 @@ config:
   - - secret1c05rdgey2u0fx80y90s28jy77g7d52daxftx9p
     - '75000000000000000000'
 ---
-name:     AMM[v1].Factory
-label:    prod/SiennaAMMFactory
-codeId:   110
-codeHash: b1f8a2086c7ca3bf8a0866275885b21462829158927a2a757064ccd65a593b36
-initTx:   CB18E61BF0D5B65FAAB2E47CE19B50C1EC5B8BC241170399EAA6D9DC7E5832F2
-address:  secret1zvk7pvhtme6j8yw3ryv0jdtgg937w0g0ggu8yy
----
-name:     MGMT
-codeHash: b1e4c4d76a5aedd180d08d8fec99ad84ed1a8a08d6d8a32a30c8c0f9835f4fab
-address:  secret1kn6kvc97nvu69dqten0w9p9e95dw6d6luv3dfx
-codeId:   45
----
-name:     RPT
-codeHash: a9bfc78d182eb8d3cbb74d4269ef1f529a607f7842d755f00fef7df13c02c5b4
-address:  secret107j8czcysrkvxsllvhqj4mhmcegt9hx2ra3x42
-codeId:   46
----
 name:     SIENNA.Rewards[v1]
 label:    prod/SiennaRewards_SIENNA_Pool
 codeId:   116
@@ -64,6 +60,13 @@ name:    SIENNA.Rewards[v2]
 codeId:  119
 address: secret109g22wm3q3nfys0v6uh7lqg68cn6244n2he4t6
 initTx:  1685E98BDB2A69CAE9BC98C9AE2C3B7CD881C9CC02CF6AFC983350D23E6D726D
+---
+name:     AMM[v1].Factory
+label:    prod/SiennaAMMFactory
+codeId:   110
+codeHash: b1f8a2086c7ca3bf8a0866275885b21462829158927a2a757064ccd65a593b36
+initTx:   CB18E61BF0D5B65FAAB2E47CE19B50C1EC5B8BC241170399EAA6D9DC7E5832F2
+address:  secret1zvk7pvhtme6j8yw3ryv0jdtgg937w0g0ggu8yy
 ---
 name:     AMM[v1].SIENNA-SEFI.LP.Rewards[v1]
 label:    prod/SiennaRewards_SIENNA-SEFI_Pool
@@ -279,11 +282,6 @@ name:    AMM[v1].sXMR-sWBTC.LP.Rewards[v2]
 codeId:  119
 address: secret129886eu55rud2ph3r673tgt7mcj3p0s7v6hl2l
 initTx:  45F5B13DAAE2A6D4B5404A3042C0D5DF4A6B3897F48A28F922CCF7F149D94BE7
----
-name:     SIENNA
-codeHash: c1dc8261059fee1de9f1873cd1359ccd7a6bc5623772661fa3d55332eb652084
-address:  secret1rgm2m5t530tdzyd99775n6vzumxa5luxcllml4
-codeId:   44
 ---
 name:                AMM[v1].SATOM-SIENNA
 chainId:             secret-4
