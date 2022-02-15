@@ -82,9 +82,10 @@ export abstract class AMMFactoryContract extends Scrt_1_2.Contract<AMMFactoryCli
         console.info(bold(`AMM v1:`), v1.pairs.length, 'pairs')
         const v2: Record<string, any> = {}
         v2.name      = `AMM[v2].Factory`
-        v2.factory   = new AMMFactoryClient.v1({ ...deployment.get(v2.name), agent: clientAgent })
-        v2.templates = await v2.factory.getContracts()
-        v2.existing  = await v2.factory.listExchanges()
+        v2.readFactory  = new AMMFactoryClient.v2({ ...deployment.get(v2.name), agent: clientAgent })
+        v2.writeFactory = new AMMFactoryClient.v2({ ...deployment.get(v2.name), agent: deployAgent })
+        v2.templates = await v2.readFactory.getContracts()
+        v2.existing  = await v2.readFactory.listExchanges()
         const existingV1PairsJSON = v1.pairs.map(x=>JSON.stringify(x.pair))
         const existingV2PairsJSON = v2.existing.map(x=>JSON.stringify(x.pair))
         const v2PairsToCreate = []
@@ -96,11 +97,11 @@ export abstract class AMMFactoryContract extends Scrt_1_2.Contract<AMMFactoryCli
             v2PairsToCreate.push({ pair: JSON.parse(v1pairJSON) })
           }
         }
-        v2.pairs     = await v2.factory.switchAgent(deployAgent).createExchanges({
+        v2.pairs = await v2.writeFactory.createExchanges({
           templates: v2.templates,
           pairs:     v2PairsToCreate
         })
-        v2.exchanges = await saveExchangeReceipts(deployment, 'v2', v2.factory, v2.pairs)
+        v2.exchanges = await saveExchangeReceipts(deployment, 'v2', v2.readFactory, v2.pairs)
         return { v1, v2 }
       }
 
