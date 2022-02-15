@@ -57,12 +57,13 @@ export abstract class AMMFactoryClient extends Client {
     token_0: TokenType,
     token_1: TokenType
   ) {
-    return this.execute({
+    const msg = {
       create_exchange: {
         pair:    { token_0, token_1 },
         entropy: b64encode(EnigmaUtils.GenerateNewSeed().toString())
       }
-    })
+    }
+    return this.execute(msg)
   }
 
   /** Creates multiple exchanges in the same transaction. */
@@ -99,16 +100,15 @@ export abstract class AMMFactoryClient extends Client {
 
     const newPairs = []
 
-    console.log(pairs)
     await this.agent.bundle().wrap(async bundle=>{
       const bundledThis = this.switchAgent(bundle)
-      for (let { name, pair, raw } of pairs) {
-        let token_0 = pair?.token_0 || raw?.token_0
-        let token_1 = pair?.token_1 || raw?.token_1
+      for (const pair of pairs) {
+        let token_0 = pair.pair?.token_0 || pair.raw?.token_0
+        let token_1 = pair.pair?.token_1 || pair.raw?.token_1
         if (token_0 instanceof Snip20Client) token_0 = token_0.asCustomToken
         if (token_1 instanceof Snip20Client) token_1 = token_1.asCustomToken
         const exchange = await bundledThis.createExchange(token_0, token_1)
-        newPairs.push({name, token_0, token_1})
+        newPairs.push(pair)
       }
     })
 
@@ -153,7 +153,9 @@ export abstract class AMMFactoryClient extends Client {
   async listExchangesFull (): Promise<ExchangeInfo[]> {
     const exchanges = await this.listExchanges()
     return Promise.all(
-      exchanges.map(({ address, pair: { token_0, token_1 } }) => {
+      exchanges.map((info) => {
+        const { pair: { token_0, token_1 } } = info
+        const address = info.address || info.contract.address
         return AMMExchangeClient.get(this.agent, address, token_0, token_1)
       })
     )

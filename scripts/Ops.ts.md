@@ -25,6 +25,75 @@ Results of uploads and inits are stored in `receipts/*/{deployments,uploads}`.
 These are used to keep track of deployed contracts.
 See [`../receipts`](../receipts).
 
+#### Import exchange receipts from factory
+
+Contract receipts are normally saved only when the contracts
+are created via Fadroma's `Deployment` class. In comparison,
+AMM exchanges are created by executing a transaction on the
+AMM Factory contract, which does not emit receipts. Therefore,
+in to keep track of exchanges, the following command is used
+to query the current list of exchanges from the factory, and
+generate the corresponding exchange contract receipts.
+
+```typescript
+Fadroma.command('import receipts amm v2',
+  Deployments.activate,
+  async ({
+    agent, deployment,
+    factory = new API.AMMFactoryClient.v2({
+      ...deployment.get(['AMM[v2].Factory']),
+      agent
+    })
+  }) => {
+
+    const {
+      pair_contract: { id: ammId, code_hash: ammHash },
+      lp_token_contract: { id: lpId }
+    } = await factory.getContracts()
+
+    const exchanges = await factory.listExchangesFull()
+
+    for (const {name, raw} of exchanges) {
+      deployment
+        .add(`AMM[v2].${name}`, {
+          ...raw,
+          codeId:   ammId,
+          codeHash: ammHash,
+          address:  raw.exchange.address,
+        })
+        .add(`AMM[v2].${name}.LP`, {
+          ...raw,
+          codeId:   lpId,
+          codeHash: raw.lp_token.code_hash,
+          address:  raw.lp_token.address
+        })
+    }
+
+    process.exit(0)
+
+    console.log(exchanges)
+    process.exit(123) // krai
+
+    deployment.add(`AMM[v2].${name}`, {
+      ...raw,
+      codeId:   ammId,
+      codeHash: ammHash,
+      address:  raw.exchange.address,
+    })
+
+    deployment.add(`AMM[${ammVersion}].${name}.LP`, {
+      ...raw,
+      codeId:   lpId,
+      codeHash: raw.lp_token.code_hash,
+      address:  raw.lp_token.address
+    })
+
+    await API.saveExchangeReceipts(deployment, 'v2', factory, v2.pairs)
+    process.exit(0) // krai
+  }
+)
+```
+
 ### Reset localnet
 
 Commands that spawn localnets (such as benchmarks and integration tests)
@@ -33,13 +102,8 @@ reset the localnet manually, the `pnpm -w ops reset` command will stop the
 currently running localnet container, and will delete the localnet data under `/receipts`.
 
 ```typescript
-Fadroma.command('reset', async ({ chain }) => {
-  if (chain.node) {
-    await chain.node.terminate()
-  } else {
-    console.warn(bold(process.env.FADROMA_CHAIN), 'not a localnet')
-  }
-})
+import { ChainNode } from '@hackbg/fadroma'
+Fadroma.command('reset', ChainNode.reset)
 ```
 
 ## Uploads
@@ -75,7 +139,8 @@ Fadroma.command('status',
   Deployments.activate,
   SiennaSnip20Contract.status,
   MGMTContract.status,
-  RPTContract.status
+  RPTContract.status,
+  AMMFactoryContract.v2.status,
 )
 Fadroma.command('fund-testers',
   Deployments.activate,
@@ -211,7 +276,9 @@ Fadroma.command('generate amm-v2-factory',
   }
 )
 
-Fadroma.command('generate amm-v2-exchanges',
+/** WARNING: This didn't run as a bundle
+  * (probably because of changes to forMainnet) */
+Fadroma.command('generate amm-v2-exchanges-from-v1',
   Deployments.activate,
   forMainnet,
   async ({agent, txAgent, deployment, run}) => {
@@ -261,7 +328,7 @@ Fadroma.command('generate rewards-v2-close-all',
   })
 
 async function forMainnet ({ chain, agent }) {
-  if (chain.isMainnet) {
+  if (chain.isMainnet && !!process.env.FADROMA_USE_MULTISIG) {
     const address = process.env.MAINNET_MULTISIG
     if (!address) {
       console.error('Set MAINNET_MULTISIG env var to continue.')

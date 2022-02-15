@@ -79,12 +79,27 @@ export abstract class AMMFactoryContract extends Scrt_1_2.Contract<AMMFactoryCli
         v1.name    = `AMM[v1].Factory`
         v1.factory = new AMMFactoryClient.v1({ ...deployment.get(v1.name), agent: clientAgent })
         v1.pairs   = await v1.factory.listExchanges()
+        console.info(bold(`AMM v1:`), v1.pairs.length, 'pairs')
         const v2: Record<string, any> = {}
         v2.name      = `AMM[v2].Factory`
         v2.factory   = new AMMFactoryClient.v1({ ...deployment.get(v2.name), agent: clientAgent })
         v2.templates = await v2.factory.getContracts()
-        v2.factory   = v2.factory.switchAgent(deployAgent)
-        v2.pairs     = await v2.factory.createExchanges({ templates: v2.templates, pairs: v1.pairs })
+        v2.existing  = await v2.factory.listExchanges()
+        const existingV1PairsJSON = v1.pairs.map(x=>JSON.stringify(x.pair))
+        const existingV2PairsJSON = v2.existing.map(x=>JSON.stringify(x.pair))
+        const v2PairsToCreate = []
+        for (const v1pairJSON of existingV1PairsJSON) {
+          if (existingV2PairsJSON.includes(v1pairJSON)) {
+            console.warn(bold(`Pair exists, not creating:`), v1pairJSON)
+          } else {
+            console.info(bold(`Will create pair:`), v1pairJSON)
+            v2PairsToCreate.push({ pair: JSON.parse(v1pairJSON) })
+          }
+        }
+        v2.pairs     = await v2.factory.switchAgent(deployAgent).createExchanges({
+          templates: v2.templates,
+          pairs:     v2PairsToCreate
+        })
         v2.exchanges = await saveExchangeReceipts(deployment, 'v2', v2.factory, v2.pairs)
         return { v1, v2 }
       }
@@ -101,6 +116,23 @@ export abstract class AMMFactoryContract extends Scrt_1_2.Contract<AMMFactoryCli
     Client  = AMMFactoryClient[this.version]
     static deploy = async function deployAMM_v2 (input) {
       return deployAMM({ ...input, ammVersion: 'v2'})
+    }
+    static status = async function ammFactoryStatus_v2 ({
+      deployment,
+      agent,
+      factory = new AMMFactoryClient.v2({
+        ...deployment.get(['AMM[v2].Factory']),
+        agent
+      })
+    }) {
+      console.info(bold(`Status of AMMv2 Factory at ${factory.address}`))
+      console.log()
+      const table = []
+      for (const exchange of await factory.listExchangesFull()) {
+        table.push([exchange.name, exchange.EXCHANGE.address])
+      }
+      console.table(table)
+      console.log()
     }
   }
 
