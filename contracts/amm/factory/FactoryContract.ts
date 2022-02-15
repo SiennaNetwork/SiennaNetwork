@@ -134,6 +134,34 @@ export abstract class AMMFactoryContract extends Scrt_1_2.Contract<AMMFactoryCli
       console.table(table)
       console.log()
     }
+    static importReceipts = async function ammFactoryImportReceipts_v2 ({
+      agent, deployment,
+      factory = new AMMFactoryClient.v2({
+        ...deployment.get(['AMM[v2].Factory']),
+        agent
+      })
+    }) {
+      const {
+        pair_contract: { id: ammId, code_hash: ammHash },
+        lp_token_contract: { id: lpId }
+      } = await factory.getContracts()
+      const exchanges = await factory.listExchangesFull()
+      for (const {name, raw} of exchanges) {
+        deployment
+          .add(`AMM[v2].${name}`, {
+            ...raw,
+            codeId:   ammId,
+            codeHash: ammHash,
+            address:  raw.exchange.address,
+          })
+          .add(`AMM[v2].${name}.LP`, {
+            ...raw,
+            codeId:   lpId,
+            codeHash: raw.lp_token.code_hash,
+            address:  raw.lp_token.address
+          })
+      }
+    }
   }
 
 }

@@ -38,59 +38,7 @@ generate the corresponding exchange contract receipts.
 ```typescript
 Fadroma.command('import receipts amm v2',
   Deployments.activate,
-  async ({
-    agent, deployment,
-    factory = new API.AMMFactoryClient.v2({
-      ...deployment.get(['AMM[v2].Factory']),
-      agent
-    })
-  }) => {
-
-    const {
-      pair_contract: { id: ammId, code_hash: ammHash },
-      lp_token_contract: { id: lpId }
-    } = await factory.getContracts()
-
-    const exchanges = await factory.listExchangesFull()
-
-    for (const {name, raw} of exchanges) {
-      deployment
-        .add(`AMM[v2].${name}`, {
-          ...raw,
-          codeId:   ammId,
-          codeHash: ammHash,
-          address:  raw.exchange.address,
-        })
-        .add(`AMM[v2].${name}.LP`, {
-          ...raw,
-          codeId:   lpId,
-          codeHash: raw.lp_token.code_hash,
-          address:  raw.lp_token.address
-        })
-    }
-
-    process.exit(0)
-
-    console.log(exchanges)
-    process.exit(123) // krai
-
-    deployment.add(`AMM[v2].${name}`, {
-      ...raw,
-      codeId:   ammId,
-      codeHash: ammHash,
-      address:  raw.exchange.address,
-    })
-
-    deployment.add(`AMM[${ammVersion}].${name}.LP`, {
-      ...raw,
-      codeId:   lpId,
-      codeHash: raw.lp_token.code_hash,
-      address:  raw.lp_token.address
-    })
-
-    await API.saveExchangeReceipts(deployment, 'v2', factory, v2.pairs)
-    process.exit(0) // krai
-  }
+  AMMFactoryContract.importReceipts
 )
 ```
 
