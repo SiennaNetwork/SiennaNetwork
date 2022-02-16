@@ -423,6 +423,11 @@ impl Lend {
             )
             .unwrap()
     }
+
+    #[inline]
+    pub fn state(&self, market: HumanAddr, block: Option<u64>) -> market::State {
+        self.ensemble.query(market, market::QueryMsg::State { block }).unwrap()
+    }
 }
 
 impl Default for Lend {

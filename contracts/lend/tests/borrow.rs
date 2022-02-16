@@ -107,7 +107,7 @@ fn borrow() {
     ).unwrap();
 
     assert_eq!(state.total_borrows, 100.into());
-    assert_eq!(state.total_supply, 750.into());
+    assert_eq!(state.total_supply, 1000.into());
 
     let utilization_rate = utilization_rate(
         Decimal256::from_uint256(state.underlying_balance).unwrap(),
@@ -178,10 +178,11 @@ fn do_repay(self_repay: bool) {
 
     let prefund_amount = Uint128(500);
     let borrow_amount = Uint128(100);
+    let collateral_amount = Uint128(112);
 
     lend.prefund_and_deposit(BOB, prefund_amount, market_one.address.clone());
     lend.prefund_and_deposit(ALICE, prefund_amount, market_one.address.clone());
-    lend.prefund_and_deposit(CHESTER, Uint128(112), market_two.address.clone());
+    lend.prefund_and_deposit(CHESTER, collateral_amount, market_two.address.clone());
 
     lend.ensemble.execute(
         &overseer::HandleMsg::Enter {
@@ -199,6 +200,17 @@ fn do_repay(self_repay: bool) {
         },
         MockEnv::new(CHESTER, market_one.clone())
     ).unwrap();
+
+    let market_one_state = lend.state(market_one.address.clone(), None);
+    let market_two_state = lend.state(market_two.address.clone(), None);
+
+    assert_eq!(market_one_state.total_borrows, borrow_amount.into());
+    assert_eq!(market_one_state.total_supply, (prefund_amount.0 * 2).into());
+    assert_eq!(market_one_state.underlying_balance, (prefund_amount.0 * 2 - borrow_amount.0).into());
+
+    assert_eq!(market_two_state.total_borrows, Uint256::zero());
+    assert_eq!(market_two_state.total_supply, collateral_amount.into());
+    assert_eq!(market_two_state.underlying_balance, collateral_amount.into());
 
     let (repayer, id) = if self_repay {
         (CHESTER, None)
@@ -222,20 +234,18 @@ fn do_repay(self_repay: bool) {
         MockEnv::new(repayer, underlying_1)
     ).unwrap();
 
-    let state: market::State = lend.ensemble.query(
-        market_one.address.clone(),
-        market::QueryMsg::State { block: None }
-    ).unwrap();
+    let market_one_state = lend.state(market_one.address.clone(), None);
 
-    assert_eq!(state.total_borrows, Uint256::zero());
-    assert_eq!(state.total_supply, 750.into());
+    assert_eq!(market_one_state.total_borrows, Uint256::zero());
+    assert_eq!(market_one_state.total_supply, (prefund_amount.0 * 2).into());
+    assert_eq!(market_one_state.underlying_balance, (prefund_amount.0 * 2).into());
 
     let info: Vec<market::Borrower> = lend.ensemble.query(
         market_one.address.clone(),
         market::QueryMsg::Borrowers {
             limit: None,
             start_after: None,
-            block: state.accrual_block
+            block: market_one_state.accrual_block
         }
     ).unwrap();
 
