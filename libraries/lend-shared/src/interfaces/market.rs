@@ -188,7 +188,8 @@ pub struct Config {
 #[serde(deny_unknown_fields)]
 pub struct Borrower {
     pub id: Binary,
-    pub info: BorrowerInfo,
+    pub principal_balance: Uint256,
+    pub actual_balance: Uint256,
     pub liquidity: AccountLiquidity,
     pub markets: Vec<EnteredMarket<HumanAddr>>
 }

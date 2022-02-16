@@ -39,7 +39,7 @@ pub struct BorrowerId([u8; 32]);
 pub struct BorrowerRecord {
     pub id: Binary,
     pub address: HumanAddr,
-    pub info: BorrowerInfo
+    pub snapshot: BorrowSnapshot
 }
 
 pub struct Global;
@@ -355,15 +355,15 @@ pub fn load_borrowers<S: Storage, A: Api, Q: Querier>(
         .skip(start_after.unwrap_or(0) as usize)
         .take(limit)
         .map(|item| {
-            let item = item?;
-            let id = Account::load_id(&deps.storage, &item.address)?
+            let snapshot = item?;
+            let id = Account::load_id(&deps.storage, &snapshot.address)?
                 .unwrap()
                 .into();
 
             Ok(BorrowerRecord {
                 id,
-                address: item.address.humanize(&deps.api)?,
-                info: item.info
+                address: snapshot.address.humanize(&deps.api)?,
+                snapshot
             })
         })
         .collect()
