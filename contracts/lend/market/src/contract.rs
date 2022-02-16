@@ -843,7 +843,7 @@ fn seize<S: Storage, A: Api, Q: Querier>(
 ) -> StdResult<HandleResponse> {
     if borrower.subtract_balance(&mut deps.storage, amount).is_err() {
         return Err(StdError::generic_err(format!(
-            "Borrower collateral balance is less that the seize amount. Shortfall: {}",
+            "Borrower collateral balance is less than the seize amount. Shortfall: {}",
             (amount - borrower.get_balance(&deps.storage)?)?
         )));
     }
