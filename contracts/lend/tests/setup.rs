@@ -428,6 +428,11 @@ impl Lend {
     pub fn state(&self, market: HumanAddr, block: Option<u64>) -> market::State {
         self.ensemble.query(market, market::QueryMsg::State { block }).unwrap()
     }
+
+    #[inline]
+    pub fn exchange_rate(&self, market: HumanAddr, block: Option<u64>) -> Decimal256 {
+        self.ensemble.query(market, market::QueryMsg::ExchangeRate { block }).unwrap()
+    }
 }
 
 impl Default for Lend {

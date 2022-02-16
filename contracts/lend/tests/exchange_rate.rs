@@ -21,13 +21,7 @@ fn initial_exchange_rate() {
         .whitelist_market(token, Decimal256::one(), Some(initial_rate))
         .unwrap();
 
-    let rate: Decimal256 = lend
-        .ensemble
-        .query(
-            market.contract.address,
-            market::QueryMsg::ExchangeRate { block: None },
-        )
-        .unwrap();
+    let rate = lend.exchange_rate(market.contract.address, None);
 
     assert_eq!(initial_rate, rate);
 }
