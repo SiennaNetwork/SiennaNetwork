@@ -12,6 +12,8 @@ mod transfer;
 mod exchange_rate;
 #[cfg(test)]
 mod liquidate;
+#[cfg(test)]
+mod killswitch;
 
 #[macro_export]
 macro_rules! impl_contract_harness_default {
