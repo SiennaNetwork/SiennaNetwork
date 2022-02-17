@@ -1,6 +1,13 @@
+use std::{fmt::format, str::FromStr};
+
 use fadroma::*;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+
+use crate::{
+    time_utils::Moment,
+    total::{ITotal, Total},
+};
 
 use super::{
     expiration::Expiration,
@@ -60,13 +67,14 @@ where
      */
     fn total(core: &C) -> StdResult<u64>;
 
-    fn commit_status(&self, core: &mut C) -> StdResult<()>;
+    fn commit_status(core: &mut C, poll_id: u64, status: PollStatus) -> StdResult<()>;
 
     fn update_result(
         core: &mut C,
         poll_id: u64,
         sender: HumanAddr,
-        update: UpdateResultDto,
+        now: Moment,
+        update: UpdateResultReason,
     ) -> StdResult<PollResult>;
 }
 
@@ -150,9 +158,8 @@ where
             .ok_or(StdError::generic_err("failed to parse poll expiration"))?)
     }
 
-    fn commit_status(&self, core: &mut C) -> StdResult<()> {
-        core.set_ns(Self::STATUS, &self.id.to_be_bytes(), self.status.clone())?;
-
+    fn commit_status(core: &mut C, poll_id: u64, status: PollStatus) -> StdResult<()> {
+        core.set_ns(Self::STATUS, &poll_id.to_be_bytes(), status.clone())?;
         Ok(())
     }
 
@@ -183,32 +190,36 @@ where
         core: &mut C,
         poll_id: u64,
         sender: HumanAddr,
-        update: UpdateResultDto,
+        now: Moment,
+        update: UpdateResultReason,
     ) -> StdResult<PollResult> {
         let mut result = PollResult::get(core, poll_id).unwrap_or(PollResult::new(core, poll_id));
 
-        //perform the update
         match update {
-            UpdateResultDto::AddVote { variant, power } => {
+            UpdateResultReason::AddVote { variant, power } => {
                 result.add_vote(core, variant, power, sender)?.store(core)?;
             }
-            UpdateResultDto::ChangeVotePower { power } => {
+            UpdateResultReason::ChangeVotePower { power } => {
                 result.set_vote_power(core, power, sender)?.store(core)?;
             }
-            UpdateResultDto::ChangeVoteVariant { variant } => {
-                result
-                    .change_choice(core, variant, sender)?
-                    .store(core)?;
+            UpdateResultReason::ChangeVoteVariant { variant } => {
+                result.change_choice(core, variant, sender)?.store(core)?;
             }
-            UpdateResultDto::RemoveVote {} => {
+            UpdateResultReason::RemoveVote {} => {
                 result.remove_vote(core, sender)?.store(core)?;
             }
         }
 
-        //determine new poll status and change it
-        
+        let total = Total::from_time(core, now)?;
+        let current_quorum = Poll::current_quorum(core, poll_id)?;
+        let participation = Decimal::from_ratio(result.total(), total.staked.u128());
+        let is_quorum_met = participation > current_quorum;
 
-        //todo, issue testing with balances, need to query total funds in pool
+        if is_quorum_met && result.yes_votes > result.no_votes {
+            Poll::commit_status(core, poll_id, PollStatus::Passed)?;
+        } else {
+            Poll::commit_status(core, poll_id, PollStatus::Failed)?;
+        }
 
         Ok(result)
     }
@@ -223,7 +234,7 @@ pub enum PollStatus {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub enum UpdateResultDto {
+pub enum UpdateResultReason {
     ChangeVotePower { power: Uint128 },
     ChangeVoteVariant { variant: VoteType },
     RemoveVote {},

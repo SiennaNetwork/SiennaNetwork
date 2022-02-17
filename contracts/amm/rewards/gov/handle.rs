@@ -6,7 +6,7 @@ use fadroma::*;
 use crate::auth::Auth;
 use crate::errors::poll_expired;
 
-use super::poll::UpdateResultDto;
+use super::poll::UpdateResultReason;
 use super::response::GovernanceResponse;
 use super::user::{IUser, User};
 use super::validator;
@@ -92,7 +92,8 @@ where
                     core,
                     poll_id,
                     env.message.sender.clone(),
-                    UpdateResultDto::AddVote { power, variant },
+                    env.block.time,
+                    UpdateResultReason::AddVote { power, variant },
                 )?;
 
                 User::append_active_poll(core, env.message.sender, poll_id, env.block.time)?;
@@ -107,8 +108,9 @@ where
                 Poll::update_result(
                     core,
                     poll_id,
-                    env.message.sender,
-                    UpdateResultDto::ChangeVoteVariant { variant },
+                    env.message.sender.clone(),
+                    env.block.time,
+                    UpdateResultReason::ChangeVoteVariant { variant },
                 )?;
 
                 Ok(HandleResponse::default())
@@ -123,7 +125,8 @@ where
                     core,
                     poll_id,
                     env.message.sender.clone(),
-                    UpdateResultDto::RemoveVote {},
+                    env.block.time,
+                    UpdateResultReason::RemoveVote {},
                 )?;
 
                 User::remove_active_poll(core, env.message.sender, poll_id, env.block.time)?;

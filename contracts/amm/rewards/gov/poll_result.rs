@@ -37,6 +37,10 @@ impl PollResult {
         }
         Ok(())
     }
+
+    pub fn total(&self) -> u128 {
+        self.no_votes + self.yes_votes
+    }
 }
 
 pub trait IPollResult<S, A, Q, C>

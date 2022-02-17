@@ -1,5 +1,7 @@
 pub use fadroma::*;
-extern crate fadroma; 
+use time_utils::Moment;
+extern crate fadroma;
+use std::collections::HashMap; 
 use account::Amount;
 use config::{RewardsConfig, IRewardsConfig};
 use gov::config::GovernanceConfig;
@@ -72,15 +74,16 @@ pub trait Contract<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         -> StdResult<Response>       { msg.dispatch_query(self) }
 
     fn init_bindings(&mut self) { //core: &mut C) {
-        // self.bind("get_active_polls", || {
-        //     User::get_active_polls(self, HumanAddr::default(), 200)
-        // });
+        self.bind("get_active_polls", |x:& Self, time: Moment| -> Vec<u64> {
+           User::get_active_polls(x, HumanAddr::default(), time).unwrap()
+        });
     }
 }
 
 
 pub trait Rewards<S: Storage, A: Api, Q: Querier>:
 Composable<S, A, Q> // to compose with other modules
++ BusQueue<S, A, Q>
 + Auth<S, A, Q>     // to authenticate txs/queries
 + Sized             // to pass mutable self-reference to Total and Account
 {
@@ -210,14 +213,16 @@ pub enum Response {
 
         impl<S: Storage, A: Api, Q: Querier> BusQueue<S, A, Q> for $Core {
             fn init_bindings(&mut self) {
-
+                
             }
-            fn bind<T>(&mut self, msg: &str, func: fn() -> T) where T: Default {
-
+            fn bind<Core, Fin, Fout: Default>(&mut self, msg: &str, func: fn(Core, Fin)-> Fout) {
+                // extend self to store bindings, local var is just a test
+                let mut bindings = HashMap::<String, fn(Core, Fin)->Fout>::new();
+                bindings.insert(String::from(msg), func);
             }
 
-            fn broadcast<T>(msg: &str) -> StdResult<T> where T: Default{
-                Ok(T::default())
+            fn broadcast<Fin, Fout: Default>(&self, msg: &str, arg: Fin) -> StdResult<Fout>{
+                Ok(Fout::default())
             }
         }
 
