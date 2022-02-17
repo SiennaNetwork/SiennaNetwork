@@ -15,6 +15,16 @@ impl User {
     pub const ACTIVE_POLLS: &'static [u8] = b"/gov/user/polls";
     pub const VIEWING_KEY: &'static [u8] = b"gov/user/key";
     pub const CREATED_POLLS: &'static [u8] = b"gov/user/created_polls";
+
+    pub fn can_unstake(&self, balance: u128, threshold: u128, amount: u128) -> bool {
+        if self.active_polls.len() > 0 {
+            return false;
+        }
+        if self.created_polls.len() > 0 {
+            return balance - amount > threshold;
+        }
+        return true;
+    }
 }
 
 pub trait IUser<S, A, Q, C>
@@ -25,7 +35,9 @@ where
     C: Composable<S, A, Q>,
     Self: Sized,
 {
+    fn get(core: &C, address: HumanAddr, now: Moment) -> StdResult<User>;
     fn store(&self, core: &mut C, address: HumanAddr) -> StdResult<()>;
+    
     fn active_polls(core: &C, address: HumanAddr, now: Moment) -> StdResult<Vec<u64>>;
     fn append_active_poll(
         core: &mut C,
@@ -40,13 +52,15 @@ where
         poll_id: u64,
         timestamp: Moment,
     ) -> StdResult<()>;
-
+    
     fn created_polls(core: &C, address: HumanAddr, now: Moment) -> StdResult<Vec<u64>>;
     fn append_created_poll(core: &mut C, address: HumanAddr, poll_id: u64, now: Moment) -> StdResult<()>; 
-    fn get(core: &C, address: HumanAddr, now: Moment) -> StdResult<User>;
+    
     fn set_viewing_key(core: &mut C, address: HumanAddr, key: &ViewingKey) -> StdResult<()>;
     fn viewing_key(core: &C, address: HumanAddr) -> StdResult<Option<ViewingKey>>;
     fn check_viewing_key(core: &C, address: HumanAddr, provided_vk: &ViewingKey) -> StdResult<()>;
+
+
 }
 
 impl<S, A, Q, C> IUser<S, A, Q, C> for User
@@ -152,6 +166,8 @@ where
             Err(StdError::unauthorized())
         }
     }
+
+
 }
 
 fn filter_active_polls<S, A, Q, C> (core: & C, polls: Vec<u64>, timestamp: Moment) -> Vec<u64> 

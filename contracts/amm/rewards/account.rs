@@ -1,7 +1,7 @@
 use crate::{
     config::{IRewardsConfig, RewardsConfig},
     errors,
-    gov::user::{IUser, User},
+    gov::{user::{IUser, User}, config::{GovernanceConfig, IGovernanceConfig}},
     time_utils::{Duration, Moment},
     total::{ITotal, Total}, bus_queue::BusQueue,
 };
@@ -227,13 +227,15 @@ where
         } else if self.total.staked < amount {
             errors::withdraw_fatal(self.total.staked, amount)
         } else {
-            let active_polls =
-                User::active_polls(core, self.address.clone(), self.total.clock.now)?;
             // testing pub/sub between traits. Message string will be enum, not a string
             // let polls = core.broadcast::<Moment, Vec<u64>>("get_active_polls", self.total.clock.now)?;
-            if active_polls.len() > 0 {
+            
+            let user = User::get(core, self.address.clone(), self.total.clock.now)?;
+            let threshold = GovernanceConfig::threshold(core)?;
+            if !user.can_unstake(self.staked.u128(), threshold, amount.u128()) {
                 errors::unstake_disallowed()?
             }
+            
             self.commit_withdrawal(core, amount)?;
             let mut response = HandleResponse::default();
             // If all tokens were withdrawn
