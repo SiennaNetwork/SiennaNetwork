@@ -274,6 +274,48 @@ Fadroma.command('generate rewards-deploy-v3',
   )
 )
 
+Fadroma.command('generate rewards-v3-fix-lp-tokens',
+  forMainnet,
+  Deployments.activate,
+  async ({agent, txAgent, deployment, run}) => txAgent.bundle().wrap(async deployAgent=>{
+
+    const newLPTokenNames =
+      Object.keys(deployment.receipts)
+        .filter(name=>name.startsWith('AMM[v2].')&&name.endsWith('.LP'))
+
+    console.log({
+      newLPTokenNames
+    })
+
+    for (const lpTokenName of newLPTokenNames) {
+      console.log('checking', lpTokenName)
+      const lpTokenReceipt = deployment.receipts[lpTokenName]
+      if (!lpTokenReceipt) {
+        console.warn('No receipt for', lpTokenName, ' - wtf?!?!?')
+        continue
+      }
+      const rewardPoolName = `${lpTokenName}.Rewards[v3]`
+      const rewardPoolReceipt = deployment.receipts[rewardPoolName]
+      if (!rewardPoolReceipt) {
+        console.info(`No rewards for`, lpTokenName, ' - skipping...')
+        continue
+      }
+      //console.log(123)
+      //process.exit(222)
+      console.log(
+        `Setting staked token for`, rewardPoolName//, 'to', lpTokenReceipt
+      )
+      //console.log(456)
+      delete rewardPoolReceipt.label
+      await new API.RewardsClient.v3({...rewardPoolReceipt, agent: deployAgent}).setStakedToken(
+        lpTokenReceipt.address,
+        lpTokenReceipt.codeHash
+      )
+    }
+
+  })
+)
+
 Fadroma.command('deploy rewards-v3-mainnet',
   forMainnet,
   Deployments.activate,

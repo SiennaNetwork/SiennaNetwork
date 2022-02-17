@@ -100,7 +100,7 @@ export abstract class RewardsContract extends Scrt_1_2.Contract<RewardsClient> {
     /** Command. Replace v2 reward pools with v3. */
     static upgrade = {
       "v3": function upgradeRewards_v2_to_v3 (input) {
-        return RewardsContract.upgradeRewards({ ...input, oldVersion: 'v2', newVersion: 'v3', })
+        return RewardsContract.upgradeRewards({ ...input, oldVersion: 'v2', newVersion: 'v3' })
       }
     }
   }
@@ -134,7 +134,7 @@ export abstract class RewardsContract extends Scrt_1_2.Contract<RewardsClient> {
 
     /** Command. The v3 to v3 upgrade tests user migration. */
     static upgrade = {
-      "v3": function upgradeRewards_v2_to_v3 (input) {
+      "v3": function upgradeRewards_v3_to_v3_1 (input) {
         return RewardsContract.upgradeRewards({ ...input, oldVersion: 'v3', newVersion: 'v3', })
       }
     }
