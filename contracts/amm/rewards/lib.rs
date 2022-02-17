@@ -75,7 +75,7 @@ pub trait Contract<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
 
     fn init_bindings(&mut self) { //core: &mut C) {
         self.bind("get_active_polls", |x:& Self, time: Moment| -> Vec<u64> {
-           User::get_active_polls(x, HumanAddr::default(), time).unwrap()
+           User::active_polls(x, HumanAddr::default(), time).unwrap()
         });
     }
 }

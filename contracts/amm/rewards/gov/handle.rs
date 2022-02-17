@@ -62,12 +62,14 @@ where
 
                 let deadline = GovernanceConfig::deadline(core)?;
                 let current_quorum = GovernanceConfig::quorum(core)?;
-                let expiration = Expiration::AtTime(env.block.time + deadline);
-                let creator = core.canonize(env.message.sender)?;
+                let current_time = env.block.time;
+                let expiration = Expiration::AtTime(current_time + deadline);
+                let creator = core.canonize(env.message.sender.clone())?;
 
                 let poll = Poll::new(core, creator, expiration, meta, current_quorum)?;
-
                 poll.store(core)?;
+
+                User::append_created_poll(core, env.message.sender, poll.id, current_time)?;
 
                 Ok(HandleResponse {
                     data: Some(to_binary(&poll)?),
@@ -135,7 +137,7 @@ where
             }
 
             GovernanceHandle::SetViewingKey { key } => {
-                User::set_vk(core, env.message.sender, &key.into())?;
+                User::set_viewing_key(core, env.message.sender, &key.into())?;
                 Ok(HandleResponse::default())
             }
             GovernanceHandle::CreateViewingKey { entropy } => {
@@ -144,7 +146,7 @@ where
                     &[env.block.time.to_be_bytes(), env.block.height.to_be_bytes()].concat(),
                     &(entropy).as_ref(),
                 );
-                User::set_vk(core, env.message.sender, &key)?;
+                User::set_viewing_key(core, env.message.sender, &key)?;
 
                 Ok(HandleResponse {
                     messages: vec![],

@@ -228,7 +228,7 @@ where
             errors::withdraw_fatal(self.total.staked, amount)
         } else {
             let active_polls =
-                User::get_active_polls(core, self.address.clone(), self.total.clock.now)?;
+                User::active_polls(core, self.address.clone(), self.total.clock.now)?;
             // testing pub/sub between traits. Message string will be enum, not a string
             // let polls = core.broadcast::<Moment, Vec<u64>>("get_active_polls", self.total.clock.now)?;
             if active_polls.len() > 0 {
