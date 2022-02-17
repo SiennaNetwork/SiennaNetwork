@@ -6,22 +6,20 @@
 * User always uses all staked tokens as voting power.
 * User can vote on multiple polls using the same staked tokens.
 * Votes are private
-* Results are private (?)
+* Vote status can be queried using a viewing key
+* Results are public
 * Poll creator needs to have minimum staked tokens, as defined in config (threshold)
 * Quorum needs to be met, as defined in config and 33% by default, in order to have a valid poll
-* Quorum needs to be preserved only during the voting period. 
+* Poll will use quorum requirements at the time of its creation
 * User can change or cancel the vote
-* User can change ammount of staked tokens which will cause all his votes to be recalculated
+* User can increase (but not decrease) ammount of staked tokens which will cause all his votes to be recalculated
+* User can't unstake if participated in active polls
 * Changing the staked ammount after the poll has expired will have no consequence on quorum or result
-* 
+* Creator can't unstake below the threshold while his poll is active
+
 
 TDB:
-* can creator unstake below the threshold while his poll is active
-* is user permitted to unstake certain ammount after he placed votes (multiple polls)
-* if no committee: results can't be private during the voting period; must send time on query (security issue)
 * executing msg (proposed) - handle called by non-admin user. Preferably scheduler
-* Low participation / users apathy
-* 
 
 ## Implementation details
 
