@@ -1,11 +1,9 @@
-use fadroma::{Api, HumanAddr, Querier, StdResult, Storage, Composable};
+use fadroma::{Api, Composable, HumanAddr, Querier, StdError, StdResult, Storage, ViewingKey};
 use serde::{Deserialize, Serialize};
 
 use crate::time_utils::Moment;
 
-use super::{
-    poll::{IPoll, Poll},
-};
+use super::poll::{IPoll, Poll};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct User {
@@ -14,6 +12,7 @@ pub struct User {
 
 impl User {
     pub const ACTIVE_POLLS: &'static [u8] = b"/gov/user/polls";
+    pub const VIEWING_KEY: &'static [u8] = b"gov/user/key";
 }
 
 pub trait IUser<S, A, Q, C>
@@ -41,6 +40,9 @@ where
     ) -> StdResult<()>;
 
     fn get(core: &C, address: HumanAddr) -> StdResult<User>;
+    fn set_vk(core: &mut C, address: HumanAddr, key: &ViewingKey) -> StdResult<()>;
+    fn viewing_key(core: &C, address: HumanAddr) -> StdResult<Option<ViewingKey>>;
+    fn check_viewing_key(core: &C, address: HumanAddr, provided_vk: &ViewingKey) -> StdResult<()>;
 }
 
 impl<S, A, Q, C> IUser<S, A, Q, C> for User
@@ -70,8 +72,8 @@ where
     }
 
     /**
-     Adds the id to the saved vector
-     */
+    Adds the id to the saved vector
+    */
     fn append_active_poll(
         core: &mut C,
         address: HumanAddr,
@@ -102,8 +104,8 @@ where
     }
 
     /**
-     Overwrites the saved active polls for given user
-     */
+    Overwrites the saved active polls for given user
+    */
     fn set_active_polls(core: &mut C, address: HumanAddr, polls: Vec<u64>) -> StdResult<()> {
         let address = core.canonize(address)?;
 
@@ -126,5 +128,28 @@ where
             .collect();
         Self::set_active_polls(core, address, active_polls)?;
         Ok(())
+    }
+
+    fn set_vk(core: &mut C, address: HumanAddr, key: &ViewingKey) -> StdResult<()> {
+        let id = core.canonize(address)?;
+        core.set_ns(Self::VIEWING_KEY, id.as_slice(), key)?;
+        Ok(())
+    }
+    fn viewing_key(core: &C, address: HumanAddr) -> StdResult<Option<ViewingKey>> {
+        let id = core.canonize(address)?;
+        core.get_ns(Self::VIEWING_KEY, id.as_slice())
+    }
+
+    fn check_viewing_key(core: &C, address: HumanAddr, provided_vk: &ViewingKey) -> StdResult<()> {
+        let stored_vk = Self::viewing_key(core, address)?;
+        if let Some(ref key) = stored_vk {
+            if provided_vk.check_viewing_key(&key.to_hashed()) {
+                Ok(())
+            } else {
+                Err(StdError::unauthorized())
+            }
+        } else {
+            Err(StdError::unauthorized())
+        }
     }
 }

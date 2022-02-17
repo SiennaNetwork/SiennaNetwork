@@ -1,9 +1,13 @@
 use fadroma::*;
 
-use crate::{ auth::Auth};
+use crate::auth::Auth;
 
-use super::{config::{GovernanceConfig, IGovernanceConfig}, handle::GovernanceHandle, query::GovernanceQuery, response::GovernanceResponse};
-
+use super::{
+    config::{GovernanceConfig, IGovernanceConfig},
+    handle::GovernanceHandle,
+    query::GovernanceQuery,
+    response::GovernanceResponse,
+};
 
 pub trait Governance<S: Storage, A: Api, Q: Querier>:
     Composable<S, A, Q>  // to compose with other modules
@@ -23,4 +27,3 @@ pub trait Governance<S: Storage, A: Api, Q: Querier>:
         msg.dispatch_query(self)
     }
 }
-

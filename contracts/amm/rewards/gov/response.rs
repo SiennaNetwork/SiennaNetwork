@@ -8,6 +8,7 @@ use super::{
     config::{GovernanceConfig, IGovernanceConfig},
     governance::Governance,
     poll::{IPoll, Poll},
+    vote::{IVote, Vote, VoteType},
 };
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -19,6 +20,14 @@ pub enum GovernanceResponse {
         total_pages: u64,
     },
     Poll(Poll),
+    CreateViewingKey {
+        key: ViewingKey,
+    },
+    VoteStatus {
+        variant: VoteType,
+        power: Uint128,
+    },
+
     Config(GovernanceConfig),
 }
 pub trait IGovernanceResponse<S, A, Q, C>: Sized
@@ -30,6 +39,7 @@ where
 {
     fn polls(core: &C, take: u64, page: u64, asc: bool) -> StdResult<Self>;
     fn poll(core: &C, id: u64) -> StdResult<Self>;
+    fn vote_status(core: &C, poll_id: u64, address: HumanAddr) -> StdResult<Self>;
     fn config(core: &C) -> StdResult<Self>;
 }
 impl<S, A, Q, C> IGovernanceResponse<S, A, Q, C> for GovernanceResponse
@@ -76,5 +86,13 @@ where
     fn config(core: &C) -> StdResult<Self> {
         let config = GovernanceConfig::get(core)?;
         Ok(GovernanceResponse::Config(config))
+    }
+
+    fn vote_status(core: &C, poll_id: u64, address: HumanAddr) -> StdResult<Self> {
+        let vote = Vote::get(core, address, poll_id)?;
+        Ok(GovernanceResponse::VoteStatus {
+            power: vote.vote_power.into(),
+            variant: vote.variant,
+        })
     }
 }

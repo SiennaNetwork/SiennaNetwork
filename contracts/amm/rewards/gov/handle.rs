@@ -7,6 +7,7 @@ use crate::auth::Auth;
 use crate::errors::poll_expired;
 
 use super::poll::UpdateResultDto;
+use super::response::GovernanceResponse;
 use super::user::{IUser, User};
 use super::validator;
 use super::{
@@ -25,6 +26,8 @@ pub enum GovernanceHandle {
     Vote { variant: VoteType, poll_id: u64 },
     Unvote { poll_id: u64 },
     ChangeVote { variant: VoteType, poll_id: u64 },
+    SetViewingKey { key: String },
+    CreateViewingKey { entropy: String },
     UpdateConfig { config: GovernanceConfig },
 }
 impl<S, A, Q, C> HandleDispatch<S, A, Q, C> for GovernanceHandle
@@ -128,6 +131,24 @@ where
                 Ok(HandleResponse::default())
             }
 
+            GovernanceHandle::SetViewingKey { key } => {
+                User::set_vk(core, env.message.sender, &key.into())?;
+                Ok(HandleResponse::default())
+            }
+            GovernanceHandle::CreateViewingKey { entropy } => {
+                let key = ViewingKey::new(
+                    &env,
+                    &[env.block.time.to_be_bytes(), env.block.height.to_be_bytes()].concat(),
+                    &(entropy).as_ref(),
+                );
+                User::set_vk(core, env.message.sender, &key)?;
+
+                Ok(HandleResponse {
+                    messages: vec![],
+                    log: vec![],
+                    data: Some(to_binary(&GovernanceResponse::CreateViewingKey { key })?),
+                })
+            }
             _ => {
                 Auth::assert_admin(core, &env)?;
                 match self {
