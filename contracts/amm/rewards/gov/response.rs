@@ -4,6 +4,8 @@ use fadroma::*;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+use crate::time_utils::Moment;
+
 use super::{
     config::{GovernanceConfig, IGovernanceConfig},
     governance::Governance,
@@ -37,8 +39,8 @@ where
     Q: Querier,
     C: Governance<S, A, Q>,
 {
-    fn polls(core: &C, take: u64, page: u64, asc: bool) -> StdResult<Self>;
-    fn poll(core: &C, id: u64) -> StdResult<Self>;
+    fn polls(core: &C, take: u64, page: u64, asc: bool, now: Moment) -> StdResult<Self>;
+    fn poll(core: &C, id: u64, now: Moment) -> StdResult<Self>;
     fn vote_status(core: &C, poll_id: u64, address: HumanAddr) -> StdResult<Self>;
     fn config(core: &C) -> StdResult<Self>;
 }
@@ -49,10 +51,10 @@ where
     Q: Querier,
     C: Governance<S, A, Q>,
 {
-    fn polls(core: &C, take: u64, page: u64, _asc: bool) -> StdResult<Self> {
+    fn polls(core: &C, take: u64, page: u64, _asc: bool, now: Moment) -> StdResult<Self> {
         let take = min(take, 10);
 
-        let total = Poll::total(core)?;
+        let total = Poll::count(core)?;
         let total_pages = (total + take - 1) / take;
 
         let start = (page - 1) * take;
@@ -60,7 +62,7 @@ where
 
         let mut polls = vec![];
         for index in start + 1..=end {
-            polls.push(Poll::get(core, index)?);
+            polls.push(Poll::get(core, index, now)?);
         }
 
         Ok(GovernanceResponse::Polls {
@@ -69,18 +71,8 @@ where
             total_pages,
         })
     }
-    fn poll(core: &C, id: u64) -> StdResult<GovernanceResponse> {
-        let meta = Poll::metadata(core, id)?;
-
-        let poll = Poll {
-            creator: Poll::creator(core, id)?,
-            expiration: Poll::expiration(core, id)?,
-            status: Poll::status(core, id)?,
-            current_quorum: Poll::current_quorum(core, id)?,
-            id,
-            metadata: meta,
-        };
-        print!("{:?}", poll);
+    fn poll(core: &C, id: u64, now: Moment) -> StdResult<GovernanceResponse> {
+        let poll = Poll::get(core, id, now)?;
         Ok(GovernanceResponse::Poll(poll))
     }
     fn config(core: &C) -> StdResult<Self> {

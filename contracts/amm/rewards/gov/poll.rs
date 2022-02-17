@@ -1,13 +1,9 @@
-use std::{fmt::format, str::FromStr};
 
 use fadroma::*;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    time_utils::Moment,
-    total::{ITotal, Total},
-};
+use crate::{total::{Total, ITotal}, time_utils::Moment};
 
 use super::{
     expiration::Expiration,
@@ -54,21 +50,16 @@ where
     ) -> StdResult<Self>;
 
     fn store(&self, core: &mut C) -> StdResult<()>;
-    fn get(core: &C, poll_id: u64) -> StdResult<Self>;
+    fn get(core: &C, poll_id: u64, now: Moment) -> StdResult<Self>;
 
     fn creator(core: &C, poll_id: u64) -> StdResult<CanonicalAddr>;
     fn metadata(core: &C, poll_id: u64) -> StdResult<PollMetadata>;
     fn expiration(core: &C, poll_id: u64) -> StdResult<Expiration>;
     fn status(core: &C, poll_id: u64) -> StdResult<PollStatus>;
     fn current_quorum(core: &C, poll_id: u64) -> StdResult<Decimal>;
-
-    /**
-     * return the current auto increment id number
-     */
-    fn total(core: &C) -> StdResult<u64>;
+    fn count(core: &C) -> StdResult<u64>;
 
     fn commit_status(core: &mut C, poll_id: u64, status: PollStatus) -> StdResult<()>;
-
     fn update_result(
         core: &mut C,
         poll_id: u64,
@@ -86,7 +77,7 @@ where
     C: Composable<S, A, Q>,
 {
     fn create_id(core: &mut C) -> StdResult<u64> {
-        let total = Self::total(core)?;
+        let total = Self::count(core)?;
         let total = total
             .checked_add(1)
             .ok_or(StdError::generic_err("total integer overflow"))?;
@@ -95,7 +86,7 @@ where
 
         Ok(total)
     }
-    fn total(core: &C) -> StdResult<u64> {
+    fn count(core: &C) -> StdResult<u64> {
         Ok(core
             .get::<u64>(Self::TOTAL)?
             .ok_or(StdError::generic_err("can't find total id count"))?)
@@ -121,10 +112,13 @@ where
         Ok(())
     }
 
-    fn get(core: &C, poll_id: u64) -> StdResult<Self> {
+    fn get(core: &C, poll_id: u64, now: Moment) -> StdResult<Self> {
         let creator = Self::creator(core, poll_id)?;
         let expiration = Self::expiration(core, poll_id)?;
-        let status = Self::status(core, poll_id)?;
+        let mut status = Self::status(core, poll_id)?;
+        if !expiration.is_expired(now) {
+            status = PollStatus::Active;
+        }
         let metadata = Self::metadata(core, poll_id)?;
         let current_quorum = Self::current_quorum(core, poll_id)?;
         Ok(Self {
@@ -203,7 +197,9 @@ where
                 result.set_vote_power(core, power, sender)?.store(core)?;
             }
             UpdateResultReason::ChangeVoteVariant { variant } => {
-                result.change_choice(core, variant, sender)?.store(core)?;
+                result
+                    .change_choice(core, variant, sender)?
+                    .store(core)?;
             }
             UpdateResultReason::RemoveVote {} => {
                 result.remove_vote(core, sender)?.store(core)?;
@@ -220,7 +216,6 @@ where
         } else {
             Poll::commit_status(core, poll_id, PollStatus::Failed)?;
         }
-
         Ok(result)
     }
 }

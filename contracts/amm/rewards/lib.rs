@@ -221,7 +221,7 @@ pub enum Response {
                 bindings.insert(String::from(msg), func);
             }
 
-            fn broadcast<Fin, Fout: Default>(&self, msg: &str, arg: Fin) -> StdResult<Fout>{
+            fn broadcast<Fin, Fout: Default>(&self, _msg: &str, _arg: Fin) -> StdResult<Fout>{
                 Ok(Fout::default())
             }
         }

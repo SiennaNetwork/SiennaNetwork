@@ -2,6 +2,8 @@ use fadroma::*;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+use crate::time_utils::Moment;
+
 use super::{
     governance::Governance,
     response::{GovernanceResponse, IGovernanceResponse},
@@ -14,9 +16,11 @@ pub enum GovernanceQuery {
     Polls {
         take: u64,
         page: u64,
+        now: Moment
     },
     Poll {
         id: u64,
+        now: Moment
     },
     VoteStatus {
         poll_id: u64,
@@ -34,10 +38,10 @@ where
 {
     fn dispatch_query(self, core: &C) -> StdResult<GovernanceResponse> {
         match self {
-            GovernanceQuery::Polls { take, page } => {
-                GovernanceResponse::polls(core, take, page, false)
+            GovernanceQuery::Polls { take, page, now } => {
+                GovernanceResponse::polls(core, take, page, false, now)
             }
-            GovernanceQuery::Poll { id } => GovernanceResponse::poll(core, id),
+            GovernanceQuery::Poll { id, now} => GovernanceResponse::poll(core, id, now),
             GovernanceQuery::Config {} => GovernanceResponse::config(core),
             GovernanceQuery::VoteStatus {
                 poll_id,
