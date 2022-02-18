@@ -110,6 +110,34 @@ impl ContractHarness for MockBand {
     }
 }
 
+#[derive(Default)]
+pub struct LendConfig {
+    market: Option<Box<dyn ContractHarness>>,
+    close_factor: Option<Decimal256>,
+    premium: Option<Decimal256>
+}
+
+impl LendConfig {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn market(mut self, market: Box<dyn ContractHarness>) -> Self {
+        self.market = Some(market);
+        self
+    }
+
+    pub fn close_factor(mut self, close_factor: Decimal256) -> Self {
+        self.close_factor = Some(close_factor);
+        self
+    }
+
+    pub fn premium(mut self, premium: Decimal256) -> Self {
+        self.premium = Some(premium);
+        self
+    }
+}
+
 pub struct Lend {
     pub ensemble: ContractEnsemble,
     pub overseer: ContractLink<HumanAddr>,
@@ -119,14 +147,11 @@ pub struct Lend {
 }
 
 impl Lend {
-    pub fn new(
-        market: Option<Box<dyn ContractHarness>>,
-        overseer: Option<Box<dyn ContractHarness>>,
-    ) -> Self {
+    pub fn new(config: LendConfig) -> Self {
         let mut ensemble = ContractEnsemble::new(50);
 
-        let overseer = ensemble.register(overseer.unwrap_or(Box::new(Overseer)));
-        let market = ensemble.register(market.unwrap_or(Box::new(Market)));
+        let overseer = ensemble.register(Box::new(Overseer));
+        let market = ensemble.register(config.market.unwrap_or(Box::new(Market)));
         let oracle = ensemble.register(Box::new(Oracle));
         let mock_band = ensemble.register(Box::new(MockBand));
         let token = ensemble.register(Box::new(Token));
@@ -173,8 +198,8 @@ impl Lend {
                 &overseer::InitMsg {
                     admin: None,
                     prng_seed: Binary::from(b"whatever"),
-                    close_factor: Decimal256::one(),
-                    premium: Decimal256::one(),
+                    close_factor: config.close_factor.unwrap_or(Decimal256::one()),
+                    premium: config.premium.unwrap_or(Decimal256::one()),
                     market_contract: market,
                     oracle_contract: oracle,
                     oracle_source: mock_band.clone(),
@@ -438,6 +463,6 @@ impl Lend {
 
 impl Default for Lend {
     fn default() -> Self {
-        Lend::new(None, None)
+        Lend::new(LendConfig::new())
     }
 }

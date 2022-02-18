@@ -708,11 +708,24 @@ pub trait Market {
 
         let overseer = Contracts::load_overseer(deps)?;
         let key = MasterKey::load(&deps.storage)?;
+
+        let underlying_asset = Contracts::load_underlying(deps)?;
+        let balance = snip20::balance_query(
+            &deps.querier,
+            Contracts::load_self_ref(deps)?.address,
+            Constants::load_vk(&deps.storage)?,
+            BLOCK_SIZE,
+            underlying_asset.code_hash.clone(),
+            underlying_asset.address.clone(),
+        )?.amount;
+
+        let interest = accrued_interest_at(deps, Some(block), balance)?;
         
         for record in borrowers {
             result.push(Borrower {
                 id: record.id,
-                info: record.info,
+                principal_balance: record.snapshot.info.principal,
+                actual_balance: record.snapshot.current_balance(interest.borrow_index)?,
                 liquidity: query_account_liquidity(
                     &deps.querier,
                     overseer.clone(),

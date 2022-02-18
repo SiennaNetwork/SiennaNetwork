@@ -357,6 +357,19 @@ fn borrower_accrues_interest_and_goes_underwater() {
     assert_eq!(liquidity.liquidity, Uint256::zero());
     assert_ne!(liquidity.shortfall, Uint256::zero());
 
+    let borrowers: Vec<market::Borrower> = lend.ensemble.query(
+        market_2.contract.address.clone(),
+        market::QueryMsg::Borrowers {
+            block: current_block,
+            start_after: None,
+            limit: None
+        }
+    ).unwrap();
+
+    assert_eq!(borrowers.len(), 1);
+
+    let interest = (borrowers[0].actual_balance - borrowers[0].principal_balance).unwrap();
+
     lend.ensemble.execute(
         &Snip20HandleMsg::Send {
             recipient: market_2.contract.address.clone(),
@@ -385,5 +398,5 @@ fn borrower_accrues_interest_and_goes_underwater() {
         }
     ).unwrap();
 
-    assert_eq!(borrowers.len(), 1);
+    assert_eq!(borrowers[0].principal_balance, interest);
 }

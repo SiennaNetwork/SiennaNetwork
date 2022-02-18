@@ -141,8 +141,8 @@ fn borrow() {
     assert_eq!(chester.markets[0].contract, market_one);
     assert_eq!(chester.markets[1].contract, market_two);
 
-    assert_eq!(chester.info.principal, borrow_amount.into());
-    assert_eq!(chester.info.interest_index, state.borrow_index);
+    assert_eq!(chester.principal_balance, borrow_amount.into());
+    assert_eq!(chester.actual_balance, borrow_amount.into());
 
     let id = lend.id(CHESTER, market_one.address);
     assert_eq!(chester.id, id);
