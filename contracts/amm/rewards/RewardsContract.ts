@@ -1,4 +1,9 @@
-import { Console, bold, Scrt_1_2, Snip20Contract, randomHex, timestamp } from "@hackbg/fadroma"
+import {
+  Console, bold,
+  Scrt_1_2, Snip20Contract,
+  randomHex, timestamp,
+  readFileSync
+} from "@hackbg/fadroma"
 
 const console = Console('@sienna/rewards/Contract')
 
@@ -39,7 +44,7 @@ const makeRewardInitMsg = {
     }
   },
 
-  "v3" (admin, staked, reward) {
+  "v3" (admin, timekeeper, staked, reward) {
     let bonding = 86400
     if (SIENNA_REWARDS_V3_BONDING) {
       console.warn(bold('Environment override'), 'SIENNA_REWARDS_V3_BONDING=', SIENNA_REWARDS_V3_BONDING)
@@ -49,9 +54,9 @@ const makeRewardInitMsg = {
       admin,
       config: {
         reward_vk:    randomHex(36),
-        timekeeper:   admin,
         lp_token:     { address: staked?.address, code_hash: staked?.codeHash },
         reward_token: { address: reward?.address, code_hash: reward?.codeHash },
+        timekeeper,
         bonding,
       }
     }
@@ -63,22 +68,24 @@ export abstract class RewardsContract extends Scrt_1_2.Contract<RewardsClient> {
 
   name   = 'Rewards'
   source = { workspace, crate: 'sienna-rewards' }
+
   abstract Client
-  abstract version:        RewardsAPIVersion
+  abstract version: RewardsAPIVersion
 
   static "v2" = class RewardsContract_v2 extends RewardsContract {
 
+    version = "v2" as RewardsAPIVersion
     name    = `Rewards[${this.version}]`
     source = { workspace, crate: 'sienna-rewards', ref: 'rewards-2.1.2' }
-    version = "v2" as RewardsAPIVersion
+
     initMsg?: any // TODO v2 init type
     Client = RewardsClient['v2']
 
     constructor ({ template, admin, staked, reward }: {
       template?: Template,
-      admin?:     string,
-      staked?:    Snip20Client,
-      reward?:    Snip20Client,
+      admin?:    string,
+      staked?:   Snip20Client,
+      reward?:   Snip20Client,
     } = {}) {
       super()
       if (template) this.template = template
@@ -93,7 +100,7 @@ export abstract class RewardsContract extends Scrt_1_2.Contract<RewardsClient> {
     /** Command. Replace v2 reward pools with v3. */
     static upgrade = {
       "v3": function upgradeRewards_v2_to_v3 (input) {
-        return RewardsContract.upgradeRewards({ ...input, oldVersion: 'v2', newVersion: 'v3', })
+        return RewardsContract.upgradeRewards({ ...input, oldVersion: 'v2', newVersion: 'v3' })
       }
     }
   }
@@ -102,18 +109,21 @@ export abstract class RewardsContract extends Scrt_1_2.Contract<RewardsClient> {
 
     version = "v3" as RewardsAPIVersion
     name    = `Rewards[${this.version}]`
+    source  = { workspace, crate: 'sienna-rewards', ref: '39e87e4' }
+
     initMsg?: Init
     Client = RewardsClient['v3']
 
-    constructor ({ template, admin, staked, reward }: {
-      template?: Template,
-      admin?:    string,
-      staked?:   Snip20Client,
-      reward?:   Snip20Client,
+    constructor ({ template, admin, timekeeper, staked, reward }: {
+      template?:   Template,
+      admin?:      string,
+      timekeeper?: string,
+      staked?:     Snip20Client,
+      reward?:     Snip20Client,
     } = {}) {
       super()
       if (template) this.template = template
-      this.initMsg = makeRewardInitMsg['v3'](admin, staked, reward)
+      this.initMsg = makeRewardInitMsg['v3'](admin, timekeeper, staked, reward)
     }
 
     /** Command. Deploy Rewards v3. */
@@ -124,9 +134,38 @@ export abstract class RewardsContract extends Scrt_1_2.Contract<RewardsClient> {
 
     /** Command. The v3 to v3 upgrade tests user migration. */
     static upgrade = {
-      "v3": function upgradeRewards_v2_to_v3 (input) {
+      "v3": function upgradeRewards_v3_to_v3_1 (input) {
         return RewardsContract.upgradeRewards({ ...input, oldVersion: 'v3', newVersion: 'v3', })
       }
+    }
+
+    /** Command. Import addresses from a bundle that initialized multiple
+      * rewards contracts, and query their configuration. */
+    static importReceipts = async function importRewardsReceipts ({
+      agent,
+      deployment
+    }) {
+      const bundleReceiptPath = agent.chain.stateRoot.resolve('rewards-v3.json')
+      const bundleReceiptData = JSON.parse(readFileSync(bundleReceiptPath, 'utf8'))
+      const addresses = bundleReceiptData.logs.map(({ msg_index, log, events: [ message, wasm ] })=>{
+        const address = message.attributes[4].value
+        console.log(address)
+        return address
+      })
+      const stakedTokens = new Map()
+      const stakedTokenNames = new Map()
+      const { codeId, codeHash } = agent.chain.uploads.load('sienna-rewards@39e87e4.wasm')
+      await Promise.all(addresses.map(async address=>{
+        const client = new RewardsClient.v3({ address, codeHash, agent })
+        const label = await client.label
+        deployment.add(label.split('/')[1], {
+          label,
+          codeId,
+          codeHash,
+          address,
+          initTx: bundleReceiptData.txhash
+        })
+      }))
     }
   }
 
@@ -161,7 +200,7 @@ async function deployRewards (context: MigrationContext & {
   /** Prevent label clashes when iterating locally. */
   suffix:      string
   /** Whether the new reward pools should be configured in the RPT */
-  adjustRPT: boolean
+  adjustRPT:   boolean
 }): Promise<[RewardsClient, string][]> {
   const {
     deployment, agent, run, suffix,
@@ -196,7 +235,9 @@ async function deployRewards (context: MigrationContext & {
 
   if (adjustRPT) {
     const getAddressAndBudget = x=>[x[0][0].address, x[1]]
-    await run(RPTContract.adjustConfig, { RPT_CONFIG: rewardPoolsToCreate.map(getAddressAndBudget) })
+    await run(RPTContract.adjustConfig, {
+      RPT_CONFIG: rewardPoolsToCreate.map(getAddressAndBudget)
+    })
   }
 
   const getClientAndBudget = x=>x[0][0].client(clientAgent)
@@ -206,16 +247,19 @@ async function deployRewards (context: MigrationContext & {
 async function upgradeRewards (context: MigrationContext & {
   /** Which address will be admin of the new reward pools.
     * Defaults to the executing agent. */
-  admin:         string,
+  admin:         string
+  /** Which address can call BeginEpoch on the new reward pools.
+    * Defaults to the value of `admin` */
+  timekeeper:    string
   /** The reward token.
     * Defaults to SIENNA */
-  reward:        Snip20Client,
+  reward:        Snip20Client
   /** Old version that we are migrating from. */
-  oldVersion:    RewardsAPIVersion,
+  oldVersion:    RewardsAPIVersion
   /** New version that we are migrating to. */
-  newVersion:    RewardsAPIVersion,
+  newVersion:    RewardsAPIVersion
   /** Code id and code hash of new version. */
-  template:      Template,
+  template:      Template
   /** Version of the AMM that the new reward pools will attach to. */
   newAmmVersion: AMMVersion
 }): Promise<{
@@ -227,7 +271,8 @@ async function upgradeRewards (context: MigrationContext & {
     deployAgent,
     clientAgent,
 
-    admin  = agent.address,
+    admin      = getSettings(agent.chain.id).admin      || agent.address,
+    timekeeper = getSettings(agent.chain.id).timekeeper || admin,
     reward = new Snip20Client({ ...deployment.get('SIENNA'), agent }),
     oldVersion,
     newVersion,
@@ -235,26 +280,48 @@ async function upgradeRewards (context: MigrationContext & {
     newAmmVersion = 'v2'
   } = context
 
-  // TODO FAILSAFE! Stake in admin address of old rewards
-  //      so that subsequent RPT portions are not lost if
-  //      everyone leaves the pool !!!
-  const RPT = new RPTClient({ ...deployment.get('RPT'), agent })
+  const isOldRewardPool =
+    name => name.endsWith(`.Rewards[${oldVersion}]`)
+  const oldRewardPoolNames =
+    Object.keys(deployment.receipts).filter(isOldRewardPool)
+  const OldRewardsClient =
+    RewardsClient[oldVersion]
+  const oldRewardPools =
+    oldRewardPoolNames.map(name=>new OldRewardsClient({ ...deployment.receipts[name], agent }))
 
-  const OldRewardsClient = RewardsClient[oldVersion]
-  const oldRewardPools = Object.keys(deployment.receipts)
-    .filter(name=>name.endsWith(`.Rewards[${oldVersion}]`))
-    .map(name=>new OldRewardsClient({ ...deployment.receipts[name], agent }))
+  console.log({oldRewardPoolNames})
+
+  const stakedTokens = new Map()
+  const stakedTokenNames = new Map()
+  await Promise.all(oldRewardPools.map(async pool=>{
+    console.info(bold('Getting staked token info for:'), pool.name)
+    if (pool.name === 'SIENNA.Rewards[v2]') {
+      stakedTokens.set(pool, reward)
+      stakedTokenNames.set(reward, 'SIENNA')
+    } else {
+      const staked = await pool.getStakedToken()
+      stakedTokens.set(pool, staked)
+      const name = await staked.getPairName()
+      stakedTokenNames.set(staked, name)
+    }
+  }))
 
   const NewRewardsContract = RewardsContract[newVersion]
   const newRewardPools = []
   for (const oldRewardPool of oldRewardPools) {
-    const staked = await oldRewardPool.getStakedToken()
-    const newRewardPool = new NewRewardsContract({ template, admin, staked, reward })
+    const staked = stakedTokens.get(oldRewardPool)
+    const newRewardPool = new NewRewardsContract({
+      template,
+      admin,
+      timekeeper,
+      staked,
+      reward
+    })
     let name
     if (staked.address === deployment.get('SIENNA').address) {
       name = `SIENNA.Rewards[${newVersion}]`
     } else {
-      name = `AMM[${newAmmVersion}].${await staked.getPairName()}.LP.Rewards[${newVersion}]`
+      name = `AMM[${newAmmVersion}].${stakedTokenNames.get(staked)}.LP.Rewards[${newVersion}]`
     }
     newRewardPools.push([newRewardPool, newRewardPool.initMsg, name])
   }
@@ -262,6 +329,7 @@ async function upgradeRewards (context: MigrationContext & {
   await deployment.instantiate(deployAgent, ...newRewardPools)
 
   return { REWARD_POOLS: newRewardPools }
+
 }
 
 async function rerouteRewardFunding () { /* TODO */ }

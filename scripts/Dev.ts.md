@@ -87,6 +87,11 @@ Fadroma.command('build all',
     buildRouter
     buildLend
   ))
+
+import { buildLatestAMMAndRewards } from '@sienna/amm'
+Fadroma.command('build latest amm-and-rewards',
+  buildLatestAMMAndRewards
+)
 ```
 
 Which contracts each `build*` command builds is defined in:
