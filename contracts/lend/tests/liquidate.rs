@@ -578,3 +578,9 @@ fn close_factor() {
     assert_eq!(info.borrow_balance, liquidate_amount.into());
     assert_eq!(info.sl_token_balance, Uint256::zero());
 }
+
+#[test]
+#[should_panic(expected = "Premium rate cannot be less than 1.")]
+fn cannot_set_premium_rate_less_than_one() {
+    Lend::new(LendConfig::new().premium(Decimal256::percent(99)));
+}

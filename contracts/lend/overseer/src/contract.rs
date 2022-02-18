@@ -332,7 +332,7 @@ pub trait Overseer {
         let mut constants = Constants::load(&deps.storage)?;
 
         if let Some(premium_rate) = premium_rate {
-            constants.premium = premium_rate;
+            constants.set_premium(premium_rate)?;
         }
 
         if let Some(close_factor) = close_factor {
@@ -345,7 +345,7 @@ pub trait Overseer {
             messages: vec![],
             log: vec![
                 log("action", "change_config"),
-                log("premium_rate", constants.premium),
+                log("premium_rate", constants.premium()),
                 log("close_factor", constants.close_factor())
             ],
             data: None
@@ -434,7 +434,7 @@ pub trait Overseer {
         collateral: HumanAddr,
         repay_amount: Uint256,
     ) -> StdResult<Uint256> {
-        let premium = Constants::load(&deps.storage)?.premium;
+        let premium = Constants::load(&deps.storage)?.premium();
 
         //  Read oracle prices for borrowed and collateral markets
         let oracle = Contracts::load_oracle(deps)?;

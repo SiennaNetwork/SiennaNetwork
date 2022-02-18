@@ -123,7 +123,7 @@ pub struct AccountLiquidity {
 #[serde(deny_unknown_fields)]
 pub struct Config {
     /// The discount on collateral that a liquidator receives.
-    pub premium: Decimal256,
+    premium: Decimal256,
     /// The percentage of a liquidatable account's borrow that can be repaid in a single liquidate transaction.
     /// If a user has multiple borrowed assets, the closeFactor applies to any single borrowed asset,
     /// not the aggregated value of a user’s outstanding borrowing.
@@ -168,6 +168,7 @@ pub struct Pagination {
 impl Config {
     pub fn new(premium: Decimal256, close_factor: Decimal256) -> StdResult<Self> {
         Self::validate_close_factor(&close_factor)?;
+        Self::validate_premium(&premium)?;
 
         Ok(Self {
             premium,
@@ -183,8 +184,30 @@ impl Config {
         Ok(())
     }
 
+    #[inline]
     pub fn close_factor(&self) -> Decimal256 {
         self.close_factor
+    }
+
+    pub fn set_premium(&mut self, new: Decimal256) -> StdResult<()> {
+        Self::validate_premium(&new)?;
+
+        self.premium = new;
+
+        Ok(())
+    }
+
+    #[inline]
+    pub fn premium(&self) -> Decimal256 {
+        self.premium
+    }
+
+    fn validate_premium(premium: &Decimal256) -> StdResult<()> {
+        if *premium < Decimal256::one() {
+            return Err(StdError::generic_err("Premium rate cannot be less than 1."))
+        } else {
+            Ok(())
+        }
     }
 
     fn validate_close_factor(close_factor: &Decimal256) -> StdResult<()> {
