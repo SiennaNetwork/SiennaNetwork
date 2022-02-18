@@ -12,7 +12,7 @@ use lend_shared::{
     interfaces::{market, overseer},
 };
 
-use crate::setup::Lend;
+use crate::setup::{Lend, LendConfig};
 
 const BOB: &str = "Bob";
 const ALICE: &str = "Alice";
@@ -399,4 +399,182 @@ fn borrower_accrues_interest_and_goes_underwater() {
     ).unwrap();
 
     assert_eq!(borrowers[0].principal_balance, interest);
+}
+
+#[test]
+fn close_factor() {
+    let mut lend = Lend::new(
+        LendConfig::new()
+            .close_factor(Decimal256::percent(50))
+    );
+
+    let borrow_amount = Uint256::from(10 * one_token(18));
+
+    let underlying_1 = lend.new_underlying_token("ONE", 18).unwrap();
+    let underlying_2 = lend.new_underlying_token("TWO", 18).unwrap();
+
+    // whitelist markets
+    let market_1 = lend
+        .whitelist_market(
+            underlying_1.clone(),
+            Decimal256::one(),
+            None,
+            None,
+        )
+        .unwrap();
+
+    let market_2 = lend
+        .whitelist_market(
+            underlying_2.clone(),
+            Decimal256::one(),
+            None,
+            None,
+        )
+        .unwrap();
+
+    // set underlying prices
+    lend.set_oracle_price(market_1.symbol.as_bytes(), Uint128(1 * one_token(18)))
+        .unwrap();
+    lend.set_oracle_price(market_2.symbol.as_bytes(), Uint128(1 * one_token(18)))
+        .unwrap();
+
+    // prefund markets
+    lend.prefund_and_deposit(
+        BOB,
+        borrow_amount.low_u128().into(),
+        market_1.contract.address.clone(),
+    );
+
+    let alice_deposit = (borrow_amount * Uint256::from(2)).unwrap();
+    lend.prefund_user(ALICE, alice_deposit.low_u128().into(), underlying_2.clone());
+    // deposit
+    lend.ensemble
+        .execute(
+            &Snip20HandleMsg::Send {
+                recipient: market_2.contract.address.clone(),
+                recipient_code_hash: None,
+                amount: borrow_amount.low_u128().into(),
+                msg: Some(to_binary(&market::ReceiverCallbackMsg::Deposit {}).unwrap()),
+                memo: None,
+                padding: None,
+            },
+            MockEnv::new(ALICE, underlying_2.clone()),
+        )
+        .unwrap();
+
+    // enter markets
+    lend.ensemble
+        .execute(
+            &overseer::HandleMsg::Enter {
+                markets: vec![
+                    market_1.contract.address.clone(),
+                    market_2.contract.address.clone(),
+                ],
+            },
+            MockEnv::new(BOB, lend.overseer.clone()),
+        )
+        .unwrap();
+
+    lend.ensemble
+        .execute(
+            &market::HandleMsg::Borrow {
+                amount: borrow_amount.into(),
+            },
+            MockEnv::new(BOB, market_2.contract.clone()),
+        )
+        .unwrap();
+
+    let res: market::AccountInfo = lend
+        .ensemble
+        .query(
+            market_2.contract.address.clone(),
+            &market::QueryMsg::Account {
+                method: Permit::<market::MarketPermissions>::new(
+                    BOB,
+                    vec![market::MarketPermissions::AccountInfo],
+                    vec![market_2.contract.address.clone()],
+                    "balance",
+                )
+                .into(),
+                block: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(res.sl_token_balance, Uint256::from(0u128));
+    assert_eq!(res.borrow_balance, borrow_amount);
+
+    // crash the price of first token and liquidate
+    lend.set_oracle_price(market_1.symbol.as_bytes(), Uint128(5 * one_token(17))).unwrap();
+
+    let id = lend.id(BOB, market_2.contract.address.clone());
+
+    let err = lend.ensemble.execute(
+        &Snip20HandleMsg::Send {
+            recipient: market_2.contract.address.clone(),
+            recipient_code_hash: None,
+            amount: borrow_amount.low_u128().into(),
+            msg: Some(
+                to_binary(&market::ReceiverCallbackMsg::Liquidate {
+                    borrower: id.clone(),
+                    collateral: market_1.contract.address.clone(),
+                })
+                .unwrap(),
+            ),
+            memo: None,
+            padding: None,
+        },
+        MockEnv::new(ALICE, underlying_2.clone()),
+    )
+    .unwrap_err();
+
+    assert_eq!(err, StdError::generic_err("Repay amount is too high. Amount: 10000000000000000000, Max: 5000000000000000000"));
+
+    let liquidate_amount: Uint128 = (borrow_amount.low_u128() / 2).into();
+    lend.ensemble.execute(
+        &Snip20HandleMsg::Send {
+            recipient: market_2.contract.address.clone(),
+            recipient_code_hash: None,
+            amount: liquidate_amount,
+            msg: Some(
+                to_binary(&market::ReceiverCallbackMsg::Liquidate {
+                    borrower: id.clone(),
+                    collateral: market_1.contract.address.clone(),
+                })
+                .unwrap(),
+            ),
+            memo: None,
+            padding: None,
+        },
+        MockEnv::new(ALICE, underlying_2.clone()),
+    )
+    .unwrap();
+
+    let state = lend.state(market_1.contract.address.clone(), None);
+
+    let alice_acc = lend.account_info(ALICE, market_1.contract.address.clone());
+    assert_eq!(alice_acc.borrow_balance, Uint256::zero());
+
+    // We crashed the collateral price, so seize amount has doubled.
+    let seized_amount = Uint256::from(liquidate_amount.0 * 2);
+    assert_eq!(alice_acc.sl_token_balance, (seized_amount - state.total_reserves).unwrap());
+
+    let borrowers: Vec<market::Borrower> = lend.ensemble.query(
+        market_2.contract.address.clone(),
+        market::QueryMsg::Borrowers {
+            block: 12345,
+            start_after: None,
+            limit: None
+        }
+    ).unwrap();
+
+    assert_eq!(borrowers.len(), 1);
+    assert_eq!(borrowers[0].actual_balance, liquidate_amount.into());
+
+    let info = lend.account_info(BOB, market_1.contract.address);
+    assert_eq!(info.borrow_balance, Uint256::zero());
+    assert_eq!(info.sl_token_balance, Uint256::zero());
+
+    let info = lend.account_info(BOB, market_2.contract.address);
+    assert_eq!(info.borrow_balance, liquidate_amount.into());
+    assert_eq!(info.sl_token_balance, Uint256::zero());
 }
