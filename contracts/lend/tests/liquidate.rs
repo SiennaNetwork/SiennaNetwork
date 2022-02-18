@@ -31,6 +31,7 @@ fn liquidate_basic() {
             underlying_1.clone(),
             Decimal256::percent(75),
             Some(Decimal256::percent(50)),
+            None,
         )
         .unwrap();
 
@@ -39,6 +40,7 @@ fn liquidate_basic() {
             underlying_2.clone(),
             Decimal256::percent(75),
             Some(Decimal256::percent(50)),
+            None,
         )
         .unwrap();
 
@@ -213,7 +215,8 @@ fn borrower_accrues_interest_and_goes_underwater() {
         .whitelist_market(
             underlying_1.clone(),
             Decimal256::percent(100),
-            Some(Decimal256::percent(100)),
+            None,
+            None,
         )
         .unwrap();
 
@@ -221,7 +224,8 @@ fn borrower_accrues_interest_and_goes_underwater() {
         .whitelist_market(
             underlying_2.clone(),
             Decimal256::percent(100),
-            Some(Decimal256::percent(100)),
+            None,
+            None,
         )
         .unwrap();
 

@@ -16,7 +16,7 @@ fn transfer_no_funds() {
     let underlying_1 = lend.new_underlying_token("ONE", 6).unwrap();
 
     let market = lend
-        .whitelist_market(underlying_1.clone(), Decimal256::one(), Some(exchange_rate))
+        .whitelist_market(underlying_1.clone(), Decimal256::one(), Some(exchange_rate), None)
         .unwrap();
 
     // prefund only
@@ -41,7 +41,7 @@ fn transfer_basic() {
     let underlying_1 = lend.new_underlying_token("ONE", 6).unwrap();
 
     let market = lend
-        .whitelist_market(underlying_1.clone(), Decimal256::one(), Some(exchange_rate))
+        .whitelist_market(underlying_1.clone(), Decimal256::one(), Some(exchange_rate), None)
         .unwrap();
 
     lend.prefund_and_deposit(

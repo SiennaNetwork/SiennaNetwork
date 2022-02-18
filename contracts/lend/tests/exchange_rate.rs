@@ -18,7 +18,7 @@ fn initial_exchange_rate() {
 
     let token = lend.new_underlying_token("TKN", 9).unwrap();
     let market = lend
-        .whitelist_market(token, Decimal256::one(), Some(initial_rate))
+        .whitelist_market(token, Decimal256::one(), Some(initial_rate), None)
         .unwrap();
 
     let rate = lend.exchange_rate(market.contract.address, None);
@@ -34,7 +34,7 @@ fn initial_exchange_rate_mint() {
 
     let token = lend.new_underlying_token("TKN", 18).unwrap();
     let market = lend
-        .whitelist_market(token.clone(), Decimal256::one(), Some(initial_rate))
+        .whitelist_market(token.clone(), Decimal256::one(), Some(initial_rate), None)
         .unwrap();
 
     let deposit_amount = Uint128(50 * one_token(18));
@@ -70,14 +70,16 @@ fn accrue_interest_basic() {
         .whitelist_market(
             underlying_1.clone(),
             Decimal256::percent(75),
-            Some(Decimal256::percent(100)),
+            None,
+            None,
         )
         .unwrap();
     let market_2 = lend
         .whitelist_market(
             underlying_2.clone(),
             Decimal256::percent(75),
-            Some(Decimal256::percent(100)),
+            None,
+            None
         )
         .unwrap();
 

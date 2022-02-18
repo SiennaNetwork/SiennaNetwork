@@ -27,6 +27,7 @@ fn deposit_and_mint() {
             underlying_1.clone(),
             Decimal256::percent(50),
             Some(exchange_rate),
+            None,
         )
         .unwrap();
 
@@ -96,6 +97,7 @@ fn redeem_basic() {
             underlying_1.clone(),
             Decimal256::percent(50),
             Some(exchange_rate),
+            None,
         )
         .unwrap();
 
@@ -173,6 +175,7 @@ fn redeem_underlying_basic() {
             underlying_1.clone(),
             Decimal256::percent(50),
             Some(exchange_rate),
+            None,
         )
         .unwrap();
 
@@ -245,6 +248,7 @@ fn redeem_partial() {
             underlying_1.clone(),
             Decimal256::percent(50),
             Some(exchange_rate),
+            None,
         )
         .unwrap();
 

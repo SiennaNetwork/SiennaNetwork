@@ -22,6 +22,7 @@ fn killswitch() {
             underlying.clone(),
             Decimal256::percent(75),
             Some(Decimal256::percent(50)),
+            None,
         )
         .unwrap();
 

@@ -242,6 +242,7 @@ impl Lend {
         underlying_asset: ContractLink<HumanAddr>,
         ltv_ratio: Decimal256,
         exchange_rate: Option<Decimal256>,
+        reserve_factor: Option<Decimal256>,
     ) -> StdResult<overseer::Market<HumanAddr>> {
         let result = self.ensemble.query(
             underlying_asset.address.clone(),
@@ -263,7 +264,7 @@ impl Lend {
                     ltv_ratio,
                     config: market::Config {
                         initial_exchange_rate: exchange_rate.unwrap_or(Decimal256::one()),
-                        reserve_factor: Decimal256::zero(),
+                        reserve_factor: reserve_factor.unwrap_or(Decimal256::zero()),
                         seize_factor: Decimal256::from_str("0.028").unwrap(),
                     },
                     interest_model_contract: self.interest_model.clone(),
