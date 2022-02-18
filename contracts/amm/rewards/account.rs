@@ -1,7 +1,7 @@
 use crate::{
     config::{IRewardsConfig, RewardsConfig},
     errors,
-    gov::{user::{IUser, User}, config::{GovernanceConfig, IGovernanceConfig}},
+    gov::{user::{IUser, User}, config::{GovernanceConfig, IGovernanceConfig}, poll_result::PollResult, poll::{Poll, IPoll, UpdateResultReason}},
     time_utils::{Duration, Moment},
     total::{ITotal, Total}, bus_queue::BusQueue,
 };
@@ -86,9 +86,9 @@ where
     /// Store the values that were updated by the passing of time
     fn commit_elapsed(&mut self, core: &mut C) -> StdResult<()>;
     /// Store the results of a deposit
-    fn commit_deposit(&mut self, core: &mut C, amount: Amount) -> StdResult<()>;
+    fn commit_deposit(&mut self, core: &mut C, amount: Amount,  user: Option<User>) -> StdResult<()>;
     /// Store the results of a withdrawal
-    fn commit_withdrawal(&mut self, core: &mut C, amount: Amount) -> StdResult<()>;
+    fn commit_withdrawal(&mut self, core: &mut C, amount: Amount, user: Option<User>) -> StdResult<()>;
     /// Store the results of a claim
     fn commit_claim(&mut self, core: &mut C) -> StdResult<()>;
 }
@@ -207,7 +207,8 @@ where
             let why = why.clone();
             return self.force_exit(core, when, why);
         } else {
-            self.commit_deposit(core, amount)?;
+            
+            self.commit_deposit(core, amount, None)?;
             let lp_token = RewardsConfig::lp_token(core)?;
             let self_link = RewardsConfig::self_link(core)?;
             HandleResponse::default().msg(lp_token.transfer_from(
@@ -229,14 +230,15 @@ where
         } else {
             // testing pub/sub between traits. Message string will be enum, not a string
             // let polls = core.broadcast::<Moment, Vec<u64>>("get_active_polls", self.total.clock.now)?;
-            
+
+            // TODO probably must go into commit_withdrawal since other methods call it directly
             let user = User::get(core, self.address.clone(), self.total.clock.now)?;
             let threshold = GovernanceConfig::threshold(core)?;
             if !user.can_unstake(self.staked.u128(), threshold, amount.u128()) {
                 errors::unstake_disallowed()?
             }
             
-            self.commit_withdrawal(core, amount)?;
+            self.commit_withdrawal(core, amount, Some(user))?;
             let mut response = HandleResponse::default();
             // If all tokens were withdrawn
             if self.staked == Amount::zero() {
@@ -281,7 +283,7 @@ where
             .msg(RewardsConfig::reward_token(core)?.transfer(&self.address, self.earned)?)?
             .log("close_time", &format!("{}", when))?
             .log("close_reason", &format!("{}", why))?;
-        self.commit_withdrawal(core, self.staked)?;
+        self.commit_withdrawal(core, self.staked, None)?;
         self.commit_claim(core)?;
         Ok(response)
     }
@@ -296,7 +298,16 @@ where
         }
         Ok(())
     }
-    fn commit_deposit(&mut self, core: &mut C, amount: Amount) -> StdResult<()> {
+    fn commit_deposit(&mut self, core: &mut C, amount: Amount,  user: Option<User>) -> StdResult<()> {
+
+        let user = match user {
+            Some(usr) => usr,
+            None => User::get(core, self.address.clone(), self.total.clock.now)?
+        };
+        user.active_polls.into_iter().map(|poll_id| {
+            Poll::update_result(core, poll_id, self.address.clone(), self.total.clock.now, UpdateResultReason::ChangeVotePower { power: amount});
+        } );
+
         self.commit_elapsed(core)?;
         self.staked += amount;
         core.set_ns(Self::STAKED, self.id.as_slice(), self.staked)?;
@@ -304,7 +315,8 @@ where
         core.set(Total::STAKED, self.total.staked)?;
         Ok(())
     }
-    fn commit_withdrawal(&mut self, core: &mut C, amount: Amount) -> StdResult<()> {
+    fn commit_withdrawal(&mut self, core: &mut C, amount: Amount, user: Option<User>) -> StdResult<()> {
+        
         self.commit_elapsed(core)?;
         self.staked = (self.staked - amount)?;
         core.set_ns(Self::STAKED, self.id.as_slice(), self.staked)?;

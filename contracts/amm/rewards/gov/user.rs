@@ -7,7 +7,7 @@ use super::poll::{IPoll, Poll};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct User {
-    active_polls: Vec<u64>,
+    pub active_polls: Vec<u64>,
     created_polls: Vec<u64>
 }
 

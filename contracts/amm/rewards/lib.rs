@@ -261,7 +261,7 @@ pub enum Response {
 
                 if staked > Amount::zero() {
                     // Write off the user's LP tokens as withdrawn
-                    account.commit_withdrawal(self, staked)?;
+                    account.commit_withdrawal(self, staked, None)?;
                     // Transfer LP tokens directly to the new version
                     response = response.msg(
                         RewardsConfig::lp_token(self)?.transfer(&env.message.sender, staked)?
@@ -298,7 +298,7 @@ pub enum Response {
                 // Add the LP tokens transferred by the migration
                 // to the migrant's new account
                 Account::from_addr(self, &migrant, env.block.time)?
-                    .commit_deposit(self, staked)?;
+                    .commit_deposit(self, staked, None)?;
                 HandleResponse::default()
                     .log("migrated", &staked.to_string())
             }
