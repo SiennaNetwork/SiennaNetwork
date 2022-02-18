@@ -12,7 +12,7 @@ use lend_shared::{
     interfaces::{market, overseer},
 };
 
-use crate::setup::{Lend, LendConfig};
+use crate::setup::{Lend, LendConfig, ADMIN};
 
 const BOB: &str = "Bob";
 const ALICE: &str = "Alice";
@@ -583,4 +583,139 @@ fn close_factor() {
 #[should_panic(expected = "Premium rate cannot be less than 1.")]
 fn cannot_set_premium_rate_less_than_one() {
     Lend::new(LendConfig::new().premium(Decimal256::percent(99)));
+}
+
+#[test]
+fn premium_rate() {
+    let mut lend = Lend::default();
+
+    let borrow_amount = Uint256::from(10 * one_token(18));
+
+    let underlying_1 = lend.new_underlying_token("ONE", 18).unwrap();
+    let underlying_2 = lend.new_underlying_token("TWO", 18).unwrap();
+
+    // whitelist markets
+    let market_1 = lend
+        .whitelist_market(
+            underlying_1.clone(),
+            Decimal256::one(),
+            None,
+            None,
+        )
+        .unwrap();
+
+    let market_2 = lend
+        .whitelist_market(
+            underlying_2.clone(),
+            Decimal256::one(),
+            None,
+            None,
+        )
+        .unwrap();
+
+    // set underlying prices
+    lend.set_oracle_price(market_1.symbol.as_bytes(), Uint128(1 * one_token(18)))
+        .unwrap();
+    lend.set_oracle_price(market_2.symbol.as_bytes(), Uint128(1 * one_token(18)))
+        .unwrap();
+
+    // prefund markets
+    lend.prefund_and_deposit(
+        BOB,
+        borrow_amount.low_u128().into(),
+        market_1.contract.address.clone(),
+    );
+
+    let alice_deposit = (borrow_amount * Uint256::from(2)).unwrap();
+    lend.prefund_user(ALICE, alice_deposit.low_u128().into(), underlying_2.clone());
+    // deposit
+    lend.ensemble
+        .execute(
+            &Snip20HandleMsg::Send {
+                recipient: market_2.contract.address.clone(),
+                recipient_code_hash: None,
+                amount: borrow_amount.low_u128().into(),
+                msg: Some(to_binary(&market::ReceiverCallbackMsg::Deposit {}).unwrap()),
+                memo: None,
+                padding: None,
+            },
+            MockEnv::new(ALICE, underlying_2.clone()),
+        )
+        .unwrap();
+
+    // enter markets
+    lend.ensemble
+        .execute(
+            &overseer::HandleMsg::Enter {
+                markets: vec![
+                    market_1.contract.address.clone(),
+                    market_2.contract.address.clone(),
+                ],
+            },
+            MockEnv::new(BOB, lend.overseer.clone()),
+        )
+        .unwrap();
+
+    lend.ensemble
+        .execute(
+            &market::HandleMsg::Borrow {
+                amount: borrow_amount.into(),
+            },
+            MockEnv::new(BOB, market_2.contract.clone()),
+        )
+        .unwrap();
+
+    let liquidate_amount: Uint256 = (borrow_amount.low_u128() / 2).into();
+
+    let expected: Uint256 = (borrow_amount.low_u128() / 2).into();
+    let seize_amount: Uint256 = lend.ensemble.query(
+        lend.overseer.address.clone(),
+        overseer::QueryMsg::SeizeAmount {
+            borrowed: market_2.contract.address.clone(),
+            collateral: market_1.contract.address.clone(),
+            repay_amount: liquidate_amount
+        }
+    ).unwrap();
+
+    assert_eq!(seize_amount, expected);
+
+    lend.ensemble.execute(
+        &overseer::HandleMsg::ChangeConfig {
+            premium_rate: Some(Decimal256::percent(150)),
+            close_factor: None
+        },
+        MockEnv::new(ADMIN, lend.overseer.clone())
+    ).unwrap();
+
+    let expected = liquidate_amount.decimal_mul(Decimal256::percent(150)).unwrap();
+    let seize_amount: Uint256 = lend.ensemble.query(
+        lend.overseer.address.clone(),
+        overseer::QueryMsg::SeizeAmount {
+            borrowed: market_2.contract.address.clone(),
+            collateral: market_1.contract.address.clone(),
+            repay_amount: liquidate_amount
+        }
+    ).unwrap();
+
+    assert_eq!(seize_amount, expected);
+
+    lend.ensemble.execute(
+        &overseer::HandleMsg::ChangeConfig {
+            premium_rate: Some(Decimal256::percent(200)),
+            close_factor: None
+        },
+        MockEnv::new(ADMIN, lend.overseer.clone())
+    ).unwrap();
+
+    let expected = borrow_amount;
+    let seize_amount: Uint256 = lend.ensemble.query(
+        lend.overseer.address,
+        overseer::QueryMsg::SeizeAmount {
+            borrowed: market_2.contract.address,
+            collateral: market_1.contract.address,
+            repay_amount: liquidate_amount
+        }
+    ).unwrap();
+
+    assert_eq!(seize_amount, expected);
 }
