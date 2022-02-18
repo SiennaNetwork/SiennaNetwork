@@ -12,7 +12,7 @@ use lend_shared::{
     interfaces::{market, overseer::*},
 };
 
-use crate::setup::{Lend, ADMIN};
+use crate::setup::{Lend, LendConfig, ADMIN};
 
 const BORROWER: &str = "borrower";
 
@@ -535,7 +535,8 @@ fn liquidity_entering_markets() {
 
 #[test]
 fn calculate_amount_seize() {
-    let mut lend = Lend::new(Some(Box::new(MarketImpl)), None);
+    let config = LendConfig::new().market(Box::new(MarketImpl));
+    let mut lend = Lend::new(config);
 
     let underlying_1 = lend.new_underlying_token("ONE", 6).unwrap();
     let underlying_2 = lend.new_underlying_token("TWO", 3).unwrap();
