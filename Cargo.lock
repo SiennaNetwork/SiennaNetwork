@@ -355,8 +355,9 @@ dependencies = [
 
 [[package]]
 name = "cosmwasm-schema"
-version = "0.10.0"
-source = "git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print#004c6bca6f2b7f31a6594abe4f44f2e41b1456b3"
+version = "0.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2196586ea197eaa21129d09c84a19e2eb80bdce239eec8e6a4f108cb644c295f"
 dependencies = [
  "schemars",
  "serde_json",
@@ -697,7 +698,7 @@ dependencies = [
 name = "fadroma-platform-scrt"
 version = "0.1.0"
 dependencies = [
- "cosmwasm-schema 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
+ "cosmwasm-schema 0.10.1",
  "schemars",
  "secret-cosmwasm-std",
  "secret-cosmwasm-storage",
@@ -1918,7 +1919,7 @@ dependencies = [
 name = "sienna-mgmt"
 version = "2.0.0"
 dependencies = [
- "cosmwasm-schema 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.0)",
+ "cosmwasm-schema 0.10.0",
  "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.0)",
  "cosmwasm-storage 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.0)",
  "fadroma 3.0.0-rc1",
@@ -1969,7 +1970,7 @@ dependencies = [
 name = "sienna-rpt"
 version = "1.0.0"
 dependencies = [
- "cosmwasm-schema 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.0)",
+ "cosmwasm-schema 0.10.0",
  "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.0)",
  "cosmwasm-storage 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.0)",
  "fadroma 3.0.0-rc1",

@@ -1,6 +1,6 @@
 {
-  "chainId":         "pulsar-2",
-  "codeId":           3598,
-  "codeHash":        "345785c016cd4f978bcea57f07b02a954638e1617c9c8f8f51b472bd8ee87926",
-  "transactionHash": "7EC3228CBCE0C8532ACC04681AFA66A073042BE768B38452F5C4731B19DCD202"
+  "chainId": "pulsar-2",
+  "codeId": 4950,
+  "codeHash": "5eb190fc25e0f81219db093803cdd5d94ee8615efc7614284b6ef4c75d7d0e6f",
+  "transactionHash": "5866A5B3B37C07133EA78B2C726AA58D5081D02A0495AAE0EEC446C2567A9FB4"
 }
