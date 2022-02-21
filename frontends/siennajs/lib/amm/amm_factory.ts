@@ -1,7 +1,8 @@
-import { Address, TokenPair, Fee, ContractInstantiationInfo, create_entropy, TokenType } from './core'
-import { SmartContract, Executor, Querier } from './contract'
-import { TokenSaleConfig } from './ido'
-import { TokenSettings } from './launchpad'
+import { Address, Fee, ContractInstantiationInfo, create_entropy } from '../core'
+import { TokenPair, TokenType } from './token'
+import { SmartContract, Executor, Querier } from '../contract'
+import { TokenSaleConfig } from '../launchpad/ido'
+import { TokenSettings } from '../launchpad/launchpad'
 
 import { ExecuteResult } from 'secretjs'
 

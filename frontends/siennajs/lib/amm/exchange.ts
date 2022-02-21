@@ -1,10 +1,13 @@
 import { 
-    Address, Uint128, Fee, create_fee, TokenTypeAmount, TokenPairAmount,
-    Decimal, ContractInfo, TokenPair, add_native_balance_pair, CustomToken,
-    add_native_balance, get_token_type, TypeOfToken, 
-} from './core'
-import { SmartContract, Executor, Querier } from './contract'
-import { Snip20Contract } from './snip20'
+    Address, Uint128, Fee, create_fee, Decimal, ContractInfo,
+} from '../core'
+import { 
+    TokenPair, add_native_balance_pair, CustomToken,
+    add_native_balance, get_token_type, TypeOfToken,
+    TokenTypeAmount, TokenPairAmount,
+} from './token'
+import { SmartContract, Executor, Querier } from '../contract'
+import { Snip20Contract } from '../snip20'
 
 import { ExecuteResult, SigningCosmWasmClient } from 'secretjs'
 

@@ -1,10 +1,8 @@
-import {
-    Address, Uint128, TokenType, Fee, create_fee,
-    get_token_type, TypeOfToken, CustomToken, create_coin,
-} from './core'
-import { SmartContract, Querier } from './contract'
-import { ViewingKeyExecutor } from './executors/viewing_key_executor'
-import { Snip20Contract } from './snip20'
+import { Address, Uint128, Fee, create_fee, create_coin } from '../core'
+import { get_token_type, TypeOfToken, CustomToken, TokenType } from '../amm/token'
+import { SmartContract, Querier } from '../contract'
+import { ViewingKeyExecutor } from '../executors/viewing_key_executor'
+import { Snip20Contract } from '../snip20'
 
 import { SigningCosmWasmClient, ExecuteResult } from 'secretjs'
 

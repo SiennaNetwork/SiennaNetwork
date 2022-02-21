@@ -1,6 +1,6 @@
-import { Address, Uint128, Uint256, Fee, ContractInfo, ViewingKey } from './core'
-import { SmartContract, Querier } from './contract'
-import { ViewingKeyExecutor } from './executors/viewing_key_executor'
+import { Address, Uint128, Uint256, Fee, ContractInfo, ViewingKey } from '../core'
+import { SmartContract, Querier } from '../contract'
+import { ViewingKeyExecutor } from '../executors/viewing_key_executor'
 
 import { ExecuteResult } from 'secretjs'
 
