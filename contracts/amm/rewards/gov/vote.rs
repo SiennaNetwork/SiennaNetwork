@@ -18,6 +18,21 @@ pub struct Vote {
 
 impl Vote {
     pub const VOTE: &'static [u8] = b"/gov/vote/";
+
+
+    fn build_prefix(poll_id: u64) -> StdResult<Vec<u8>> {
+        let poll_id = poll_id.to_be_bytes().to_vec();
+
+        //TODO: Cleaner way to handle this?
+        let len = Self::VOTE.len() + poll_id.as_slice().len();
+
+        let mut key = Vec::with_capacity(len);
+        key.extend_from_slice(Self::VOTE);
+        key.extend_from_slice(poll_id.as_slice());
+
+        Ok(key)
+    }
+
 }
 pub trait IVote<S, A, Q, C>
 where
@@ -30,7 +45,8 @@ where
     fn store(self, core: &mut C, address: HumanAddr, poll_id: u64) -> StdResult<Self>;
     fn new(core: &C, variant: VoteType, voter: HumanAddr, vote_power: Uint128) -> StdResult<Self>;
     fn get(core: &C, address: HumanAddr, poll_id: u64) -> StdResult<Self>;
-    fn build_prefix(core: &C, poll_id: u64) -> StdResult<Vec<u8>>;
+    fn set(core: &mut C, address: HumanAddr, poll_id: u64, vote: &Vote) -> StdResult<()>;
+    fn increase(core: &mut C, address: HumanAddr, poll_id: u64, amount: u128) -> StdResult<()>;
     fn remove(core: &mut C, address: HumanAddr, poll_id: u64) -> StdResult<()>;
 }
 
@@ -43,13 +59,12 @@ where
     Self: Sized,
 {
     fn store(self, core: &mut C, address: HumanAddr, poll_id: u64) -> StdResult<Self> {
-        let prefix = Self::build_prefix(core, poll_id)?;
-        let key = core.canonize(address)?;
-        core.set_ns(&prefix, key.as_slice(), &self)?;
+        Vote::set(core, address, poll_id, &self)?;
         Ok(self)
     }
+
     fn get(core: &C, address: HumanAddr, poll_id: u64) -> StdResult<Self> {
-        let prefix = Self::build_prefix(core, poll_id)?;
+        let prefix = Self::build_prefix(poll_id)?;
         let key = core.canonize(address)?;
         let vote = core
             .get_ns::<Vote>(&prefix, key.as_slice())?
@@ -59,21 +74,23 @@ where
         Ok(vote)
     }
 
-    fn build_prefix(_core: &C, poll_id: u64) -> StdResult<Vec<u8>> {
-        let poll_id = poll_id.to_be_bytes().to_vec();
-
-        //TODO: Cleaner way to handle this?
-        let len = Self::VOTE.len() + poll_id.as_slice().len();
-
-        let mut key = Vec::with_capacity(len);
-        key.extend_from_slice(Self::VOTE);
-        key.extend_from_slice(poll_id.as_slice());
-
-        Ok(key)
+    fn set(core: &mut C, address: HumanAddr, poll_id: u64, vote: &Vote) -> StdResult<()> {
+        let prefix = Self::build_prefix(poll_id)?;
+        let key = core.canonize(address)?;
+        core.set_ns(&prefix, key.as_slice(), vote)?;
+        Ok(())
     }
+
+    fn increase(core: &mut C, address: HumanAddr, poll_id: u64, amount: u128) -> StdResult<()> {
+        let mut vote = Self::get(core, address.clone(), poll_id)?;
+        vote.vote_power += amount;
+        Self::set(core, address, poll_id, &vote)?;
+        Ok(())
+    }
+
     fn remove(core: &mut C, address: HumanAddr, poll_id: u64) -> StdResult<()> {
         //again, better way to handle concat?
-        let mut prefix = Self::build_prefix(core, poll_id)?;
+        let mut prefix = Self::build_prefix(poll_id)?;
         let key = core.canonize(address)?;
         prefix.extend_from_slice(key.as_slice());
 
@@ -91,3 +108,4 @@ where
         })
     }
 }
+

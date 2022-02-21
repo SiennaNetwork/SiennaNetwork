@@ -43,7 +43,7 @@ TDB:
 * Changing voting power recalculates:
     - Vote 
     - PollResult 
-    - UserPolls -> update all active polls for user
+    - User -> update all active polls for user
 
 ### Storage
 
