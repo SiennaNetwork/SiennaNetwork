@@ -13,9 +13,9 @@ mod test_0300_migrate;
 use prettytable::{/*Row, Cell,*/ format, Table};
 //use yansi::Paint;
 
-use crate::*;
-use crate::time_utils::{Moment, Duration, DAY};
+use crate::time_utils::{Duration, Moment, DAY};
 use crate::total::Total;
+use crate::*;
 use fadroma::composability::{ClonableMemoryStorage, MockExtern};
 use fadroma::secret_toolkit::snip20;
 
@@ -408,10 +408,7 @@ impl Context {
                 data: None
             })
         );
-        let vk: Option<ViewingKey> = self
-            .deps
-            .get(crate::RewardsConfig::REWARD_VK)
-            .unwrap();
+        let vk: Option<ViewingKey> = self.deps.get(crate::RewardsConfig::REWARD_VK).unwrap();
         assert_eq!(vk.unwrap().0, String::from(key));
         self
     }

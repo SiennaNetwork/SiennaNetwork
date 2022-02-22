@@ -44,6 +44,7 @@ dependencies = [
  "lp-token",
  "router",
  "serde",
+ "sienna-rewards",
 ]
 
 [[package]]

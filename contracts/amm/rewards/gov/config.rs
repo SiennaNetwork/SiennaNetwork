@@ -2,12 +2,12 @@ use fadroma::*;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use super::{poll::Poll};
+use super::poll::Poll;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct GovernanceConfig {
-    pub threshold: Option<u128>,
+    pub threshold: Option<Uint128>,
     pub quorum: Option<Decimal>,
     pub deadline: Option<u64>,
 }
@@ -21,7 +21,7 @@ impl GovernanceConfig {
     pub const MAX_DESC_LENGTH: usize = 1024;
 
     pub const DEFAULT_QUORUM_PERCENT: u64 = 33;
-    pub const DEFAULT_TRESHOLD: u128 = 3500;
+    pub const DEFAULT_TRESHOLD: Uint128 = Uint128(3500);
     pub const DEFAULT_DEADLINE: u64 = 7 * 24 * 60 * 60;
 
     //storage keys
@@ -44,7 +44,7 @@ where
     fn initialize(&mut self, core: &mut C, env: &Env) -> StdResult<Vec<CosmosMsg>>;
     fn store(&self, core: &mut C) -> StdResult<Vec<CosmosMsg>>;
     fn get(core: &C) -> StdResult<Self>;
-    fn threshold(core: &C) -> StdResult<u128>;
+    fn threshold(core: &C) -> StdResult<Uint128>;
     fn quorum(core: &C) -> StdResult<Decimal>;
     fn deadline(core: &C) -> StdResult<u64>;
 }
@@ -85,8 +85,8 @@ where
         Ok(vec![])
     }
 
-    fn threshold(core: &C) -> StdResult<u128> {
-        core.get::<u128>(Self::THRESHOLD)?
+    fn threshold(core: &C) -> StdResult<Uint128> {
+        core.get::<Uint128>(Self::THRESHOLD)?
             .ok_or(StdError::generic_err("threshold not set"))
     }
 

@@ -1,8 +1,8 @@
 use crate::{
     account::{accumulate, Amount, CloseSeal, Volume},
-    config::{RewardsConfig, IRewardsConfig},
+    config::{IRewardsConfig, RewardsConfig},
     errors,
-    time_utils::{Clock, IClock, Duration, Moment, DAY},
+    time_utils::{Clock, Duration, IClock, Moment, DAY},
 };
 use fadroma::*;
 use schemars::JsonSchema;

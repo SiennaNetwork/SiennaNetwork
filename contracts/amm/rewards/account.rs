@@ -239,7 +239,7 @@ where
             // TODO probably must go into commit_withdrawal since other methods call it directly
             let user = User::get(core, self.address.clone(), self.total.clock.now)?;
             let threshold = GovernanceConfig::threshold(core)?;
-            if !user.can_unstake(self.staked.u128(), threshold, amount.u128()) {
+            if !user.can_unstake(self.staked.u128(), threshold.into(), amount.u128()) {
                 errors::unstake_disallowed()?
             }
 

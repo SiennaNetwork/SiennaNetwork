@@ -13,4 +13,5 @@ amm-shared = { path = "../../../libraries/amm-shared" }
 lp-token = { path = "../lp-token" }
 factory = { path = "../factory" }
 exchange = { path = "../exchange" }
+sienna-rewards = { path = "../rewards" }
 router = { path = "../router" }
