@@ -23,8 +23,10 @@ use exchange::contract as exchange;
 use factory::contract as factory;
 use lp_token;
 use rewards::{
+    auth::AuthHandle,
     gov::{poll::Poll, query::GovernanceQuery, response::GovernanceResponse},
     handle::RewardsHandle,
+    Response,
 };
 use router::contract as router;
 use sienna_rewards as rewards;
@@ -320,6 +322,28 @@ impl Amm {
                 MockEnv::new(address, self.rewards.to_owned().try_into().unwrap()),
             )
             .unwrap();
+    }
+    pub fn set_rewards_viewing_key(&mut self, address: HumanAddr, key: String) {
+        self.ensemble
+            .execute(
+                &sienna_rewards::Handle::Auth(AuthHandle::SetViewingKey { key, padding: None }),
+                MockEnv::new(address, self.rewards.to_owned().try_into().unwrap()),
+            )
+            .unwrap();
+    }
+    pub fn get_rewards_staked(&mut self, address: HumanAddr, key: String) -> Uint128 {
+        let response: Response = self
+            .ensemble
+            .query(
+                self.rewards.address.clone(),
+                &sienna_rewards::Query::Balance { address, key },
+            )
+            .unwrap();
+
+        match response {
+            Response::Balance { amount } => amount,
+            _ => panic!("wrong type returned for balance"),
+        }
     }
 }
 
