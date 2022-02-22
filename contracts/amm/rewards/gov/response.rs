@@ -83,8 +83,8 @@ where
     fn vote_status(core: &C, poll_id: u64, address: HumanAddr) -> StdResult<Self> {
         let vote = Vote::get(core, address, poll_id)?;
         Ok(GovernanceResponse::VoteStatus {
-            power: vote.vote_power.into(),
-            variant: vote.variant,
+            power: vote.power.into(),
+            variant: vote.choice,
         })
     }
 }

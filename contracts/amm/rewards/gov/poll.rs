@@ -1,9 +1,11 @@
-
 use fadroma::*;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::{total::{Total, ITotal}, time_utils::Moment};
+use crate::{
+    time_utils::Moment,
+    total::{ITotal, Total},
+};
 
 use super::{
     expiration::Expiration,
@@ -63,7 +65,6 @@ where
     fn update_result(
         core: &mut C,
         poll_id: u64,
-        sender: HumanAddr,
         now: Moment,
         update: UpdateResultReason,
     ) -> StdResult<PollResult>;
@@ -183,28 +184,20 @@ where
     fn update_result(
         core: &mut C,
         poll_id: u64,
-        sender: HumanAddr,
         now: Moment,
         update: UpdateResultReason,
     ) -> StdResult<PollResult> {
         let mut result = PollResult::get(core, poll_id).unwrap_or(PollResult::new(core, poll_id));
 
         match update {
-            UpdateResultReason::AddVote { variant, power } => {
-                result.add_vote(core, variant, power, sender)?.store(core)?;
+            UpdateResultReason::ChangeVoteChoice { choice, power } => {
+                result.transfer_vote(choice, power)?;
             }
-            UpdateResultReason::ChangeVotePower { power } => {
-                result.set_vote_power(core, power, sender)?.store(core)?;
-            }
-            UpdateResultReason::ChangeVoteVariant { variant } => {
-                result
-                    .change_choice(core, variant, sender)?
-                    .store(core)?;
-            }
-            UpdateResultReason::RemoveVote {} => {
-                result.remove_vote(core, sender)?.store(core)?;
+            UpdateResultReason::ChangeVotePower { choice, power_diff } => {
+                result.change_vote_power(choice, power_diff)?;
             }
         }
+        result.store(core)?;
 
         let total = Total::from_time(core, now)?;
         let current_quorum = Poll::current_quorum(core, poll_id)?;
@@ -230,8 +223,6 @@ pub enum PollStatus {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum UpdateResultReason {
-    ChangeVotePower { power: Uint128 },
-    ChangeVoteVariant { variant: VoteType },
-    RemoveVote {},
-    AddVote { variant: VoteType, power: Uint128 },
+    ChangeVotePower { choice: VoteType, power_diff: i128 },
+    ChangeVoteChoice { choice: VoteType, power: u128 },
 }

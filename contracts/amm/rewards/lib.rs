@@ -298,7 +298,7 @@ pub enum Response {
                 // Add the LP tokens transferred by the migration
                 // to the migrant's new account
                 Account::from_addr(self, &migrant, env.block.time)?
-                    .commit_deposit(self, staked, None)?;
+                    .commit_deposit(self, staked)?;
                 HandleResponse::default()
                     .log("migrated", &staked.to_string())
             }

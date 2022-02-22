@@ -4,9 +4,8 @@ use crate::{
     errors,
     gov::{
         config::{GovernanceConfig, IGovernanceConfig},
-        poll::{UpdateResultReason, Poll, IPoll},
+        poll::{IPoll, Poll, UpdateResultReason},
         user::{IUser, User},
-        vote::{IVote, Vote},
     },
     time_utils::{Duration, Moment},
     total::{ITotal, Total},
@@ -92,14 +91,10 @@ where
     /// Store the values that were updated by the passing of time
     fn commit_elapsed(&mut self, core: &mut C) -> StdResult<()>;
     /// Store the results of a deposit
-    fn commit_deposit(&mut self, core: &mut C, amount: Amount, user: Option<User>)
+    fn commit_deposit(&mut self, core: &mut C, amount: Amount)
         -> StdResult<()>;
     /// Store the results of a withdrawal
-    fn commit_withdrawal(
-        &mut self,
-        core: &mut C,
-        amount: Amount,
-    ) -> StdResult<()>;
+    fn commit_withdrawal(&mut self, core: &mut C, amount: Amount) -> StdResult<()>;
     /// Store the results of a claim
     fn commit_claim(&mut self, core: &mut C) -> StdResult<()>;
 }
@@ -218,7 +213,7 @@ where
             let why = why.clone();
             return self.force_exit(core, when, why);
         } else {
-            self.commit_deposit(core, amount, None)?;
+            self.commit_deposit(core, amount)?;
             let lp_token = RewardsConfig::lp_token(core)?;
             let self_link = RewardsConfig::self_link(core)?;
             HandleResponse::default().msg(lp_token.transfer_from(
@@ -312,24 +307,17 @@ where
         &mut self,
         core: &mut C,
         amount: Amount,
-        user: Option<User>,
     ) -> StdResult<()> {
-        let user = match user {
-            Some(usr) => usr,
-            None => User::get(core, self.address.clone(), self.total.clock.now)?,
-        };
-        user.active_polls
-            .into_iter()
-            .for_each(|poll_id| {
-                Vote::increase(core, self.address.clone(), poll_id, amount.u128()).expect("Failed to increase vote");
-                Poll::update_result(
-                    core,
-                    poll_id,
-                    self.address.clone(),
-                    self.total.clock.now,
-                    UpdateResultReason::ChangeVotePower { power: amount },
-                ).expect("Failed to update poll results");
-            });
+        let user = User::get(core, self.address.clone(), self.total.clock.now)?;
+        user.active_polls.into_iter().for_each(|poll_id| {
+            User::increase_vote_power(
+                core,
+                poll_id,
+                self.address.clone(),
+                amount,
+                self.total.clock.now
+            ).expect("Increasing voting power failed");
+        });
 
         self.commit_elapsed(core)?;
         self.staked += amount;
@@ -338,11 +326,7 @@ where
         core.set(Total::STAKED, self.total.staked)?;
         Ok(())
     }
-    fn commit_withdrawal(
-        &mut self,
-        core: &mut C,
-        amount: Amount,
-    ) -> StdResult<()> {
+    fn commit_withdrawal(&mut self, core: &mut C, amount: Amount) -> StdResult<()> {
         self.commit_elapsed(core)?;
         self.staked = (self.staked - amount)?;
         core.set_ns(Self::STAKED, self.id.as_slice(), self.staked)?;

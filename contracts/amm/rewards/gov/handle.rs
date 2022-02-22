@@ -5,8 +5,8 @@ use fadroma::*;
 
 use crate::auth::Auth;
 use crate::errors::poll_expired;
+use crate::time_utils::Moment;
 
-use super::poll::UpdateResultReason;
 use super::response::GovernanceResponse;
 use super::user::{IUser, User};
 use super::validator;
@@ -23,9 +23,9 @@ use super::{
 #[serde(rename_all = "snake_case")]
 pub enum GovernanceHandle {
     CreatePoll { meta: PollMetadata },
-    Vote { variant: VoteType, poll_id: u64 },
+    Vote { choice: VoteType, poll_id: u64 },
     Unvote { poll_id: u64 },
-    ChangeVote { variant: VoteType, poll_id: u64 },
+    ChangeVoteChoice { choice: VoteType, poll_id: u64 },
     SetViewingKey { key: String },
     CreateViewingKey { entropy: String },
     UpdateConfig { config: GovernanceConfig },
@@ -38,6 +38,8 @@ where
     C: Governance<S, A, Q>,
 {
     fn dispatch_handle(self, core: &mut C, env: Env) -> StdResult<HandleResponse> {
+        let now: Moment = env.block.time;
+        let sender = env.message.sender.clone();
         match self {
             GovernanceHandle::CreatePoll { meta } => {
                 validator::validate_text_length(
@@ -64,12 +66,10 @@ where
                 let current_quorum = GovernanceConfig::quorum(core)?;
                 let current_time = env.block.time;
                 let expiration = Expiration::AtTime(current_time + deadline);
-                let creator = core.canonize(env.message.sender.clone())?;
+                let creator = core.canonize(sender.clone())?;
 
                 let poll = Poll::new(core, creator, expiration, meta, current_quorum)?;
-                poll.store(core)?;
-
-                User::append_created_poll(core, env.message.sender, poll.id, current_time)?;
+                User::create_poll(core, sender, &poll, current_time)?;
 
                 Ok(HandleResponse {
                     data: Some(to_binary(&poll)?),
@@ -81,63 +81,54 @@ where
                     messages: vec![],
                 })
             }
-            GovernanceHandle::Vote { variant, poll_id } => {
+            GovernanceHandle::Vote { choice, poll_id } => {
                 let expiration = Poll::expiration(core, poll_id)?;
-                if expiration.is_expired(env.block.time) {
+                if expiration.is_expired(now) {
                     return poll_expired();
                 }
 
                 // let account = Account::from_env(core, &env)?;
                 let power = Uint128(200);
-
-                Poll::update_result(
-                    core,
-                    poll_id,
-                    env.message.sender.clone(),
-                    env.block.time,
-                    UpdateResultReason::AddVote { power, variant },
-                )?;
-
-                User::append_active_poll(core, env.message.sender, poll_id, env.block.time)?;
-
+                User::add_vote(core, poll_id, sender, choice, power, now)?;
                 Ok(HandleResponse::default())
             }
-            GovernanceHandle::ChangeVote { variant, poll_id } => {
+            GovernanceHandle::ChangeVoteChoice { choice, poll_id } => {
                 let expiration = Poll::expiration(core, poll_id)?;
-                if expiration.is_expired(env.block.time) {
+                if expiration.is_expired(now) {
                     return poll_expired();
                 }
-                Poll::update_result(
-                    core,
-                    poll_id,
-                    env.message.sender.clone(),
-                    env.block.time,
-                    UpdateResultReason::ChangeVoteVariant { variant },
-                )?;
+                User::change_choice(core, poll_id, sender, choice, now)?;
+                // Poll::update_result(
+                //     core,
+                //     poll_id,
+                //     env.message.sender.clone(),
+                //     env.block.time,
+                //     UpdateResultReason::ChangeVoteChoice { choice },
+                // )?;
 
                 Ok(HandleResponse::default())
             }
             GovernanceHandle::Unvote { poll_id } => {
                 let expiration = Poll::expiration(core, poll_id)?;
-                if expiration.is_expired(env.block.time) {
+                if expiration.is_expired(now) {
                     return poll_expired();
                 }
+                User::remove_vote(core, poll_id, sender, now)?;
+                // Poll::update_result(
+                //     core,
+                //     poll_id,
+                //     env.message.sender.clone(),
+                //     env.block.time,
+                //     UpdateResultReason::RemoveVote {},
+                // )?;
 
-                Poll::update_result(
-                    core,
-                    poll_id,
-                    env.message.sender.clone(),
-                    env.block.time,
-                    UpdateResultReason::RemoveVote {},
-                )?;
-
-                User::remove_active_poll(core, env.message.sender, poll_id, env.block.time)?;
+                // User::remove_active_poll(core, env.message.sender, poll_id, env.block.time)?;
 
                 Ok(HandleResponse::default())
             }
 
             GovernanceHandle::SetViewingKey { key } => {
-                User::set_viewing_key(core, env.message.sender, &key.into())?;
+                User::set_viewing_key(core, sender, &key.into())?;
                 Ok(HandleResponse::default())
             }
             GovernanceHandle::CreateViewingKey { entropy } => {
@@ -146,7 +137,7 @@ where
                     &[env.block.time.to_be_bytes(), env.block.height.to_be_bytes()].concat(),
                     &(entropy).as_ref(),
                 );
-                User::set_viewing_key(core, env.message.sender, &key)?;
+                User::set_viewing_key(core, sender, &key)?;
 
                 Ok(HandleResponse {
                     messages: vec![],

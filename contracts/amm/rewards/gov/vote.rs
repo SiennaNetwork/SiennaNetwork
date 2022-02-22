@@ -2,7 +2,7 @@ use fadroma::*;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum VoteType {
     Yes,
@@ -11,8 +11,8 @@ pub enum VoteType {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct Vote {
-    pub variant: VoteType,
-    pub vote_power: u128,
+    pub choice: VoteType,
+    pub power: u128,
     pub voter: CanonicalAddr,
 }
 
@@ -83,7 +83,7 @@ where
 
     fn increase(core: &mut C, address: HumanAddr, poll_id: u64, amount: u128) -> StdResult<()> {
         let mut vote = Self::get(core, address.clone(), poll_id)?;
-        vote.vote_power += amount;
+        vote.power += amount;
         Self::set(core, address, poll_id, &vote)?;
         Ok(())
     }
@@ -102,8 +102,8 @@ where
     fn new(core: &C, variant: VoteType, voter: HumanAddr, vote_power: Uint128) -> StdResult<Self> {
         let voter = core.canonize(voter)?;
         Ok(Self {
-            vote_power: vote_power.u128(),
-            variant,
+            power: vote_power.u128(),
+            choice: variant,
             voter,
         })
     }
