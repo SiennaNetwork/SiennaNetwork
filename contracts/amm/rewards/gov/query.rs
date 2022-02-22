@@ -2,13 +2,12 @@ use fadroma::*;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::time_utils::Moment;
-
 use super::{
     governance::Governance,
     response::{GovernanceResponse, IGovernanceResponse},
-    user::{IUser, User},
 };
+use crate::auth::Auth;
+use crate::time_utils::Moment;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
@@ -16,11 +15,11 @@ pub enum GovernanceQuery {
     Polls {
         take: u64,
         page: u64,
-        now: Moment
+        now: Moment,
     },
     Poll {
         id: u64,
-        now: Moment
+        now: Moment,
     },
     VoteStatus {
         poll_id: u64,
@@ -41,14 +40,14 @@ where
             GovernanceQuery::Polls { take, page, now } => {
                 GovernanceResponse::polls(core, take, page, false, now)
             }
-            GovernanceQuery::Poll { id, now} => GovernanceResponse::poll(core, id, now),
+            GovernanceQuery::Poll { id, now } => GovernanceResponse::poll(core, id, now),
             GovernanceQuery::Config {} => GovernanceResponse::config(core),
             GovernanceQuery::VoteStatus {
                 poll_id,
                 key,
                 address,
             } => {
-                User::check_viewing_key(core, address.clone(), &key.into())?;
+                Auth::check_vk(core, &address, &key.into())?;
                 GovernanceResponse::vote_status(core, poll_id, address)
             }
         }

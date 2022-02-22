@@ -1,5 +1,5 @@
 use fadroma::{
-    Api, Composable, HumanAddr, Querier, StdError, StdResult, Storage, Uint128, ViewingKey,
+    Api, Composable, HumanAddr, Querier, StdError, StdResult, Storage, Uint128,
 };
 use serde::{Deserialize, Serialize};
 
@@ -18,7 +18,6 @@ pub struct User {
 
 impl User {
     pub const ACTIVE_POLLS: &'static [u8] = b"/gov/user/polls";
-    pub const VIEWING_KEY: &'static [u8] = b"gov/user/key";
     pub const CREATED_POLLS: &'static [u8] = b"gov/user/created_polls";
 
     pub fn can_unstake(&self, balance: u128, threshold: u128, amount: u128) -> bool {
@@ -55,9 +54,6 @@ where
     fn create_poll(core: &mut C, sender: HumanAddr, poll: &Poll, now: Moment) -> StdResult<()>;
     fn created_polls(core: &C, address: HumanAddr, now: Moment) -> StdResult<Vec<u64>>;
 
-    fn set_viewing_key(core: &mut C, address: HumanAddr, key: &ViewingKey) -> StdResult<()>;
-    fn viewing_key(core: &C, address: HumanAddr) -> StdResult<Option<ViewingKey>>;
-    fn check_viewing_key(core: &C, address: HumanAddr, provided_vk: &ViewingKey) -> StdResult<()>;
     fn add_vote(
         core: &mut C,
         poll_id: u64,
@@ -155,29 +151,6 @@ where
             .get_ns::<Vec<u64>>(User::CREATED_POLLS, canonized_adr.as_slice())?
             .unwrap_or_default();
         Ok(filter_active_polls(core, polls, timestamp))
-    }
-
-    fn set_viewing_key(core: &mut C, address: HumanAddr, key: &ViewingKey) -> StdResult<()> {
-        let id = core.canonize(address)?;
-        core.set_ns(Self::VIEWING_KEY, id.as_slice(), key)?;
-        Ok(())
-    }
-    fn viewing_key(core: &C, address: HumanAddr) -> StdResult<Option<ViewingKey>> {
-        let id = core.canonize(address)?;
-        core.get_ns(Self::VIEWING_KEY, id.as_slice())
-    }
-
-    fn check_viewing_key(core: &C, address: HumanAddr, provided_vk: &ViewingKey) -> StdResult<()> {
-        let stored_vk = Self::viewing_key(core, address)?;
-        if let Some(ref key) = stored_vk {
-            if provided_vk.check_viewing_key(&key.to_hashed()) {
-                Ok(())
-            } else {
-                Err(StdError::unauthorized())
-            }
-        } else {
-            Err(StdError::unauthorized())
-        }
     }
 
     fn add_vote(
