@@ -101,7 +101,7 @@ export class Snip20Contract extends SmartContract<Snip20Executor, Snip20Querier>
     }
 }
 
-export class Snip20Executor extends ViewingKeyExecutor {
+class Snip20Executor extends ViewingKeyExecutor {
     async increase_allowance(
         spender: Address,
         amount: Uint128,
@@ -174,7 +174,7 @@ export class Snip20Executor extends ViewingKeyExecutor {
     }
 }
 
-export class Snip20Querier extends Querier {
+class Snip20Querier extends Querier {
     async get_allowance(owner: Address, spender: Address, key: ViewingKey): Promise<Allowance> {
         const msg = {
             allowance: {
