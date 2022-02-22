@@ -1,29 +1,19 @@
-import * as contract from "./lib/contract"
-import * as core from "./lib/core"
-import * as token from "./lib/amm/token"
-import * as exchange from "./lib/amm/exchange"
-//import * as ido from "./lib/launchpad/ido"
-//import * as launchpad from "./lib/launchpad/launchpad"
-import * as rewards_v2 from "./lib/rewards/rewards_v2"
-import * as rewards_v3 from "./lib/rewards/rewards_v3"
-import * as amm_factory from "./lib/amm/amm_factory"
-import * as snip20 from "./lib/snip20"
-import * as hop from "./lib/amm/hop"
-import * as router from "./lib/amm/router"
-import * as permit from "./lib/permit"
+export {
+    Uint128, Uint256, Address, ViewingKey, Decimal,
+    Coin, Fee, ContractInfo, ContractInstantiationInfo,
+    decode_data, create_coin, create_entropy, create_fee,
+    create_base64_msg
+} from './lib/core'
 
-export default {
-    contract,
-    core,
-    token,
-    exchange,
-    //ido,
-    //launchpad,
-    rewards_v2,
-    rewards_v3,
-    amm_factory,
-    snip20,
-    hop,
-    router,
-    permit
-}
+export {
+    Permit, PermitAminoMsg, Signer, KeplrSigner, create_sign_doc
+} from './lib/permit'
+
+export { SmartContract, Executor, Querier } from './lib/contract'
+
+export * as amm from './lib/amm'
+
+export * as snip20 from "./lib/snip20"
+
+export * as rewards_v2 from "./lib/rewards/rewards_v2"
+export * as rewards_v3 from "./lib/rewards/rewards_v3"

@@ -25,7 +25,7 @@ export class RouterContract extends SmartContract<RouterExecutor, RouterQuerier>
     }
 }
 
-export class RouterExecutor extends Executor {
+class RouterExecutor extends Executor {
     constructor(
         address: Address,
         private querier: () => RouterQuerier,
@@ -80,7 +80,7 @@ export class RouterExecutor extends Executor {
     }
 }
 
-export class RouterQuerier extends Querier {
+class RouterQuerier extends Querier {
     async supported_tokens(): Promise<Address[]> {
         const result = await this.run({ supported_tokens: {} }) as Address[];
         

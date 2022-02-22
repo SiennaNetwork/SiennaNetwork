@@ -90,7 +90,7 @@ export class RewardsV3Contract extends SmartContract<RewardsV3Executor, RewardsV
     }
 }
 
-export class RewardsV3Executor extends ViewingKeyExecutor {
+class RewardsV3Executor extends ViewingKeyExecutor {
     async claim(): Promise<ExecuteResult> {
         const msg = { rewards: { claim: { } } }
 
@@ -110,7 +110,7 @@ export class RewardsV3Executor extends ViewingKeyExecutor {
     }
 }
 
-export class RewardsV3Querier extends Querier {
+class RewardsV3Querier extends Querier {
     async get_pool(
         at: number
     ): Promise<RewardsTotal> {

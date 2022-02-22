@@ -48,7 +48,7 @@ export class AmmFactoryContract extends SmartContract<AmmFactoryExecutor, AmmFac
     }
 }
 
-export class AmmFactoryExecutor extends Executor {
+class AmmFactoryExecutor extends Executor {
     async create_exchange(pair: TokenPair): Promise<ExecuteResult> {
         const msg = {
             create_exchange: {
@@ -61,7 +61,7 @@ export class AmmFactoryExecutor extends Executor {
     }
 }
 
-export class AmmFactoryQuerier extends Querier {
+class AmmFactoryQuerier extends Querier {
     async get_exchange_address(pair: TokenPair): Promise<Address> {
         const msg = {
             get_exchange_address: {

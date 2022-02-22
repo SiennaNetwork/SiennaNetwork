@@ -107,7 +107,7 @@ export class RewardsV2Contract extends SmartContract<RewardsV2Executor, RewardsV
     }
 }
 
-export class RewardsV2Executor extends ViewingKeyExecutor {
+class RewardsV2Executor extends ViewingKeyExecutor {
     async claim(): Promise<ExecuteResult> {
         const msg = {
             claim: { }
@@ -137,7 +137,7 @@ export class RewardsV2Executor extends ViewingKeyExecutor {
     }
 }
 
-export class RewardsV2Querier extends Querier {
+class RewardsV2Querier extends Querier {
     async get_pool(at: number): Promise<RewardPool> {
         const msg = {
             pool_info: {
