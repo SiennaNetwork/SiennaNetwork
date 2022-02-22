@@ -22,6 +22,10 @@ use amm_shared::{
 use exchange::contract as exchange;
 use factory::contract as factory;
 use lp_token;
+use rewards::{
+    gov::{poll::Poll, query::GovernanceQuery, response::GovernanceResponse},
+    handle::RewardsHandle,
+};
 use router::contract as router;
 use sienna_rewards as rewards;
 
@@ -295,6 +299,27 @@ impl Amm {
                 liquidity_token, ..
             } => self.get_balance(address, liquidity_token.into()),
         }
+    }
+    pub fn get_poll(&self, id: u64, now: u64) -> Poll {
+        let result = self
+            .ensemble
+            .query(
+                self.rewards.address.clone(),
+                &sienna_rewards::Query::Governance(GovernanceQuery::Poll { id, now }),
+            )
+            .unwrap();
+        match result {
+            sienna_rewards::Response::Governance(GovernanceResponse::Poll(poll)) => poll,
+            _ => panic!("wrong response"),
+        }
+    }
+    pub fn deposit_lp_into_rewards(&mut self, address: HumanAddr, amount: Uint128) {
+        self.ensemble
+            .execute(
+                &sienna_rewards::Handle::Rewards(RewardsHandle::Deposit { amount }),
+                MockEnv::new(address, self.rewards.to_owned().try_into().unwrap()),
+            )
+            .unwrap();
     }
 }
 

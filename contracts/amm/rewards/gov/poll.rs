@@ -194,7 +194,6 @@ where
                 result.transfer_vote(choice, power)?;
             }
             UpdateResultReason::ChangeVotePower { choice, power_diff } => {
-                println!("res {:?}, pow: {:?}", result, power_diff);
                 result.change_vote_power(choice, power_diff)?;
             }
         }
