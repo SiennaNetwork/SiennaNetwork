@@ -13,22 +13,22 @@ impl PollResult {
     pub const SELF: &'static [u8] = b"/gov/result";
 
     pub fn append_votes(&mut self, amount: i128, choice: VoteType) -> StdResult<()> {
-        let try_add = |vote: &mut u128, amount: i128| {
+        let try_add = |vote: &mut Uint128, amount: i128| {
             if amount > 0 {
-                *vote += amount as u128;
+                *vote = Uint128((*vote).u128() + amount as u128);
             } else {
-                vote.checked_sub(amount.abs() as u128)
+                let new_vote = vote.u128().checked_sub(amount.abs() as u128)
                     .ok_or(StdError::generic_err(format!(
                         "Not enough voting power available"
                     )))
                     .unwrap();
+                *vote = Uint128(new_vote);
             }
         };
-
         if let VoteType::Yes = choice {
-            try_add(&mut self.yes_votes.u128(), amount);
+            try_add(&mut self.yes_votes, amount);
         } else {
-            try_add(&mut self.no_votes.u128(), amount);
+            try_add(&mut self.no_votes, amount);
         }
         Ok(())
     }
@@ -42,7 +42,7 @@ impl PollResult {
         choice: VoteType,
         power_diff: i128,
     ) -> StdResult<&mut Self> {
-        self.append_votes(power_diff, choice.clone())?;
+        self.append_votes(power_diff, choice)?;
         Ok(self)
     }
 

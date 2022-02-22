@@ -87,8 +87,10 @@ where
                     return poll_expired();
                 }
 
-                // let account = Account::from_env(core, &env)?;
-                let power = Uint128(200);
+                let account = Account::from_env(core, &env)?;
+                let power = account.staked;
+                // let power = Uint128(200);
+
                 User::add_vote(core, poll_id, sender, choice, power, now)?;
                 Ok(HandleResponse::default())
             }
@@ -98,14 +100,6 @@ where
                     return poll_expired();
                 }
                 User::change_choice(core, poll_id, sender, choice, now)?;
-                // Poll::update_result(
-                //     core,
-                //     poll_id,
-                //     env.message.sender.clone(),
-                //     env.block.time,
-                //     UpdateResultReason::ChangeVoteChoice { choice },
-                // )?;
-
                 Ok(HandleResponse::default())
             }
             GovernanceHandle::Unvote { poll_id } => {
@@ -114,16 +108,6 @@ where
                     return poll_expired();
                 }
                 User::remove_vote(core, poll_id, sender, now)?;
-                // Poll::update_result(
-                //     core,
-                //     poll_id,
-                //     env.message.sender.clone(),
-                //     env.block.time,
-                //     UpdateResultReason::RemoveVote {},
-                // )?;
-
-                // User::remove_active_poll(core, env.message.sender, poll_id, env.block.time)?;
-
                 Ok(HandleResponse::default())
             }
 

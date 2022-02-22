@@ -198,6 +198,7 @@ where
             sender.clone(),
             poll_id,
         )?;
+
         append_active_poll(core, sender.clone(), poll_id, now)?;
         Poll::update_result(
             core,
