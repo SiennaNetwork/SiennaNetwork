@@ -10,15 +10,15 @@ pub enum VoteType {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
 pub struct Vote {
     pub choice: VoteType,
-    pub power: u128,
+    pub power: Uint128,
     pub voter: CanonicalAddr,
 }
 
 impl Vote {
     pub const VOTE: &'static [u8] = b"/gov/vote/";
-
 
     fn build_prefix(poll_id: u64) -> StdResult<Vec<u8>> {
         let poll_id = poll_id.to_be_bytes().to_vec();
@@ -32,7 +32,6 @@ impl Vote {
 
         Ok(key)
     }
-
 }
 pub trait IVote<S, A, Q, C>
 where
@@ -83,7 +82,7 @@ where
 
     fn increase(core: &mut C, address: HumanAddr, poll_id: u64, amount: u128) -> StdResult<()> {
         let mut vote = Self::get(core, address.clone(), poll_id)?;
-        vote.power += amount;
+        vote.power += Uint128(amount);
         Self::set(core, address, poll_id, &vote)?;
         Ok(())
     }
@@ -102,10 +101,9 @@ where
     fn new(core: &C, variant: VoteType, voter: HumanAddr, vote_power: Uint128) -> StdResult<Self> {
         let voter = core.canonize(voter)?;
         Ok(Self {
-            power: vote_power.u128(),
+            power: vote_power,
             choice: variant,
             voter,
         })
     }
 }
-

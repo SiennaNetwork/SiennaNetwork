@@ -1,10 +1,8 @@
 use crate::{
-    bus_queue::BusQueue,
     config::{IRewardsConfig, RewardsConfig},
     errors,
     gov::{
         config::{GovernanceConfig, IGovernanceConfig},
-        poll::{IPoll, Poll, UpdateResultReason},
         user::{IUser, User},
     },
     time_utils::{Duration, Moment},
@@ -70,7 +68,7 @@ where
     S: Storage,
     A: Api,
     Q: Querier,
-    C: Composable<S, A, Q> + BusQueue<S, A, Q>,
+    C: Composable<S, A, Q>,
 {
     /// Get the transaction initiator's account at current time
     fn from_env(core: &C, env: &Env) -> StdResult<Self>;
@@ -91,8 +89,7 @@ where
     /// Store the values that were updated by the passing of time
     fn commit_elapsed(&mut self, core: &mut C) -> StdResult<()>;
     /// Store the results of a deposit
-    fn commit_deposit(&mut self, core: &mut C, amount: Amount)
-        -> StdResult<()>;
+    fn commit_deposit(&mut self, core: &mut C, amount: Amount) -> StdResult<()>;
     /// Store the results of a withdrawal
     fn commit_withdrawal(&mut self, core: &mut C, amount: Amount) -> StdResult<()>;
     /// Store the results of a claim
@@ -103,7 +100,7 @@ where
     S: Storage,
     A: Api,
     Q: Querier,
-    C: Composable<S, A, Q> + BusQueue<S, A, Q>,
+    C: Composable<S, A, Q>,
 {
     fn from_env(core: &C, env: &Env) -> StdResult<Self> {
         Self::from_addr(core, &env.message.sender, env.block.time)
@@ -303,11 +300,7 @@ where
         }
         Ok(())
     }
-    fn commit_deposit(
-        &mut self,
-        core: &mut C,
-        amount: Amount,
-    ) -> StdResult<()> {
+    fn commit_deposit(&mut self, core: &mut C, amount: Amount) -> StdResult<()> {
         let user = User::get(core, self.address.clone(), self.total.clock.now)?;
         user.active_polls.into_iter().for_each(|poll_id| {
             User::increase_vote_power(
@@ -315,8 +308,9 @@ where
                 poll_id,
                 self.address.clone(),
                 amount,
-                self.total.clock.now
-            ).expect("Increasing voting power failed");
+                self.total.clock.now,
+            )
+            .expect("Increasing voting power failed");
         });
 
         self.commit_elapsed(core)?;

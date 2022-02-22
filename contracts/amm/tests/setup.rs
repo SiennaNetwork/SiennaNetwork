@@ -149,6 +149,20 @@ impl Amm {
             )
             .unwrap();
 
+        for user in USERS {
+            ensemble
+                .execute(
+                    &msg::snip20::HandleMsg::IncreaseAllowance {
+                        spender: rewards.address.clone(),
+                        amount: Uint128(u128::MAX),
+                        expiration: None,
+                        padding: None,
+                    },
+                    MockEnv::new(*user, tokens[0].to_owned().try_into().unwrap()),
+                )
+                .unwrap();
+        }
+
         for pair in tokens.chunks(2) {
             let pair = Vec::from_iter(pair);
 

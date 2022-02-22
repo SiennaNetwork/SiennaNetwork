@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use fadroma::*;
 
+use crate::account::{Account, IAccount};
 use crate::auth::Auth;
 use crate::errors::poll_expired;
 use crate::time_utils::Moment;
@@ -54,11 +55,10 @@ where
                     GovernanceConfig::MIN_DESC_LENGTH,
                     GovernanceConfig::MAX_DESC_LENGTH,
                 )?;
-                // let account = Account::from_env(core, &env)?;
-                let staked: Uint128 = Uint128(3600);
+                let account = Account::from_env(core, &env)?;
                 let threshold = GovernanceConfig::threshold(core)?;
 
-                if staked < threshold.into() {
+                if account.staked < threshold.into() {
                     return Err(StdError::generic_err("Insufficient funds to create a poll"));
                 };
 

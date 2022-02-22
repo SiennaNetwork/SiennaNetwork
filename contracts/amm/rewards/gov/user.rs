@@ -80,12 +80,7 @@ where
         power_diff: Uint128,
         now: Moment,
     ) -> StdResult<()>;
-    fn remove_vote(
-        core: &mut C,
-        poll_id: u64,
-        sender: HumanAddr,
-        now: Moment,
-    ) -> StdResult<()>;
+    fn remove_vote(core: &mut C, poll_id: u64, sender: HumanAddr, now: Moment) -> StdResult<()>;
 }
 
 impl<S, A, Q, C> IUser<S, A, Q, C> for User
@@ -208,7 +203,10 @@ where
             core,
             poll_id,
             now,
-            UpdateResultReason::ChangeVotePower{choice, power_diff: power.u128() as i128}
+            UpdateResultReason::ChangeVotePower {
+                choice,
+                power_diff: power.u128() as i128,
+            },
         )?;
         Ok(())
     }
@@ -227,7 +225,10 @@ where
             core,
             poll_id,
             now,
-            UpdateResultReason::ChangeVotePower{choice: vote.choice, power_diff: power_diff.u128() as i128}
+            UpdateResultReason::ChangeVotePower {
+                choice: vote.choice,
+                power_diff: power_diff.u128() as i128,
+            },
         )
         .expect("Failed to update poll results");
         Ok(())
@@ -250,7 +251,10 @@ where
             core,
             poll_id,
             now,
-            UpdateResultReason::ChangeVoteChoice {choice, power: vote.power},
+            UpdateResultReason::ChangeVoteChoice {
+                choice,
+                power: vote.power.u128(),
+            },
         )
         .expect("Failed to update poll results");
 
@@ -260,12 +264,7 @@ where
         Ok(())
     }
 
-    fn remove_vote(
-        core: &mut C,
-        poll_id: u64,
-        sender: HumanAddr,
-        now: Moment,
-    ) -> StdResult<()> {
+    fn remove_vote(core: &mut C, poll_id: u64, sender: HumanAddr, now: Moment) -> StdResult<()> {
         let vote = Vote::get(core, sender.clone(), poll_id)?;
         Vote::remove(core, sender.clone(), poll_id)?;
         User::remove_active_poll(core, sender.clone(), poll_id, now)?;
@@ -273,8 +272,12 @@ where
             core,
             poll_id,
             now,
-            UpdateResultReason::ChangeVotePower{choice: vote.choice, power_diff: - (vote.power as i128)}
-        ).expect("Failed to update poll results");
+            UpdateResultReason::ChangeVotePower {
+                choice: vote.choice,
+                power_diff: -(vote.power.u128() as i128),
+            },
+        )
+        .expect("Failed to update poll results");
         Ok(())
     }
 }

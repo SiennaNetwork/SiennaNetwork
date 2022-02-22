@@ -1,14 +1,13 @@
-
-use fadroma::{Api, Composable, HumanAddr, Querier, StdError, StdResult, Storage, Uint128};
+use fadroma::{Api, Composable, Querier, StdError, StdResult, Storage, Uint128};
 use serde::{Deserialize, Serialize};
 
-use super::vote::{VoteType};
+use super::vote::VoteType;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct PollResult {
     pub poll_id: u64,
-    pub yes_votes: u128,
-    pub no_votes: u128,
+    pub yes_votes: Uint128,
+    pub no_votes: Uint128,
 }
 impl PollResult {
     pub const SELF: &'static [u8] = b"/gov/result";
@@ -27,15 +26,15 @@ impl PollResult {
         };
 
         if let VoteType::Yes = choice {
-            try_add(&mut self.yes_votes, amount);
+            try_add(&mut self.yes_votes.u128(), amount);
         } else {
-            try_add(&mut self.no_votes, amount);
+            try_add(&mut self.no_votes.u128(), amount);
         }
         Ok(())
     }
 
     pub fn total(&self) -> u128 {
-        self.no_votes + self.yes_votes
+        self.no_votes.u128() + self.yes_votes.u128()
     }
 
     pub fn change_vote_power(
@@ -92,8 +91,8 @@ where
     fn new(_: &C, poll_id: u64) -> Self {
         Self {
             poll_id,
-            no_votes: 0,
-            yes_votes: 0,
+            no_votes: Uint128(0),
+            yes_votes: Uint128(0),
         }
     }
 }

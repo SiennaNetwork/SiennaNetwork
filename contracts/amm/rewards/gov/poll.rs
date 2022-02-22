@@ -189,6 +189,8 @@ where
     ) -> StdResult<PollResult> {
         let mut result = PollResult::get(core, poll_id).unwrap_or(PollResult::new(core, poll_id));
 
+        println!("{:?}", result);
+
         match update {
             UpdateResultReason::ChangeVoteChoice { choice, power } => {
                 result.transfer_vote(choice, power)?;
@@ -200,8 +202,11 @@ where
         result.store(core)?;
 
         let total = Total::from_time(core, now)?;
+        println!("{:?}", total.staked.u128());
         let current_quorum = Poll::current_quorum(core, poll_id)?;
+        println!("total result: {:?}", result.total());
         let participation = Decimal::from_ratio(result.total(), total.staked.u128());
+        println!(" participation: {:?}", participation);
         let is_quorum_met = participation > current_quorum;
 
         if is_quorum_met && result.yes_votes > result.no_votes {
