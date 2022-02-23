@@ -17,7 +17,7 @@ use crate::interfaces::overseer::{
     AccountLiquidity,
     Market as EnteredMarket
 };
-use crate::core::{MasterKey, AuthMethod};
+use crate::core::{MasterKey, AuthMethod, Pagination};
 
 #[interface(
     component(path = "admin"),
@@ -139,8 +139,7 @@ pub trait Market {
     #[query]
     fn borrowers(
         block: u64,
-        start_after: Option<u64>,
-        limit: Option<u8>
+        pagination: Pagination
     ) -> StdResult<Vec<Borrower>>;
 }
 

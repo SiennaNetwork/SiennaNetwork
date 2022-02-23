@@ -20,10 +20,11 @@ use lend_shared::{
             query_price, Asset, AssetType, HandleMsg as OracleHandleMsg, InitMsg as OracleInitMsg,
         },
         overseer::{
-            AccountLiquidity, Config, HandleMsg, Market, MarketInitConfig, OverseerAuth,
-            OverseerPermissions, Pagination,
+            AccountLiquidity, Config, HandleMsg, Market,
+            MarketInitConfig, OverseerAuth, OverseerPermissions
         },
     },
+    core::Pagination
 };
 
 use state::{Account, Constants, Contracts, Markets, Whitelisting};
@@ -436,7 +437,7 @@ pub trait Overseer {
     ) -> StdResult<Uint256> {
         let premium = Constants::load(&deps.storage)?.premium();
 
-        //  Read oracle prices for borrowed and collateral markets
+        // Read oracle prices for borrowed and collateral markets
         let oracle = Contracts::load_oracle(deps)?;
         let price_borrowed = query_price(
             &deps.querier,

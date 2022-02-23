@@ -10,6 +10,7 @@ use lend_shared::{
         Decimal256, Uint256
     },
     interfaces::{market, overseer},
+    core::Pagination
 };
 
 use crate::setup::{Lend, LendConfig, ADMIN};
@@ -313,8 +314,10 @@ fn borrower_accrues_interest_and_goes_underwater() {
         market_2.contract.address.clone(),
         market::QueryMsg::Borrowers {
             block: current_block,
-            start_after: None,
-            limit: None
+            pagination: Pagination {
+                start: 0,
+                limit: 10
+            }
         }
     ).unwrap();
 
@@ -361,8 +364,10 @@ fn borrower_accrues_interest_and_goes_underwater() {
         market_2.contract.address.clone(),
         market::QueryMsg::Borrowers {
             block: current_block,
-            start_after: None,
-            limit: None
+            pagination: Pagination {
+                start: 0,
+                limit: 10
+            }
         }
     ).unwrap();
 
@@ -393,8 +398,10 @@ fn borrower_accrues_interest_and_goes_underwater() {
         market_2.contract.address.clone(),
         market::QueryMsg::Borrowers {
             block: current_block,
-            start_after: None,
-            limit: None
+            pagination: Pagination {
+                start: 0,
+                limit: 10
+            }
         }
     ).unwrap();
 
@@ -562,8 +569,10 @@ fn close_factor() {
         market_2.contract.address.clone(),
         market::QueryMsg::Borrowers {
             block: 12345,
-            start_after: None,
-            limit: None
+            pagination: Pagination {
+                start: 0,
+                limit: 10
+            }
         }
     ).unwrap();
 

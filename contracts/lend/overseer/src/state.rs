@@ -10,8 +10,8 @@ use lend_shared::{
         Canonize, Humanize, ContractLink,
         ContractInstantiationInfo, Decimal256
     },
-    interfaces::overseer::{Pagination, Market, Config},
-    core::AuthenticatedUser
+    interfaces::overseer::{Market, Config},
+    core::{AuthenticatedUser, Pagination}
 };
 use serde::{Deserialize, Serialize};
 

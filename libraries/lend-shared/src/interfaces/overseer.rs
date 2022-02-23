@@ -10,7 +10,7 @@ use fadroma::{
 
 use serde::{Deserialize, Serialize};
 
-use crate::core::{AuthMethod, MasterKey};
+use crate::core::{AuthMethod, MasterKey, Pagination};
 use crate::interfaces::market::Config as MarketConfig;
 
 #[interface(
@@ -125,7 +125,7 @@ pub struct Config {
     /// The discount on collateral that a liquidator receives.
     premium: Decimal256,
     /// The percentage of a liquidatable account's borrow that can be repaid in a single liquidate transaction.
-    /// If a user has multiple borrowed assets, the closeFactor applies to any single borrowed asset,
+    /// If a user has multiple borrowed assets, the close factor applies to any single borrowed asset,
     /// not the aggregated value of a user’s outstanding borrowing.
     close_factor: Decimal256
 }
@@ -155,14 +155,6 @@ pub struct MarketInitConfig {
     pub token_symbol: String,
     pub prng_seed: Binary,
     pub entropy: Binary
-}
-
-#[derive(Serialize, Deserialize, schemars::JsonSchema, Debug)]
-#[serde(rename_all = "snake_case")]
-#[serde(deny_unknown_fields)]
-pub struct Pagination {
-    pub start: u64,
-    pub limit: u8,
 }
 
 impl Config {

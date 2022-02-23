@@ -13,12 +13,12 @@ use lend_shared::{
         Canonize, ContractLink, Decimal256, Humanize, StdError, Uint256,
     },
     interfaces::market::{BorrowerInfo, Config},
-    core::AuthenticatedUser,
+    core::{AuthenticatedUser, Pagination},
     impl_contract_storage
 };
 use serde::{Deserialize, Serialize};
 
-const PAGINATION_LIMIT: u8 = 30;
+const PAGINATION_LIMIT: u8 = 10;
 
 pub struct Contracts;
 
@@ -343,16 +343,15 @@ impl AuthenticatedUser for Account {
 
 pub fn load_borrowers<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
-    start_after: Option<u64>,
-    limit: Option<u8>
+    pagination: Pagination
 ) -> StdResult<Vec<BorrowerRecord>> {
     let borrowers = IterableStorage::<BorrowSnapshot>::new(Account::NS_BORROWERS);
 
-    let limit = limit.unwrap_or(PAGINATION_LIMIT).min(PAGINATION_LIMIT) as usize;
+    let limit = pagination.limit.min(PAGINATION_LIMIT) as usize;
 
     borrowers
         .iter(&deps.storage)?
-        .skip(start_after.unwrap_or(0) as usize)
+        .skip(pagination.start as usize)
         .take(limit)
         .map(|item| {
             let snapshot = item?;

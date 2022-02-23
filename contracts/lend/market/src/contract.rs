@@ -43,7 +43,7 @@ use lend_shared::{
             query_entered_markets
         },
     },
-    core::{MasterKey, AuthenticatedUser}
+    core::{MasterKey, AuthenticatedUser, Pagination}
 };
 
 pub const MAX_RESERVE_FACTOR: Decimal256 = Decimal256::one();
@@ -700,10 +700,9 @@ pub trait Market {
     #[query]
     fn borrowers(
         block: u64,
-        start_after: Option<u64>,
-        limit: Option<u8>
+        pagination: Pagination
     ) -> StdResult<Vec<Borrower>> {
-        let borrowers = load_borrowers(deps, start_after, limit)?;
+        let borrowers = load_borrowers(deps, pagination)?;
         let mut result = Vec::with_capacity(borrowers.len());
 
         let overseer = Contracts::load_overseer(deps)?;

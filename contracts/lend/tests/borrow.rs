@@ -1,6 +1,6 @@
 use crate::setup::Lend;
 use lend_shared::{
-    core::utilization_rate,
+    core::{utilization_rate, Pagination},
     fadroma::{
         cosmwasm_std::{to_binary, StdError, Uint128},
         ensemble::MockEnv,
@@ -123,8 +123,10 @@ fn borrow() {
         .query(
             market_one.address.clone(),
             market::QueryMsg::Borrowers {
-                limit: None,
-                start_after: None,
+                pagination: Pagination {
+                    start: 0,
+                    limit: 10
+                },
                 block: state.accrual_block,
             },
         )
@@ -253,8 +255,10 @@ fn do_repay(self_repay: bool) {
         .query(
             market_one.address.clone(),
             market::QueryMsg::Borrowers {
-                limit: None,
-                start_after: None,
+                pagination: Pagination {
+                    start: 0,
+                    limit: 10
+                },
                 block: market_one_state.accrual_block,
             },
         )
