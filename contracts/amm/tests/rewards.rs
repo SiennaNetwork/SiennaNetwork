@@ -9,7 +9,6 @@ use sienna_rewards::{
         response::GovernanceResponse::VoteStatus,
         vote::VoteType,
     },
-    handle::RewardsHandle,
     query::RewardsQuery,
     Handle, HumanAddr, Query, Response, Uint128,
 };
@@ -120,7 +119,7 @@ fn should_change_choice() {
     let mut amm = Amm::new();
     let sender = HumanAddr::from("user_b");
     let meta = PollMetadata {
-        description: "this is a description that longer than 8 characters.".to_string(),
+        description: "this is a description that is longer than 8 characters.".to_string(),
         title: "This is a title, no really".to_string(),
         poll_type: PollType::SiennaRewards,
     };
@@ -129,6 +128,7 @@ fn should_change_choice() {
 
     //deposit some funds
     amm.deposit_lp_into_rewards(sender.clone(), Uint128(3600));
+
     amm.set_rewards_viewing_key(sender.clone(), "whatever".into());
 
     //create poll
@@ -141,13 +141,15 @@ fn should_change_choice() {
 
     let vote = GovernanceHandle::Vote {
         poll_id: 1,
-        choice: VoteType::Yes,
+        choice: VoteType::No,
     };
 
+    //vote
     amm.ensemble
-        .execute(&Handle::Governance(vote), env.clone())
+        .execute(&Handle::Governance(vote.clone()), env.clone())
         .unwrap();
 
+    //query the status
     let vote: Response = amm
         .ensemble
         .query(
@@ -161,18 +163,18 @@ fn should_change_choice() {
         .unwrap();
     match vote {
         Response::Governance(VoteStatus { variant, power }) => {
-            assert_eq!(variant, VoteType::Yes);
+            assert_eq!(variant, VoteType::No);
             assert_eq!(power, Uint128(3600))
         }
         _ => panic!("invalid type for vote status returned."),
     }
 
     let change_vote = GovernanceHandle::ChangeVoteChoice {
-        choice: VoteType::No,
+        choice: VoteType::Yes,
         poll_id: 1,
     };
     amm.ensemble
-        .execute(&Handle::Governance(change_vote), env)
+        .execute(&Handle::Governance(change_vote), env.clone())
         .unwrap();
 
     let vote: Response = amm
@@ -188,7 +190,7 @@ fn should_change_choice() {
         .unwrap();
     match vote {
         Response::Governance(VoteStatus { variant, power }) => {
-            assert_eq!(variant, VoteType::No);
+            assert_eq!(variant, VoteType::Yes);
             assert_eq!(power, Uint128(3600))
         }
         _ => panic!("invalid type for vote status returned."),

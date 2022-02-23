@@ -17,7 +17,9 @@ impl PollResult {
             if amount > 0 {
                 *vote = Uint128((*vote).u128() + amount as u128);
             } else {
-                let new_vote = vote.u128().checked_sub(amount.abs() as u128)
+                let new_vote = vote
+                    .u128()
+                    .checked_sub(amount.abs() as u128)
                     .ok_or(StdError::generic_err(format!(
                         "Not enough voting power available"
                     )))
@@ -25,6 +27,7 @@ impl PollResult {
                 *vote = Uint128(new_vote);
             }
         };
+
         if let VoteType::Yes = choice {
             try_add(&mut self.yes_votes, amount);
         } else {
@@ -42,6 +45,7 @@ impl PollResult {
         choice: VoteType,
         power_diff: i128,
     ) -> StdResult<&mut Self> {
+        println!("Adding/changing power");
         self.append_votes(power_diff, choice)?;
         Ok(self)
     }
@@ -49,11 +53,13 @@ impl PollResult {
     pub fn transfer_vote(&mut self, target_choice: VoteType, power: u128) -> StdResult<&mut Self> {
         let power = power as i128;
         if target_choice == VoteType::Yes {
+            println!("Changing vote from No to Yes");
             self.append_votes(power, VoteType::Yes)?;
             self.append_votes(-power, VoteType::No)?;
         } else {
-            self.append_votes(power, VoteType::Yes)?;
-            self.append_votes(-power, VoteType::No)?;
+            println!("Changing vote form Yes to No");
+            self.append_votes(-power, VoteType::Yes)?;
+            self.append_votes(power, VoteType::No)?;
         }
         Ok(self)
     }
