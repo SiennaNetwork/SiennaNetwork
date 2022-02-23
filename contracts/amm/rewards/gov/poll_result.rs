@@ -45,7 +45,6 @@ impl PollResult {
         choice: VoteType,
         power_diff: i128,
     ) -> StdResult<&mut Self> {
-        println!("Adding/changing power");
         self.append_votes(power_diff, choice)?;
         Ok(self)
     }
@@ -53,11 +52,9 @@ impl PollResult {
     pub fn transfer_vote(&mut self, target_choice: VoteType, power: u128) -> StdResult<&mut Self> {
         let power = power as i128;
         if target_choice == VoteType::Yes {
-            println!("Changing vote from No to Yes");
             self.append_votes(power, VoteType::Yes)?;
             self.append_votes(-power, VoteType::No)?;
         } else {
-            println!("Changing vote form Yes to No");
             self.append_votes(-power, VoteType::Yes)?;
             self.append_votes(power, VoteType::No)?;
         }
