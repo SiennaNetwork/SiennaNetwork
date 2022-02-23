@@ -1,5 +1,8 @@
+use crate::{
+    account::Amount,
+    time_utils::{Duration, Moment},
+};
 use fadroma::*;
-use crate::{ time_utils::{Duration, Moment}, account::Amount};
 
 /// When trying to set the epoch to something other than the next
 pub fn invalid_epoch_number<T>(epoch: Moment, next_epoch: Moment) -> StdResult<T> {
@@ -99,6 +102,6 @@ pub fn poll_expired<T>() -> StdResult<T> {
 
 pub fn unstake_disallowed<T>() -> StdResult<T> {
     Err(StdError::generic_err(format!(
-        "User voted in active polls, which prevents unstaking"
+        "Unstaking not allowed. Make sure you have no active or created polls. "
     )))
 }

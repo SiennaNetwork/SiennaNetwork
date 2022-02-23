@@ -9,6 +9,7 @@ use sienna_rewards::{
         response::GovernanceResponse::VoteStatus,
         vote::VoteType,
     },
+    handle::RewardsHandle,
     query::RewardsQuery,
     Handle, HumanAddr, Query, Response, Uint128,
 };
@@ -305,4 +306,84 @@ fn should_update_after_deposit() {
         }
         _ => panic!("invalid type for vote status returned."),
     }
+}
+
+#[test]
+fn should_not_withdraw() {
+    let mut amm = Amm::new();
+    let sender = HumanAddr::from("user_b");
+    let meta = PollMetadata {
+        description: "this is a description that is longer than 8 characters.".to_string(),
+        title: "This is a title, no really".to_string(),
+        poll_type: PollType::SiennaRewards,
+    };
+
+    let env = MockEnv::new(sender.clone(), amm.rewards.to_owned().try_into().unwrap());
+
+    //deposit some funds
+    amm.deposit_lp_into_rewards(sender.clone(), Uint128(3600));
+
+    amm.set_rewards_viewing_key(sender.clone(), "whatever".into());
+
+    //create poll
+    amm.ensemble
+        .execute(
+            &Handle::Governance(GovernanceHandle::CreatePoll { meta }),
+            env.clone(),
+        )
+        .unwrap();
+
+    let vote = GovernanceHandle::Vote {
+        poll_id: 1,
+        choice: VoteType::No,
+    };
+
+    //vote
+    amm.ensemble
+        .execute(&Handle::Governance(vote.clone()), env.clone())
+        .unwrap();
+
+    amm.ensemble
+        .execute(
+            &Handle::Rewards(RewardsHandle::Withdraw {
+                amount: Uint128(200),
+            }),
+            env,
+        )
+        .unwrap_err();
+}
+
+#[test]
+fn should_withdraw() {
+    let mut amm = Amm::new();
+    let sender = HumanAddr::from("user_b");
+    let meta = PollMetadata {
+        description: "this is a description that is longer than 8 characters.".to_string(),
+        title: "This is a title, no really".to_string(),
+        poll_type: PollType::SiennaRewards,
+    };
+
+    let env = MockEnv::new(sender.clone(), amm.rewards.to_owned().try_into().unwrap());
+
+    //deposit some funds
+    amm.deposit_lp_into_rewards(sender.clone(), Uint128(3800));
+
+    amm.set_rewards_viewing_key(sender.clone(), "whatever".into());
+
+    //create poll
+    amm.ensemble
+        .execute(
+            &Handle::Governance(GovernanceHandle::CreatePoll { meta }),
+            env.clone(),
+        )
+        .unwrap();
+
+    amm.ensemble
+        .execute(
+            &Handle::Rewards(RewardsHandle::Withdraw {
+                amount: Uint128(200),
+            }),
+            env,
+        )
+        .unwrap();
 }
