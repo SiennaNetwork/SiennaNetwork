@@ -49,8 +49,9 @@ export type HandleMsg =
       [k: string]: unknown;
     }
   | {
-      set_premium: {
-        premium: Decimal256;
+      change_config: {
+        close_factor?: Decimal256 | null;
+        premium_rate?: Decimal256 | null;
         [k: string]: unknown;
       };
       [k: string]: unknown;

@@ -146,7 +146,7 @@ class Snip20Executor extends ViewingKeyExecutor {
     async send(
         recipient: Address,
         amount: Uint128,
-        msg?: object,
+        msg?: any,
         padding?: string
     ): Promise<ExecuteResult> {
         const message = {

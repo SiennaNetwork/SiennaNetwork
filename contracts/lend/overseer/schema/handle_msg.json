@@ -122,17 +122,31 @@
     {
       "type": "object",
       "required": [
-        "set_premium"
+        "change_config"
       ],
       "properties": {
-        "set_premium": {
+        "change_config": {
           "type": "object",
-          "required": [
-            "premium"
-          ],
           "properties": {
-            "premium": {
-              "$ref": "#/definitions/Decimal256"
+            "close_factor": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Decimal256"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "premium_rate": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Decimal256"
+                },
+                {
+                  "type": "null"
+                }
+              ]
             }
           }
         }

@@ -1,4 +1,4 @@
-import { Address, Fee, ContractInstantiationInfo, create_entropy } from '../core'
+import { Address, Fee, ContractInstantiationInfo, Pagination, create_entropy } from '../core'
 import { TokenPair } from './token'
 import { SmartContract, Executor, Querier } from '../contract'
 
@@ -18,18 +18,6 @@ export interface ExchangeSettings {
 export interface ExchangeFee {
     denom: number;
     nom: number;
-}
-
-export class Pagination {
-    static readonly MAX_LIMIT = 30;
-
-    constructor(
-        readonly start: number,
-        /**
-         * Max is {@link Pagination.MAX_LIMIT}.
-         */
-        readonly limit: number
-    ) { }
 }
 
 export interface FactoryConfig {
@@ -73,6 +61,9 @@ class AmmFactoryQuerier extends Querier {
         return result.get_exchange_address.address
     }
 
+    /**
+     * Max limit per page is `30`.
+     */
     async list_exchanges(pagination: Pagination): Promise<Exchange[]> {
         const msg = {
             list_exchanges: {

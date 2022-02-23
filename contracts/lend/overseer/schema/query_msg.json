@@ -189,17 +189,6 @@
           "$ref": "#/definitions/QueryMsg"
         }
       }
-    },
-    {
-      "type": "object",
-      "required": [
-        "auth"
-      ],
-      "properties": {
-        "auth": {
-          "$ref": "#/definitions/QueryMsg"
-        }
-      }
     }
   ],
   "definitions": {
