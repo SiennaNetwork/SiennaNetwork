@@ -23,6 +23,7 @@ use fadroma::{
     },
     killswitch::{with_status, get_status},
     storage::traits1::Storable,
+    storage::save,
 };
 
 use amm_shared::TokenType;
@@ -182,7 +183,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
     };
 
     save_admin(deps, &msg.admin)?;
-    config.save(deps)?;
+    save(&mut deps.storage, b"config", &config)?;
 
     Ok(InitResponse {
         messages,

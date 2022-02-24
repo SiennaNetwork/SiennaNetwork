@@ -1,8 +1,7 @@
 use amm_shared::fadroma::{
     platform::{
-        Api, CanonicalAddr, Extern, HumanAddr, Querier, StdError, StdResult, Storage, Uint128,
-        Canonize, Humanize,
-        ContractLink,
+        Api, CanonicalAddr, Canonize, ContractLink, Extern, HumanAddr, Humanize, Querier, StdError,
+        StdResult, Storage, Uint128,
     },
     storage::{load, save, traits1::Storable},
     ViewingKey,
@@ -99,24 +98,11 @@ pub(crate) fn save_viewing_key(storage: &mut impl Storage, vk: &ViewingKey) -> S
     save(storage, KEY_VIEWING_KEY, vk)
 }
 
-impl<A> Storable for Config<A>
-where
-    A: Serialize + serde::de::DeserializeOwned,
-{
-    fn namespace() -> Vec<u8> {
-        b"config".to_vec()
-    }
-    /// Setting the empty key because config is only one
-    fn key(&self) -> StdResult<Vec<u8>> {
-        Ok(Vec::new())
-    }
-}
-
 impl<A> Config<A> {
     pub fn load_self<S: Storage, T: Api, Q: Querier>(
         deps: &Extern<S, T, Q>,
     ) -> StdResult<Config<HumanAddr>> {
-        let result = Config::<HumanAddr>::load(deps, b"")?;
+        let result = load(&deps.storage, b"config")?;
         let result =
             result.ok_or_else(|| StdError::generic_err("Config doesn't exist in storage."))?;
 

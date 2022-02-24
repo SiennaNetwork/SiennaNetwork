@@ -1,17 +1,17 @@
 use amm_shared::fadroma::{
-    platform::{
-        from_binary, log, Api, BankMsg, Binary, CanonicalAddr, Coin, Env, Extern,
-        HandleResponse, HumanAddr, Querier, StdError, StdResult, Storage, Uint128,
-        secret_toolkit::snip20,
-        BLOCK_SIZE,
-    },
-    storage::traits1::Storable,
     admin::{assert_admin, load_admin},
     auth_proc::require_admin,
-    convert_token
+    convert_token,
+    platform::{
+        from_binary, log, secret_toolkit::snip20, Api, BankMsg, Binary, CanonicalAddr, Coin, Env,
+        Extern, HandleResponse, HumanAddr, Querier, StdError, StdResult, Storage, Uint128,
+        BLOCK_SIZE,
+    },
+    storage::save,
+    storage::traits1::Storable,
 };
-use amm_shared::TokenType;
 use amm_shared::msg::ido::{ReceiverCallbackMsg, SaleType};
+use amm_shared::TokenType;
 
 use crate::data::{
     increment_total_pre_lock_amount, load_viewing_key, Account, Config, SaleSchedule,
@@ -98,7 +98,7 @@ pub(crate) fn activate<S: Storage, A: Api, Q: Querier>(
     }
 
     config.schedule = Some(SaleSchedule::new(env.block.time, start, end)?);
-    config.save(deps)?;
+    save(&mut deps.storage, b"config", &config)?;
 
     Ok(HandleResponse {
         messages: vec![],
@@ -397,7 +397,7 @@ pub(crate) fn add_addresses<S: Storage, A: Api, Q: Querier>(
         }
     }
 
-    config.save(deps)?;
+    save(&mut deps.storage, b"config", &config)?;
 
     Ok(HandleResponse {
         messages: vec![],
