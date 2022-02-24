@@ -1,7 +1,7 @@
 import { SmartContract, Querier } from '../contract'
 import { Fee, Address, Pagination, ContractInfo, Decimal256, Uint256 } from '../core'
 import { ViewingKeyComponentExecutor } from '../executors/viewing_key_executor'
-import { AuthMethod } from './auth'
+import { LendAuth } from './auth'
 
 import { ExecuteResult } from 'secretjs'
 
@@ -45,7 +45,7 @@ export interface OverseerConfig {
     close_factor: Decimal256
 }
 
-export type OverseerAuth = AuthMethod<'account_info'>
+export type OverseerPermissions = 'account_info'
 
 export class OverseerContract extends SmartContract<OverseerExecutor, OverseerQuerier> {
     exec(fee?: Fee, memo?: string): OverseerExecutor {
@@ -108,21 +108,21 @@ class OverseerQuerier extends Querier {
         return this.run(msg)
     }
 
-    async entered_markets(method: OverseerAuth): Promise<Market[]> {
+    async entered_markets(auth: LendAuth): Promise<Market[]> {
         const msg = {
             entered_markets: {
-                method
+                method: await auth.create_method<OverseerPermissions>(this.address, 'account_info')
             }
         }
 
         return this.run(msg)
     }
 
-    async current_liquidity(method: OverseerAuth): Promise<AccountLiquidity> {
+    async current_liquidity(auth: LendAuth): Promise<AccountLiquidity> {
         const msg = {
             account_liquidity: {
-                method,
                 block: (await this.client.getBlock()).header.height,
+                method: await auth.create_method<OverseerPermissions>(this.address, 'account_info'),
                 market: null,
                 redeem_amount: '0',
                 borrow_amount: '0'
@@ -140,14 +140,14 @@ class OverseerQuerier extends Querier {
      * @param redeem_amount - The amount to redeem.
      */
     async liquidity_after_redeem(
-        method: OverseerAuth,
+        auth: LendAuth,
         market: Address,
         redeem_amount: Uint256
     ): Promise<AccountLiquidity> {
         const msg = {
             account_liquidity: {
-                method,
                 block: (await this.client.getBlock()).header.height,
+                method: await auth.create_method<OverseerPermissions>(this.address, 'account_info'),
                 market,
                 redeem_amount,
                 borrow_amount: '0'
@@ -165,14 +165,14 @@ class OverseerQuerier extends Querier {
      * @param borrow_amount - The amount to borrow.
      */
     async liquidity_after_borrow(
-        method: OverseerAuth,
+        auth: LendAuth,
         market: Address,
         borrow_amount: Uint256
     ): Promise<AccountLiquidity> {
         const msg = {
             account_liquidity: {
-                method,
                 block: (await this.client.getBlock()).header.height,
+                method: await auth.create_method<OverseerPermissions>(this.address, 'account_info'),
                 market,
                 redeem_amount: '0',
                 borrow_amount

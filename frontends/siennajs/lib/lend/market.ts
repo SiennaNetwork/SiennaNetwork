@@ -6,7 +6,7 @@ import {
     Uint256, Uint128, ViewingKey, create_fee
 } from '../core'
 import { ViewingKeyExecutor } from '../executors/viewing_key_executor'
-import { AuthMethod } from './auth'
+import { LendAuth } from './auth'
 
 import { ExecuteResult, SigningCosmWasmClient } from 'secretjs'
 
@@ -85,7 +85,7 @@ export interface MarketBorrower {
     markets: Market[]
 }
 
-export type MarketAuth = AuthMethod<'account_info' | 'balance' | 'id'>
+export type MarketPermissions = 'account_info' | 'balance' | 'id'
 
 export class MarketContract extends SmartContract<MarketExecutor, MarketQuerier> {
     exec(fee?: Fee, memo?: string): MarketExecutor {
@@ -249,11 +249,11 @@ class MarketQuerier extends Querier {
             .get_balance(address, key)
     }
 
-    async underlying_balance(method: MarketAuth): Promise<Uint128> {
+    async underlying_balance(auth: LendAuth): Promise<Uint128> {
         const msg = {
             balance_underlying: {
                 block: (await this.client.getBlock()).header.height,
-                method
+                method: await auth.create_method<MarketPermissions>(this.address, 'balance')
             }
         }
 
@@ -308,21 +308,24 @@ class MarketQuerier extends Querier {
         return this.run(msg)
     }
 
-    async account(method: MarketAuth): Promise<MarketAccount> {
+    async account(auth: LendAuth): Promise<MarketAccount> {
         const msg = {
             account: {
-                method,
-                block: (await this.client.getBlock()).header.height
+                block: (await this.client.getBlock()).header.height,
+                method: await auth.create_method<MarketPermissions>(this.address, 'account_info')
             }
         }
 
         return this.run(msg)
     }
 
-    async account_id(method: MarketAuth): Promise<string> {
+    /**
+     * Will throw if the account hasn't borrowed at least once before.
+     */
+    async account_id(auth: LendAuth): Promise<string> {
         const msg = {
             id: {
-                method
+                method: await auth.create_method<MarketPermissions>(this.address, 'id')
             }
         }
 
