@@ -24,7 +24,7 @@ use fadroma::{
     },
     killswitch::get_status,
     killswitch::with_status,
-    storage::traits1::Storable,
+    storage::save,
 };
 use amm_shared::TokenType;
 use amm_shared::msg::launchpad::{HandleMsg, InitMsg, QueryMsg};
@@ -100,7 +100,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
 
     save_viewing_key(&mut deps.storage, &viewing_key)?;
     save_admin(deps, &msg.admin)?;
-    config.save(deps)?;
+    save(&mut deps.storage, b"config", &config)?;
 
     // Execute the HandleMsg::RegisterLaunchpad method of
     // the factory contract in order to register this address

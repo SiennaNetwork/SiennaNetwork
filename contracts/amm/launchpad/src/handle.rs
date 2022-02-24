@@ -7,7 +7,7 @@ use amm_shared::fadroma::{
     },
     admin::assert_admin,
     auth_proc::require_admin,
-    storage::traits1::Storable
+    storage::save,
 };
 use amm_shared::TokenType;
 use amm_shared::msg::launchpad::{ReceiverCallbackMsg, TokenSettings};
@@ -165,7 +165,7 @@ pub(crate) fn admin_add_token<S: Storage, A: Api, Q: Querier>(
     };
 
     config.add_token(&deps.querier, token)?;
-    config.save(deps)?;
+    save(&mut deps.storage, b"config", &config)?;
 
     Ok(HandleResponse {
         messages,
@@ -209,7 +209,7 @@ pub(crate) fn admin_remove_token<S: Storage, A: Api, Q: Querier>(
         }
     }
 
-    config.save(deps)?;
+    save(&mut deps.storage, b"config", &config)?;
 
     Ok(HandleResponse {
         messages,

@@ -217,7 +217,7 @@ pub fn accounts_key(address: String) -> String {
 }
 
 impl Account {
-    
+
     pub fn new(owner: HumanAddr) -> Account {
         Account {
             owner,

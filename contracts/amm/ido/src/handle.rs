@@ -389,7 +389,7 @@ pub(crate) fn add_addresses<S: Storage, A: Api, Q: Querier>(
         let account = Account::load_self(&deps, &address);
 
         if account.is_err() {
-	    save(&mut deps.storage, accounts_key(address.to_string()).as_bytes(), &Account::new(address))?;	    
+	    save(&mut deps.storage, accounts_key(address.to_string()).as_bytes(), &Account::new(address))?;
             added_count += 1;
         }
     }

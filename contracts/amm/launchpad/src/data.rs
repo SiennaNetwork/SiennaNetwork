@@ -6,7 +6,6 @@ use amm_shared::fadroma::{
         ContractLink,
     },
     storage::{load, ns_load, ns_save, save},
-    storage::traits1::Storable,
     auth::vk::ViewingKey,
 };
 use amm_shared::{msg::launchpad::TokenSettings, TokenType};
@@ -158,19 +157,9 @@ pub struct Config {
     pub tokens: Vec<TokenConfig>,
 }
 
-impl Storable for Config {
-    fn namespace() -> Vec<u8> {
-        b"config".to_vec()
-    }
-    /// Setting the empty key because config is only one
-    fn key(&self) -> StdResult<Vec<u8>> {
-        Ok(Vec::new())
-    }
-}
-
 impl Config {
     pub fn load_self<S: Storage, T: Api, Q: Querier>(deps: &Extern<S, T, Q>) -> StdResult<Config> {
-        let result = Config::load(deps, b"")?;
+        let result = load(&deps.storage, b"config")?;
         let result =
             result.ok_or_else(|| StdError::generic_err("Config doesn't exist in storage."))?;
 
