@@ -3,7 +3,7 @@ use amm_shared::fadroma::{
         Api, CanonicalAddr, Canonize, ContractLink, Extern, HumanAddr, Humanize, Querier, StdError,
         StdResult, Storage, Uint128,
     },
-    storage::{load, save, traits1::Storable},
+    storage::{load, save},
     ViewingKey,
 };
 use amm_shared::{msg::ido::SaleType, TokenType};
@@ -193,6 +193,7 @@ impl SaleSchedule {
     }
 }
 
+
 /// Used when calculating the swap. These do not change
 /// throughout the lifetime of the contract.
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
@@ -209,19 +210,14 @@ pub struct Account {
     pub pre_lock_amount: Uint128,
 }
 
-impl Storable for Account {
-    /// Global accounts namespace
-    fn namespace() -> Vec<u8> {
-        b"accounts".to_vec()
-    }
-
-    /// Individual account key
-    fn key(&self) -> StdResult<Vec<u8>> {
-        Ok(self.owner.to_string().as_bytes().to_vec())
-    }
+pub fn accounts_key(address: String) -> String {
+    let mut key = "accounts".to_owned();
+    key.push_str(&address);
+    key
 }
 
 impl Account {
+    
     pub fn new(owner: HumanAddr) -> Account {
         Account {
             owner,
@@ -235,7 +231,7 @@ impl Account {
         deps: &Extern<S, T, Q>,
         address: &HumanAddr,
     ) -> StdResult<Account> {
-        Self::load(&deps, address.to_string().as_bytes())?
+        load(&deps.storage, accounts_key(address.to_string()).as_bytes())?
             .ok_or_else(|| StdError::generic_err("This address is not whitelisted."))
     }
 }

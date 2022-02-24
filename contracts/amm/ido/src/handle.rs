@@ -8,13 +8,12 @@ use amm_shared::fadroma::{
         BLOCK_SIZE,
     },
     storage::save,
-    storage::traits1::Storable,
 };
 use amm_shared::msg::ido::{ReceiverCallbackMsg, SaleType};
 use amm_shared::TokenType;
 
 use crate::data::{
-    increment_total_pre_lock_amount, load_viewing_key, Account, Config, SaleSchedule,
+    increment_total_pre_lock_amount, load_viewing_key, Account, Config, SaleSchedule, accounts_key
 };
 
 use crate::helpers::*;
@@ -165,8 +164,7 @@ pub(crate) fn pre_lock<S: Storage, A: Api, Q: Querier>(
     }
 
     account.pre_lock_amount += amount;
-
-    account.save(deps)?;
+    save(&mut deps.storage, accounts_key(account.owner.to_string()).as_bytes(), &account)?;
 
     // Save the amount that was pre locked
     increment_total_pre_lock_amount(deps, single_amount)?;
@@ -238,8 +236,7 @@ pub(crate) fn swap<S: Storage, A: Api, Q: Querier>(
     }
 
     account.pre_lock_amount = Uint128(0_u128);
-
-    account.save(deps)?;
+    save(&mut deps.storage, accounts_key(account.owner.to_string()).as_bytes(), &account)?;
 
     let recipient = recipient.unwrap_or(from);
 
@@ -392,7 +389,7 @@ pub(crate) fn add_addresses<S: Storage, A: Api, Q: Querier>(
         let account = Account::load_self(&deps, &address);
 
         if account.is_err() {
-            Account::new(address).save(deps)?;
+	    save(&mut deps.storage, accounts_key(address.to_string()).as_bytes(), &Account::new(address))?;	    
             added_count += 1;
         }
     }

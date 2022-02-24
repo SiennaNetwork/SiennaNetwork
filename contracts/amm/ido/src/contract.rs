@@ -22,7 +22,6 @@ use fadroma::{
         }
     },
     killswitch::{with_status, get_status},
-    storage::traits1::Storable,
     storage::save,
 };
 
@@ -31,7 +30,7 @@ use amm_shared::msg::ido::{HandleMsg, InitMsg, QueryMsg};
 use amm_shared::msg::launchpad::QueryMsg as LaunchpadQueryMsg;
 use amm_shared::msg::launchpad::QueryResponse as LaunchpadQueryResponse;
 
-use crate::data::{save_contract_address, save_viewing_key, Account, Config, SwapConstants};
+use crate::data::{save_contract_address, save_viewing_key, Account, Config, SwapConstants, accounts_key};
 
 use crate::helpers::*;
 
@@ -131,7 +130,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
     let mut taken_seats = msg.info.whitelist.len() as u32;
 
     for address in msg.info.whitelist {
-        Account::new(address).save(deps)?;
+	save(&mut deps.storage, accounts_key(address.to_string()).as_bytes(), &Account::new(address))?;
     }
 
     // Call the launchpad contract and request whitelist addresses
@@ -151,7 +150,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
             match response {
                 LaunchpadQueryResponse::DrawnAddresses(addresses) => {
                     for address in addresses {
-                        Account::new(address).save(deps)?;
+			save(&mut deps.storage, accounts_key(address.to_string()).as_bytes(), &Account::new(address))?;
                         taken_seats += 1;
                     }
                 }
