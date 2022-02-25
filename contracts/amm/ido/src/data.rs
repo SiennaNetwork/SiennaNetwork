@@ -1,3 +1,5 @@
+use std::borrow::Borrow;
+
 use amm_shared::fadroma::{
     platform::{
         Api, CanonicalAddr, Canonize, ContractLink, Extern, HumanAddr, Humanize, Querier, StdError,
@@ -247,50 +249,44 @@ impl Account {
         &self,
         deps: &mut Extern<S, A, Q>
     ) -> StdResult<()> {
-        let address = self.owner.canonize(&deps.api)?;
+        let address = self.owner.borrow().canonize(&deps.api)?;
         ns_save(&mut deps.storage, Self::NS, address.as_slice(), self)
     }
 }
 
-impl Canonize<Config<CanonicalAddr>> for Config<HumanAddr> {
-    fn canonize(&self, api: &impl Api) -> StdResult<Config<CanonicalAddr>> {
-        let launchpad = match &self.launchpad {
-            Some(l) => Some(l.canonize(api)?),
-            None => None,
-        };
+impl Canonize for Config<HumanAddr> {
+    type Output = Config<CanonicalAddr>;
 
+    fn canonize(self, api: &impl Api) -> StdResult<Self::Output> {
         Ok(Config {
             input_token: self.input_token.canonize(api)?,
             sold_token: self.sold_token.canonize(api)?,
-            swap_constants: self.swap_constants.clone(),
+            swap_constants: self.swap_constants,
             taken_seats: self.taken_seats,
             max_seats: self.max_seats,
             max_allocation: self.max_allocation,
             min_allocation: self.min_allocation,
-            sale_type: self.sale_type.clone(),
-            launchpad,
+            sale_type: self.sale_type,
+            launchpad: self.launchpad.canonize(api)?,
             schedule: self.schedule,
         })
     }
 }
 
-impl Humanize<Config<HumanAddr>> for Config<CanonicalAddr> {
-    fn humanize(&self, api: &impl Api) -> StdResult<Config<HumanAddr>> {
-        let launchpad = match &self.launchpad {
-            Some(l) => Some(l.humanize(api)?),
-            None => None,
-        };
+impl Humanize for Config<CanonicalAddr> {
+    type Output = Config<HumanAddr>;
 
+    fn humanize(self, api: &impl Api) -> StdResult<Self::Output> {
         Ok(Config {
             input_token: self.input_token.humanize(api)?,
             sold_token: self.sold_token.humanize(api)?,
-            swap_constants: self.swap_constants.clone(),
+            swap_constants: self.swap_constants,
             taken_seats: self.taken_seats,
             max_seats: self.max_seats,
             max_allocation: self.max_allocation,
             min_allocation: self.min_allocation,
-            sale_type: self.sale_type.clone(),
-            launchpad,
+            sale_type: self.sale_type,
+            launchpad: self.launchpad.humanize(api)?,
             schedule: self.schedule,
         })
     }

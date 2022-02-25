@@ -12,20 +12,24 @@ pub struct Exchange<A: Clone> {
     pub contract: ContractLink<A>,
 }
 
-impl Canonize<Exchange<CanonicalAddr>> for Exchange<HumanAddr> {
-    fn canonize(&self, api: &impl Api) -> StdResult<Exchange<CanonicalAddr>> {
+impl Canonize for Exchange<HumanAddr> {
+    type Output = Exchange<CanonicalAddr>;
+
+    fn canonize(self, api: &impl Api) -> StdResult<Self::Output> {
         Ok(Exchange {
             pair: self.pair.canonize(api)?,
-            contract: self.contract.canonize(api)?,
+            contract: self.contract.canonize(api)?
         })
     }
 }
 
-impl Humanize<Exchange<HumanAddr>> for Exchange<CanonicalAddr> {
-    fn humanize(&self, api: &impl Api) -> StdResult<Exchange<HumanAddr>> {
+impl Humanize for Exchange<CanonicalAddr> {
+    type Output = Exchange<HumanAddr>;
+
+    fn humanize(self, api: &impl Api) -> StdResult<Self::Output> {
         Ok(Exchange {
             pair: self.pair.humanize(api)?,
-            contract: self.contract.humanize(api)?,
+            contract: self.contract.humanize(api)?
         })
     }
 }

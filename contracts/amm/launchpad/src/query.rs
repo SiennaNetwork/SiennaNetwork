@@ -1,3 +1,5 @@
+use std::borrow::Borrow;
+
 use amm_shared::fadroma::{
     platform::{
         to_binary, Api, Binary, Extern, HumanAddr, Querier, StdResult, Storage,
@@ -60,7 +62,7 @@ pub fn user_info<S: Storage, A: Api, Q: Querier>(
     address: HumanAddr,
     key: String,
 ) -> StdResult<Binary> {
-    let canonical_address = address.canonize(&deps.api)?;
+    let canonical_address = address.borrow().canonize(&deps.api)?;
 
     authenticate(
         &deps.storage,
