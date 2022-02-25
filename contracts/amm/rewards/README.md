@@ -212,4 +212,4 @@ To migrate:
     Afterwards, their LP tokens will be returned
     and their liquidity share reset to 0.
 ## Governance
-See [README](/contracts/amm/rewards/gov/README.md)
+See [README](gov/README.md)
