@@ -43,7 +43,7 @@ export class ExchangeContract extends SmartContract<ExchangeExecutor, ExchangeQu
     }
 }
 
-export class ExchangeExecutor extends Executor {
+class ExchangeExecutor extends Executor {
     constructor(
         address: Address,
         private querier: () => ExchangeQuerier,
@@ -116,7 +116,7 @@ export class ExchangeExecutor extends Executor {
     }
 }
 
-export class ExchangeQuerier extends Querier {
+class ExchangeQuerier extends Querier {
     async get_pair_info(): Promise<PairInfo> {
         const msg = 'pair_info' as unknown as object //yeah...
 
