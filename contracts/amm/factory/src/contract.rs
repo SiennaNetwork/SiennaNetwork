@@ -41,7 +41,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
     save_prng_seed(&mut deps.storage, &msg.prng_seed)?;
     save_config(
         deps,
-        &Config {
+        Config {
             lp_token_contract: msg.lp_token_contract,
             pair_contract: msg.pair_contract,
             exchange_settings: msg.exchange_settings,
@@ -134,7 +134,7 @@ pub fn set_config<S: Storage, A: Api, Q: Querier>(
             config.exchange_settings = new_value;
         }
 
-        save_config(deps, &config)?;
+        save_config(deps, config)?;
 
         Ok(HandleResponse {
             messages: vec![],
@@ -172,7 +172,7 @@ pub fn create_exchange<S: Storage, A: Api, Q: Querier>(
         ));
     }
 
-    if pair_exists(deps, &pair)? {
+    if pair_exists(deps, pair.clone())? {
         return Err(StdError::generic_err("Pair already exists"));
     }
 
@@ -258,7 +258,7 @@ fn query_exchange_address<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     pair: TokenPair<HumanAddr>,
 ) -> StdResult<Binary> {
-    let address = get_address_for_pair(deps, &pair)?;
+    let address = get_address_for_pair(deps, pair)?;
 
     to_binary(&QueryResponse::GetExchangeAddress { address })
 }

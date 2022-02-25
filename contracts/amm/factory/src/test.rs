@@ -217,7 +217,7 @@ mod test_contract {
         assert_unauthorized(result);
 
         let config = mkconfig(0);
-        save_config(deps, &config)?;
+        save_config(deps, config)?;
 
         let env = mkenv(sender_addr.clone());
 
@@ -288,7 +288,7 @@ mod test_contract {
         );
 
         let config = mkconfig(0);
-        save_config(deps, &config)?;
+        save_config(deps, config)?;
 
         let sender_addr = HumanAddr("sender1111".into());
         let env = mkenv(sender_addr.clone());
@@ -677,7 +677,7 @@ mod test_state {
             deps: &Extern<S, A, Q>,
             pair: TokenPair<HumanAddr>,
         ) -> StdResult<()> {
-            let stored_pair = pair.canonize(&deps.api)?;
+            let stored_pair = pair.clone().canonize(&deps.api)?;
             let key = generate_pair_key(stored_pair);
 
             let pair = swap_pair(&pair);
@@ -762,9 +762,9 @@ mod test_state {
             }],
         )?;
 
-        let retrieved_address = get_address_for_pair(&deps, &pair)?;
+        let retrieved_address = get_address_for_pair(&deps, pair.clone())?;
 
-        assert!(pair_exists(&mut deps, &pair)?);
+        assert!(pair_exists(&mut deps, pair)?);
         assert_eq!(address, retrieved_address);
 
         Ok(())

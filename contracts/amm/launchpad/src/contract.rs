@@ -23,8 +23,7 @@ use fadroma::{
         }
     },
     killswitch::get_status,
-    killswitch::with_status,
-    storage::traits1::Storable,
+    killswitch::with_status
 };
 use amm_shared::TokenType;
 use amm_shared::msg::launchpad::{HandleMsg, InitMsg, QueryMsg};
