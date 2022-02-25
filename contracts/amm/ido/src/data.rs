@@ -1,10 +1,9 @@
 use amm_shared::fadroma::{
     platform::{
-        Api, CanonicalAddr, Extern, HumanAddr, Querier, StdError, StdResult, Storage, Uint128,
-        Canonize, Humanize,
-        ContractLink,
+        Api, CanonicalAddr, Canonize, ContractLink, Extern, HumanAddr, Humanize, Querier, StdError,
+        StdResult, Storage, Uint128,
     },
-    storage::{load, save, traits1::Storable},
+    storage::{load, save, ns_load, ns_save},
     ViewingKey,
 };
 use amm_shared::{msg::ido::SaleType, TokenType};
@@ -99,24 +98,13 @@ pub(crate) fn save_viewing_key(storage: &mut impl Storage, vk: &ViewingKey) -> S
     save(storage, KEY_VIEWING_KEY, vk)
 }
 
-impl<A> Storable for Config<A>
-where
-    A: Serialize + serde::de::DeserializeOwned,
-{
-    fn namespace() -> Vec<u8> {
-        b"config".to_vec()
-    }
-    /// Setting the empty key because config is only one
-    fn key(&self) -> StdResult<Vec<u8>> {
-        Ok(Vec::new())
-    }
-}
-
 impl<A> Config<A> {
+    const KEY: &'static[u8] = b"config";
+
     pub fn load_self<S: Storage, T: Api, Q: Querier>(
         deps: &Extern<S, T, Q>,
     ) -> StdResult<Config<HumanAddr>> {
-        let result = Config::<HumanAddr>::load(deps, b"")?;
+        let result = load(&deps.storage, Self::KEY)?;
         let result =
             result.ok_or_else(|| StdError::generic_err("Config doesn't exist in storage."))?;
 
@@ -170,6 +158,15 @@ impl<A> Config<A> {
     }
 }
 
+impl Config<HumanAddr> {
+    pub fn save<S: Storage, T: Api, Q: Querier>(
+        &self,
+        deps: &mut Extern<S, T, Q>
+    ) -> StdResult<()> {
+        save(&mut deps.storage, Self::KEY, self)
+    }
+}
+
 #[derive(Serialize, Deserialize, JsonSchema, Clone, Copy, Debug)]
 pub(crate) struct SaleSchedule {
     /// Time when the sale will start
@@ -207,6 +204,7 @@ impl SaleSchedule {
     }
 }
 
+
 /// Used when calculating the swap. These do not change
 /// throughout the lifetime of the contract.
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
@@ -223,19 +221,9 @@ pub struct Account {
     pub pre_lock_amount: Uint128,
 }
 
-impl Storable for Account {
-    /// Global accounts namespace
-    fn namespace() -> Vec<u8> {
-        b"accounts".to_vec()
-    }
-
-    /// Individual account key
-    fn key(&self) -> StdResult<Vec<u8>> {
-        Ok(self.owner.to_string().as_bytes().to_vec())
-    }
-}
-
 impl Account {
+    const NS: &'static[u8] = b"accounts";
+
     pub fn new(owner: HumanAddr) -> Account {
         Account {
             owner,
@@ -245,12 +233,22 @@ impl Account {
     }
 
     /// Load the account if its whitelisted
-    pub fn load_self<S: Storage, T: Api, Q: Querier>(
-        deps: &Extern<S, T, Q>,
+    pub fn load_self<S: Storage, A: Api, Q: Querier>(
+        deps: &Extern<S, A, Q>,
         address: &HumanAddr,
     ) -> StdResult<Account> {
-        Self::load(&deps, address.to_string().as_bytes())?
+        let address = address.canonize(&deps.api)?;
+
+        ns_load(&deps.storage, Self::NS, address.as_slice())?
             .ok_or_else(|| StdError::generic_err("This address is not whitelisted."))
+    }
+
+    pub fn save<S: Storage, A: Api, Q: Querier>(
+        &self,
+        deps: &mut Extern<S, A, Q>
+    ) -> StdResult<()> {
+        let address = self.owner.canonize(&deps.api)?;
+        ns_save(&mut deps.storage, Self::NS, address.as_slice(), self)
     }
 }
 

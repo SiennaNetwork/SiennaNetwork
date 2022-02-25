@@ -22,7 +22,6 @@ use fadroma::{
         }
     },
     killswitch::{with_status, get_status},
-    storage::traits1::Storable,
 };
 
 use amm_shared::TokenType;
@@ -130,7 +129,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
     let mut taken_seats = msg.info.whitelist.len() as u32;
 
     for address in msg.info.whitelist {
-        Account::new(address).save(deps)?;
+	    Account::new(address).save(deps)?;
     }
 
     // Call the launchpad contract and request whitelist addresses
@@ -150,7 +149,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
             match response {
                 LaunchpadQueryResponse::DrawnAddresses(addresses) => {
                     for address in addresses {
-                        Account::new(address).save(deps)?;
+			            Account::new(address).save(deps)?;
                         taken_seats += 1;
                     }
                 }
