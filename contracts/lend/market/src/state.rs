@@ -1,4 +1,5 @@
 use std::convert::{TryFrom, TryInto};
+use std::borrow::Borrow;
 
 use lend_shared::{
     fadroma::{
@@ -223,7 +224,7 @@ impl Account {
     }
 
     pub fn address(&self, api: &impl Api) -> StdResult<HumanAddr> {
-        self.0.humanize(api)
+        self.0.borrow().humanize(api)
     }
 
     pub fn get_balance(&self, storage: &impl Storage) -> StdResult<Uint256> {
@@ -361,7 +362,7 @@ pub fn load_borrowers<S: Storage, A: Api, Q: Querier>(
 
             Ok(BorrowerRecord {
                 id,
-                address: snapshot.address.humanize(&deps.api)?,
+                address: snapshot.address.borrow().humanize(&deps.api)?,
                 snapshot
             })
         })

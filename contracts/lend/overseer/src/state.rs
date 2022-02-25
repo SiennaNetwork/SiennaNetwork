@@ -105,7 +105,7 @@ impl Markets {
 
     pub fn push<S: Storage, A: Api, Q: Querier>(
         deps: &mut Extern<S, A, Q>,
-        market: &Market<HumanAddr>
+        market: Market<HumanAddr>
     ) -> StdResult<()> {
         let market = market.canonize(&deps.api)?;
 

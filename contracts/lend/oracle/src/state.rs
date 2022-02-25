@@ -1,3 +1,5 @@
+use std::borrow::Borrow;
+
 use lend_shared::{
     impl_contract_storage,
     fadroma::{
@@ -26,7 +28,7 @@ impl SymbolTable {
         deps: &mut Extern<S,A,Q>,
         asset: &Asset
     ) -> StdResult<()> {
-        let address = asset.address.canonize(&deps.api)?;
+        let address = asset.address.borrow().canonize(&deps.api)?;
 
         ns_save(&mut deps.storage, Self::NS, address.as_slice(), &asset.symbol)
     }

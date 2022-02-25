@@ -8,7 +8,7 @@ macro_rules! impl_contract_storage {
     ($save_name:ident, $load_name:ident, $key:literal) => {
         pub fn $save_name<S: Storage, A: Api, Q: Querier>(
             deps: &mut Extern<S, A, Q>,
-            contract: &ContractLink<HumanAddr>
+            contract: ContractLink<HumanAddr>
         ) -> StdResult<()> {
             let contract = contract.canonize(&deps.api)?;
 
@@ -31,7 +31,7 @@ macro_rules! impl_contract_storage_option {
     ($save_name:ident, $load_name:ident, $key:literal) => {
         pub fn $save_name<S: Storage, A: Api, Q: Querier>(
             deps: &mut Extern<S, A, Q>,
-            contract: &ContractLink<HumanAddr>
+            contract: ContractLink<HumanAddr>
         ) -> StdResult<()> {
             let contract = contract.canonize(&deps.api)?;
 
@@ -41,13 +41,7 @@ macro_rules! impl_contract_storage_option {
         pub fn $load_name<S: Storage, A: Api, Q: Querier>(
             deps: &Extern<S, A, Q>,
         ) -> StdResult<Option<ContractLink<HumanAddr>>> {
-            let result: Option<ContractLink<CanonicalAddr>> =
-                load(&deps.storage, $key)?;
-
-            match result {
-                Some(contract) => Ok(Some(contract.humanize(&deps.api)?)),
-                None => Ok(None)
-            }
+            load(&deps.storage, $key)?.humanize(&deps.api)
         }
     };
 }

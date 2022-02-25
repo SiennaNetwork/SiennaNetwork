@@ -222,20 +222,24 @@ impl<T> Market<T> {
     }
 }
 
-impl Canonize<Market<CanonicalAddr>> for Market<HumanAddr> {
-    fn canonize(&self, api: &impl Api) -> StdResult<Market<CanonicalAddr>> {
+impl Canonize for Market<HumanAddr> {
+    type Output = Market<CanonicalAddr>;
+
+    fn canonize(self, api: &impl Api) -> StdResult<Self::Output> {
         Ok(Market {
-            symbol: self.symbol.clone(),
+            symbol: self.symbol,
             contract: self.contract.canonize(api)?,
             ltv_ratio: self.ltv_ratio,
         })
     }
 }
 
-impl Humanize<Market<HumanAddr>> for Market<CanonicalAddr> {
-    fn humanize(&self, api: &impl Api) -> StdResult<Market<HumanAddr>> {
+impl Humanize for Market<CanonicalAddr> {
+    type Output = Market<HumanAddr>;
+
+    fn humanize(self, api: &impl Api) -> StdResult<Self::Output> {
         Ok(Market {
-            symbol: self.symbol.clone(),
+            symbol: self.symbol,
             contract: self.contract.humanize(api)?,
             ltv_ratio: self.ltv_ratio,
         })

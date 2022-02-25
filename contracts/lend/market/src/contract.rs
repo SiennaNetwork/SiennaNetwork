@@ -87,10 +87,10 @@ pub trait Market {
         Constants::save_config(&mut deps.storage, &config)?;
         BorrowerId::set_prng_seed(&mut deps.storage, &prng_seed)?;
         
-        Contracts::save_overseer(deps, &callback.contract)?;
-        Contracts::save_interest_model(deps, &interest_model_contract)?;
-        Contracts::save_underlying(deps, &underlying_asset)?;
-        Contracts::save_self_ref(deps, &self_ref)?;
+        Contracts::save_overseer(deps, callback.contract.clone())?;
+        Contracts::save_interest_model(deps, interest_model_contract)?;
+        Contracts::save_underlying(deps, underlying_asset.clone())?;
+        Contracts::save_self_ref(deps, self_ref.clone())?;
 
         Global::save_borrow_index(&mut deps.storage, &Decimal256::one())?;
         Global::save_accrual_block_number(&mut deps.storage, env.block.height)?;
@@ -384,7 +384,7 @@ pub trait Market {
     ) -> StdResult<HandleResponse> {
         let mut config = Constants::load_config(&deps.storage)?;
         if let Some(interest_model) = interest_model {
-            Contracts::save_interest_model(deps, &interest_model)?;
+            Contracts::save_interest_model(deps, interest_model)?;
         }
 
         if let Some(reserve_factor) = reserve_factor {
