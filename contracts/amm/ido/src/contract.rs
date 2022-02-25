@@ -22,7 +22,6 @@ use fadroma::{
         }
     },
     killswitch::{with_status, get_status},
-    storage::save,
 };
 
 use amm_shared::TokenType;
@@ -30,7 +29,7 @@ use amm_shared::msg::ido::{HandleMsg, InitMsg, QueryMsg};
 use amm_shared::msg::launchpad::QueryMsg as LaunchpadQueryMsg;
 use amm_shared::msg::launchpad::QueryResponse as LaunchpadQueryResponse;
 
-use crate::data::{save_contract_address, save_viewing_key, Account, Config, SwapConstants, accounts_key};
+use crate::data::{save_contract_address, save_viewing_key, Account, Config, SwapConstants};
 
 use crate::helpers::*;
 
@@ -130,7 +129,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
     let mut taken_seats = msg.info.whitelist.len() as u32;
 
     for address in msg.info.whitelist {
-	save(&mut deps.storage, accounts_key(address.to_string()).as_bytes(), &Account::new(address))?;
+	    Account::new(address).save(deps)?;
     }
 
     // Call the launchpad contract and request whitelist addresses
@@ -150,7 +149,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
             match response {
                 LaunchpadQueryResponse::DrawnAddresses(addresses) => {
                     for address in addresses {
-			save(&mut deps.storage, accounts_key(address.to_string()).as_bytes(), &Account::new(address))?;
+			            Account::new(address).save(deps)?;
                         taken_seats += 1;
                     }
                 }
@@ -182,7 +181,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
     };
 
     save_admin(deps, &msg.admin)?;
-    save(&mut deps.storage, b"config", &config)?;
+    config.save(deps)?;
 
     Ok(InitResponse {
         messages,

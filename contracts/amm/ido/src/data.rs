@@ -3,7 +3,7 @@ use amm_shared::fadroma::{
         Api, CanonicalAddr, Canonize, ContractLink, Extern, HumanAddr, Humanize, Querier, StdError,
         StdResult, Storage, Uint128,
     },
-    storage::{load, save},
+    storage::{load, save, ns_load, ns_save},
     ViewingKey,
 };
 use amm_shared::{msg::ido::SaleType, TokenType};
@@ -99,10 +99,12 @@ pub(crate) fn save_viewing_key(storage: &mut impl Storage, vk: &ViewingKey) -> S
 }
 
 impl<A> Config<A> {
+    const KEY: &'static[u8] = b"config";
+
     pub fn load_self<S: Storage, T: Api, Q: Querier>(
         deps: &Extern<S, T, Q>,
     ) -> StdResult<Config<HumanAddr>> {
-        let result = load(&deps.storage, b"config")?;
+        let result = load(&deps.storage, Self::KEY)?;
         let result =
             result.ok_or_else(|| StdError::generic_err("Config doesn't exist in storage."))?;
 
@@ -153,6 +155,15 @@ impl<A> Config<A> {
     /// Overflow checking needs to be performed at init time.
     pub fn total_allocation(&self) -> Uint128 {
         Uint128(self.max_allocation.u128() * self.max_seats as u128)
+    }
+}
+
+impl Config<HumanAddr> {
+    pub fn save<S: Storage, T: Api, Q: Querier>(
+        &self,
+        deps: &mut Extern<S, T, Q>
+    ) -> StdResult<()> {
+        save(&mut deps.storage, Self::KEY, self)
     }
 }
 
@@ -210,13 +221,8 @@ pub struct Account {
     pub pre_lock_amount: Uint128,
 }
 
-pub fn accounts_key(address: String) -> String {
-    let mut key = "accounts".to_owned();
-    key.push_str(&address);
-    key
-}
-
 impl Account {
+    const NS: &'static[u8] = b"accounts";
 
     pub fn new(owner: HumanAddr) -> Account {
         Account {
@@ -227,12 +233,22 @@ impl Account {
     }
 
     /// Load the account if its whitelisted
-    pub fn load_self<S: Storage, T: Api, Q: Querier>(
-        deps: &Extern<S, T, Q>,
+    pub fn load_self<S: Storage, A: Api, Q: Querier>(
+        deps: &Extern<S, A, Q>,
         address: &HumanAddr,
     ) -> StdResult<Account> {
-        load(&deps.storage, accounts_key(address.to_string()).as_bytes())?
+        let address = address.canonize(&deps.api)?;
+
+        ns_load(&deps.storage, Self::NS, address.as_slice())?
             .ok_or_else(|| StdError::generic_err("This address is not whitelisted."))
+    }
+
+    pub fn save<S: Storage, A: Api, Q: Querier>(
+        &self,
+        deps: &mut Extern<S, A, Q>
+    ) -> StdResult<()> {
+        let address = self.owner.canonize(&deps.api)?;
+        ns_save(&mut deps.storage, Self::NS, address.as_slice(), self)
     }
 }
 

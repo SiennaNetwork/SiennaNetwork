@@ -158,12 +158,21 @@ pub struct Config {
 }
 
 impl Config {
+    const KEY: &'static[u8] = b"config";
+
     pub fn load_self<S: Storage, T: Api, Q: Querier>(deps: &Extern<S, T, Q>) -> StdResult<Config> {
-        let result = load(&deps.storage, b"config")?;
+        let result = load(&deps.storage, Self::KEY)?;
         let result =
             result.ok_or_else(|| StdError::generic_err("Config doesn't exist in storage."))?;
 
         Ok(result)
+    }
+
+    pub fn save<S: Storage, T: Api, Q: Querier>(
+        &self,
+        deps: &mut Extern<S, T, Q>
+    ) -> StdResult<()> {
+        save(&mut deps.storage, Self::KEY, self)
     }
 
     /// Return the token config based on the given address

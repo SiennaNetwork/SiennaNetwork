@@ -6,14 +6,13 @@ use amm_shared::fadroma::{
         from_binary, log, secret_toolkit::snip20, Api, BankMsg, Binary, CanonicalAddr, Coin, Env,
         Extern, HandleResponse, HumanAddr, Querier, StdError, StdResult, Storage, Uint128,
         BLOCK_SIZE,
-    },
-    storage::save,
+    }
 };
 use amm_shared::msg::ido::{ReceiverCallbackMsg, SaleType};
 use amm_shared::TokenType;
 
 use crate::data::{
-    increment_total_pre_lock_amount, load_viewing_key, Account, Config, SaleSchedule, accounts_key
+    increment_total_pre_lock_amount, load_viewing_key, Account, Config, SaleSchedule
 };
 
 use crate::helpers::*;
@@ -97,7 +96,7 @@ pub(crate) fn activate<S: Storage, A: Api, Q: Querier>(
     }
 
     config.schedule = Some(SaleSchedule::new(env.block.time, start, end)?);
-    save(&mut deps.storage, b"config", &config)?;
+    config.save(deps)?;
 
     Ok(HandleResponse {
         messages: vec![],
@@ -164,7 +163,7 @@ pub(crate) fn pre_lock<S: Storage, A: Api, Q: Querier>(
     }
 
     account.pre_lock_amount += amount;
-    save(&mut deps.storage, accounts_key(account.owner.to_string()).as_bytes(), &account)?;
+    account.save(deps)?;
 
     // Save the amount that was pre locked
     increment_total_pre_lock_amount(deps, single_amount)?;
@@ -236,7 +235,7 @@ pub(crate) fn swap<S: Storage, A: Api, Q: Querier>(
     }
 
     account.pre_lock_amount = Uint128(0_u128);
-    save(&mut deps.storage, accounts_key(account.owner.to_string()).as_bytes(), &account)?;
+    account.save(deps)?;
 
     let recipient = recipient.unwrap_or(from);
 
@@ -389,12 +388,12 @@ pub(crate) fn add_addresses<S: Storage, A: Api, Q: Querier>(
         let account = Account::load_self(&deps, &address);
 
         if account.is_err() {
-	    save(&mut deps.storage, accounts_key(address.to_string()).as_bytes(), &Account::new(address))?;
+            Account::new(address).save(deps)?;
             added_count += 1;
         }
     }
 
-    save(&mut deps.storage, b"config", &config)?;
+    config.save(deps)?;
 
     Ok(HandleResponse {
         messages: vec![],
