@@ -1,0 +1,17 @@
+@startuml High level overview
+actor      User       as User
+participant Governance as Governance
+participant RewardPool as RewardPool
+User -> RewardPool : deposit
+== Poll Creation ==
+User -> Governance : create poll
+Governance -> RewardPool : get stake balance
+RewardPool --> Governance : balance
+note right
+  Balance is checked against threshold
+end note
+== Voting ==
+User -> Governance : vote
+Governance -> RewardPool : get stake balance
+RewardPool --> Governance : balance
+@enduml
