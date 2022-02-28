@@ -1,7 +1,7 @@
 export {
     Uint128, Uint256, Address, ViewingKey, Decimal,
-    Coin, Fee, ContractInfo, ContractInstantiationInfo,
-    Pagination, decode_data, create_coin, create_entropy,
+    Fee, ContractInfo, ContractInstantiationInfo, Pagination,
+    decode_data, create_coin, create_entropy,
     create_fee, create_base64_msg
 } from './lib/core'
 

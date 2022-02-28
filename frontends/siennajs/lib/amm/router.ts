@@ -5,7 +5,7 @@ import { get_token_type, TypeOfToken, CustomToken, TokenTypeAmount, add_native_b
 import { SmartContract, Querier, Executor } from '../contract'
 import { Snip20Contract } from '../snip20'
 
-import { SigningCosmWasmClient, ExecuteResult } from 'secretjs'
+import { SecretNetworkClient, Tx } from 'secretjs'
 import { Hop } from './hop'
 import { ExchangeContract } from './exchange'
 
@@ -13,35 +13,24 @@ export class RouterContract extends SmartContract<RouterExecutor, RouterQuerier>
     exec(fee?: Fee, memo?: string): RouterExecutor {
         return new RouterExecutor(
             this.address,
-            () => this.query.apply(this),
-            this.execute_client,
+            this.client,
             fee,
             memo
         )
     }
     
     query(): RouterQuerier {
-        return new RouterQuerier(this.address, this.query_client)
+        return new RouterQuerier(this.address, this.client)
     }
 }
 
 class RouterExecutor extends Executor {
-    constructor(
-        address: Address,
-        private querier: () => RouterQuerier,
-        client?: SigningCosmWasmClient,
-        fee?: Fee,
-        memo?: string,
-    ) {
-        super(address, client, fee, memo)
-    }
-
     async swap(
         hops: Hop[],
         amount: Uint128,
         recipient: Address,
-        expected_return?: Decimal,
-    ): Promise<ExecuteResult> {
+        expected_return?: Uint128,
+    ): Promise<Tx> {
         if (hops.length === 0) {
             throw new Error("You have to provide hops for the swap to happen")
         }
@@ -49,7 +38,7 @@ class RouterExecutor extends Executor {
         const first_hop = hops[0]
 
         if (hops.length === 1) {
-            return (new ExchangeContract(first_hop.pair_address, this.client, this.client))
+            return (new ExchangeContract(first_hop.pair_address, this.client))
                 .exec()
                 .swap(new TokenTypeAmount(first_hop.from_token, amount), recipient, expected_return)
         }

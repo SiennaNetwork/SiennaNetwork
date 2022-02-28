@@ -8,7 +8,7 @@ import {
 import { ViewingKeyExecutor } from '../executors/viewing_key_executor'
 import { LendAuth } from './auth'
 
-import { ExecuteResult, SigningCosmWasmClient } from 'secretjs'
+import { Tx, SecretNetworkClient } from 'secretjs'
 
 export interface MarketState {
     /**
@@ -92,14 +92,14 @@ export class MarketContract extends SmartContract<MarketExecutor, MarketQuerier>
         return new MarketExecutor(
             this.address,
             () => this.query.apply(this),
-            this.execute_client,
+            this.client,
             fee,
             memo
         )
     }
 
     query(): MarketQuerier {
-        return new MarketQuerier(this.address, this.query_client)
+        return new MarketQuerier(this.address, this.client)
     }
 }
 
@@ -107,7 +107,7 @@ class MarketExecutor extends ViewingKeyExecutor {
     constructor(
         address: Address,
         private querier: () => MarketQuerier,
-        client?: SigningCosmWasmClient,
+        client: SecretNetworkClient,
         fee?: Fee,
         memo?: string,
     ) {
@@ -118,7 +118,7 @@ class MarketExecutor extends ViewingKeyExecutor {
      * Convert and burn the specified amount of slToken to the underlying asset
      * based on the current exchange rate and transfer them to the user.
      */
-    async redeem_from_sl(burn_amount: Uint256): Promise<ExecuteResult> {
+    async redeem_from_sl(burn_amount: Uint256): Promise<Tx> {
         const msg = {
             redeem_token: {
                 burn_amount
@@ -132,7 +132,7 @@ class MarketExecutor extends ViewingKeyExecutor {
      * Burns slToken amount of tokens equivalent to the specified amount based on the
      * current exchange rate and transfers the specified amount of the underyling asset to the user.
      */
-    async redeem_from_underlying(receive_amount: Uint256): Promise<ExecuteResult> {
+    async redeem_from_underlying(receive_amount: Uint256): Promise<Tx> {
         const msg = {
             redeem_underlying: {
                 receive_amount
@@ -142,7 +142,7 @@ class MarketExecutor extends ViewingKeyExecutor {
         return this.run(msg, '60000')
     }
 
-    async borrow(amount: Uint256): Promise<ExecuteResult> {
+    async borrow(amount: Uint256): Promise<Tx> {
         const msg = {
             borrow: {
                 amount
@@ -152,7 +152,7 @@ class MarketExecutor extends ViewingKeyExecutor {
         return this.run(msg, '80000')
     }
 
-    async transfer(amount: Uint256, recipient: Address): Promise<ExecuteResult> {
+    async transfer(amount: Uint256, recipient: Address): Promise<Tx> {
         const msg = {
             transfer: {
                 amount,
@@ -167,7 +167,7 @@ class MarketExecutor extends ViewingKeyExecutor {
      * This function is automatically called before every transaction to update to
      * the latest state of the market but can also be called manually through here.
      */
-    async accrue_interest(): Promise<ExecuteResult> {
+    async accrue_interest(): Promise<Tx> {
         const msg = {
             accrue_interest: { }
         }
@@ -175,7 +175,7 @@ class MarketExecutor extends ViewingKeyExecutor {
         return this.run(msg, '40000')
     }
 
-    async deposit(amount: Uint256, underlying_asset?: Address): Promise<ExecuteResult> {
+    async deposit(amount: Uint256, underlying_asset?: Address): Promise<Tx> {
         if (!underlying_asset) {
             underlying_asset = await this.get_underlying_asset()
         }
@@ -189,7 +189,7 @@ class MarketExecutor extends ViewingKeyExecutor {
     /**
      * @param borrower - Optionally specify a borrower ID to repay someone else's debt.
      */
-    async repay(amount: Uint256, borrower?: string, underlying_asset?: Address): Promise<ExecuteResult> {
+    async repay(amount: Uint256, borrower?: string, underlying_asset?: Address): Promise<Tx> {
         if (!underlying_asset) {
             underlying_asset = await this.get_underlying_asset()
         }
@@ -211,7 +211,7 @@ class MarketExecutor extends ViewingKeyExecutor {
         borrower: string,
         collateral: Address,
         underlying_asset?: Address
-    ): Promise<ExecuteResult> {
+    ): Promise<Tx> {
         if (!underlying_asset) {
             underlying_asset = await this.get_underlying_asset()
         }
@@ -238,13 +238,13 @@ class MarketExecutor extends ViewingKeyExecutor {
 
 class MarketQuerier extends Querier {
     async token_info(): Promise<TokenInfo> {
-        return new Snip20Contract(this.address, undefined, this.client)
+        return new Snip20Contract(this.address, this.client)
             .query()
             .get_token_info()
     }
 
     async balance(address: Address, key: ViewingKey): Promise<Uint128> {
-        return new Snip20Contract(this.address, undefined, this.client)
+        return new Snip20Contract(this.address, this.client)
             .query()
             .get_balance(address, key)
     }
@@ -252,7 +252,7 @@ class MarketQuerier extends Querier {
     async underlying_balance(auth: LendAuth): Promise<Uint128> {
         const msg = {
             balance_underlying: {
-                block: (await this.client.getBlock()).header.height,
+                block: await this.get_height(),
                 method: await auth.create_method<MarketPermissions>(this.address, 'balance')
             }
         }
@@ -263,7 +263,7 @@ class MarketQuerier extends Querier {
     async state(): Promise<MarketState> {
         const msg = {
             state: {
-                block: (await this.client.getBlock()).header.height
+                block: await this.get_height()
             }
         }
 
@@ -281,7 +281,7 @@ class MarketQuerier extends Querier {
     async borrow_rate(): Promise<Decimal256> {
         const msg = {
             borrow_rate: {
-                block: (await this.client.getBlock()).header.height
+                block: await this.get_height()
             }
         }
 
@@ -291,7 +291,7 @@ class MarketQuerier extends Querier {
     async supply_rate(): Promise<Decimal256> {
         const msg = {
             supply_rate: {
-                block: (await this.client.getBlock()).header.height
+                block: await this.get_height()
             }
         }
 
@@ -301,7 +301,7 @@ class MarketQuerier extends Querier {
     async exchange_rate(): Promise<Decimal256> {
         const msg = {
             exchange_rate: {
-                block: (await this.client.getBlock()).header.height
+                block: await this.get_height()
             }
         }
 
@@ -311,7 +311,7 @@ class MarketQuerier extends Querier {
     async account(auth: LendAuth): Promise<MarketAccount> {
         const msg = {
             account: {
-                block: (await this.client.getBlock()).header.height,
+                block: await this.get_height(),
                 method: await auth.create_method<MarketPermissions>(this.address, 'account_info')
             }
         }
@@ -338,7 +338,7 @@ class MarketQuerier extends Querier {
     async borrowers(pagination: Pagination): Promise<MarketBorrower[]> {
         const msg = {
             borrowers: {
-                block: (await this.client.getBlock()).header.height,
+                block: await this.get_height(),
                 pagination
             }
         }

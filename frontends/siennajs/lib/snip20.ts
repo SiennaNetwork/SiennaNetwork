@@ -6,7 +6,7 @@ import { SmartContract, Querier } from './contract'
 import { ViewingKeyExecutor } from './executors/viewing_key_executor'
 import { Signer, Permit } from './permit'
 
-import { ExecuteResult } from 'secretjs'
+import { Tx } from 'secretjs'
 
 export interface TokenInfo {
     name: string,
@@ -29,12 +29,12 @@ export interface ExchangeRate {
 
 export interface TransferHistory {
     total?: number | null,
-    txs: Tx[]
+    txs: Snip20Tx[]
 }
 
 export interface TransactionHistory {
     total?: number | null,
-    txs: RichTx[]
+    txs: RichSnip20Tx[]
 }
 
 export type TxAction =
@@ -64,7 +64,7 @@ export type TxAction =
         redeem: { }
     }
 
-export interface RichTx {
+export interface RichSnip20Tx {
     action: TxAction,
     block_height: number,
     block_time: number,
@@ -73,7 +73,7 @@ export interface RichTx {
     memo?: string | null
 }
 
-export interface Tx {
+export interface Snip20Tx {
     block_height?: number | null,
     block_time?: number | null,
     coins: Coin,
@@ -93,11 +93,11 @@ export type Snip20Permit = Permit<'allowance' | 'balance' | 'history' | 'owner'>
 
 export class Snip20Contract extends SmartContract<Snip20Executor, Snip20Querier> {
     exec(fee?: Fee, memo?: string): Snip20Executor {
-        return new Snip20Executor(this.address, this.execute_client, fee, memo)
+        return new Snip20Executor(this.address, this.client, fee, memo)
     }
 
     query(): Snip20Querier {
-        return new Snip20Querier(this.address, this.query_client)
+        return new Snip20Querier(this.address, this.client)
     }
 }
 
@@ -107,7 +107,7 @@ class Snip20Executor extends ViewingKeyExecutor {
         amount: Uint128,
         expiration?: number,
         padding?: string
-    ): Promise<ExecuteResult> {
+    ): Promise<Tx> {
         const msg = {
             increase_allowance: {
                 spender,
@@ -120,7 +120,7 @@ class Snip20Executor extends ViewingKeyExecutor {
         return this.run(msg, '50000')
     }
 
-    async deposit(amount: Uint128, padding?: string): Promise<ExecuteResult> {
+    async deposit(amount: Uint128, padding?: string): Promise<Tx> {
         const msg = {
             deposit: {
                 padding
@@ -131,7 +131,7 @@ class Snip20Executor extends ViewingKeyExecutor {
         return this.run(msg, '50000', transfer)
     }
 
-    async transfer(recipient: Address, amount: Uint128, padding?: string): Promise<ExecuteResult> {
+    async transfer(recipient: Address, amount: Uint128, padding?: string): Promise<Tx> {
         const msg = {
             transfer: {
                 recipient,
@@ -148,7 +148,7 @@ class Snip20Executor extends ViewingKeyExecutor {
         amount: Uint128,
         msg?: any,
         padding?: string
-    ): Promise<ExecuteResult> {
+    ): Promise<Tx> {
         const message = {
             send: {
                 recipient,
@@ -161,7 +161,7 @@ class Snip20Executor extends ViewingKeyExecutor {
         return this.run(message, '50000')
     }
 
-    async mint(recipient: Address, amount: Uint128, padding?: string): Promise<ExecuteResult> {
+    async mint(recipient: Address, amount: Uint128, padding?: string): Promise<Tx> {
         const msg = {
             mint: {
                 recipient,
