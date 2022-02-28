@@ -25,8 +25,9 @@ Updating of all active polls occurs when a stake holder stakes or unstakes (*acc
 
 ## Control flows
 ### User flow
-TODO: diagram here  
-  
+### High level flow overview
+[high level overview](../doc/gov_high_flow.png)  
+
 When a user votes in a poll his balance is checked and his voting power is registered for the given poll
 This causes the result to be (re)calculated according to this formula:
 ```
