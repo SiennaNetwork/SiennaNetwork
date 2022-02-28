@@ -689,28 +689,6 @@ pub mod rewards {
         pub deadline: Option<u64>,
     }
 
-    #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
-    #[serde(rename_all = "snake_case")]
-    pub enum VoteType {
-        Yes,
-        No,
-    }
-
-    #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
-    #[serde(rename_all = "snake_case")]
-    pub struct PollMetadata {
-        pub title: String,
-        pub description: String,
-        pub poll_type: PollType,
-    }
-    #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
-    #[serde(rename_all = "snake_case")]
-    pub enum PollType {
-        SiennaRewards,
-        SiennaSwapParameters,
-        Other,
-    }
-
     #[derive(
         Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize, schemars::JsonSchema,
     )]
@@ -764,17 +742,7 @@ pub mod rewards {
         /// for which the migration is to be performed.
         ExportState(HumanAddr),
     }
-    #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
-    #[serde(rename_all = "snake_case")]
-    pub enum GovernanceHandle {
-        CreatePoll { meta: PollMetadata },
-        Vote { variant: VoteType, poll_id: u64 },
-        Unvote { poll_id: u64 },
-        ChangeVote { variant: VoteType, poll_id: u64 },
-        SetViewingKey { key: String },
-        CreateViewingKey { entropy: String },
-        UpdateConfig { config: GovernanceConfig },
-    }
+
     #[derive(
         Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize, schemars::JsonSchema,
     )]
@@ -816,8 +784,6 @@ pub mod rewards {
             recipient: Option<HumanAddr>,
             key: String,
         },
-
-        Governance(GovernanceHandle),
     }
 
     #[derive(
