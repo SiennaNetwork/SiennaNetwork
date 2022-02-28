@@ -1,8 +1,8 @@
 export {
     Uint128, Uint256, Address, ViewingKey, Decimal,
     Coin, Fee, ContractInfo, ContractInstantiationInfo,
-    decode_data, create_coin, create_entropy, create_fee,
-    create_base64_msg
+    Pagination, decode_data, create_coin, create_entropy,
+    create_fee, create_base64_msg
 } from './lib/core'
 
 export {
@@ -13,7 +13,9 @@ export { SmartContract, Executor, Querier } from './lib/contract'
 
 export * as amm from './lib/amm'
 
-export * as snip20 from "./lib/snip20"
+export * as snip20 from './lib/snip20'
 
-export * as rewards_v2 from "./lib/rewards/rewards_v2"
-export * as rewards_v3 from "./lib/rewards/rewards_v3"
+export * as rewards_v2 from './lib/rewards/rewards_v2'
+export * as rewards_v3 from './lib/rewards/rewards_v3'
+
+export * as lend from './lib/lend'

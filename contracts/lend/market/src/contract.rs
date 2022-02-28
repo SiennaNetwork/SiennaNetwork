@@ -19,6 +19,7 @@ use lend_shared::{
                 DefaultImpl as AuthImpl, Auth
             }
         },
+        killswitch,
         derive_contract::*,
         require_admin,
         secret_toolkit::snip20,
@@ -42,7 +43,7 @@ use lend_shared::{
             query_entered_markets
         },
     },
-    core::{MasterKey, AuthenticatedUser}
+    core::{MasterKey, AuthenticatedUser, Pagination}
 };
 
 pub const MAX_RESERVE_FACTOR: Decimal256 = Decimal256::one();
@@ -61,7 +62,8 @@ use ops::{LatestInterest, accrue_interest, accrued_interest_at};
 #[contract_impl(
     entry,
     path = "lend_shared::interfaces::market",
-    component(path = "admin")
+    component(path = "admin"),
+    component(path = "killswitch")
 )]
 pub trait Market {
     #[init]
@@ -83,15 +85,12 @@ pub trait Market {
         };
 
         Constants::save_config(&mut deps.storage, &config)?;
-
         BorrowerId::set_prng_seed(&mut deps.storage, &prng_seed)?;
-        Contracts::save_overseer(deps, &callback.contract)?;
-        Contracts::save_interest_model(deps, &interest_model_contract)?;
-        Contracts::save_underlying(deps, &underlying_asset)?;
-        Contracts::save_self_ref(deps, &ContractLink {
-            address: env.contract.address.clone(),
-            code_hash: env.contract_code_hash.clone()
-        })?;
+        
+        Contracts::save_overseer(deps, callback.contract.clone())?;
+        Contracts::save_interest_model(deps, interest_model_contract)?;
+        Contracts::save_underlying(deps, underlying_asset.clone())?;
+        Contracts::save_self_ref(deps, self_ref.clone())?;
 
         Global::save_borrow_index(&mut deps.storage, &Decimal256::one())?;
         Global::save_accrual_block_number(&mut deps.storage, env.block.height)?;
@@ -117,7 +116,7 @@ pub trait Market {
                     underlying_asset.address.clone(),
                 )?,
                 snip20::register_receive_msg(
-                    self_ref.code_hash.clone(),
+                    self_ref.code_hash,
                     None,
                     BLOCK_SIZE,
                     underlying_asset.code_hash,
@@ -128,38 +127,66 @@ pub trait Market {
         })
     }
 
+    #[handle_guard]
+    fn guard(msg: &HandleMsg) -> StdResult<()> {
+        let operational = killswitch::is_operational(deps);
+
+        if operational.is_err() && matches!(
+            msg,
+            HandleMsg::UpdateConfig { .. } |
+            HandleMsg::ReduceReserves { .. } |
+            HandleMsg::SetViewingKey { .. } |
+            HandleMsg::CreateViewingKey { .. } |
+            HandleMsg::Killswitch(_) |
+            HandleMsg::Admin(_)
+        ) {
+            Ok(())
+        } else {
+            operational
+        }
+    }
+
     #[handle]
     fn receive(_sender: HumanAddr, from: HumanAddr, msg: Option<Binary>, amount: Uint128) -> StdResult<HandleResponse> {
         if msg.is_none() {
             return Err(StdError::generic_err("\"msg\" parameter cannot be empty."));
         }
+
+        let underlying = Contracts::load_underlying(deps)?;
+
+        if env.message.sender != underlying.address {
+            return Err(StdError::unauthorized());
+        }
+
+        let balance = snip20::balance_query(
+            &deps.querier,
+            env.contract.address.clone(),
+            Constants::load_vk(&deps.storage)?,
+            BLOCK_SIZE,
+            underlying.code_hash,
+            underlying.address,
+        )?.amount;
+    
+        // Because balance is already increased, we must subtract the incoming amount
+        // in order to get the correct interest/exchange rate up to this point.
+        let balance = (balance - amount)?;
+    
+        let interest = accrue_interest(deps, env.block.height, balance.into())?;
+
         match from_binary(&msg.unwrap())? {
             ReceiverCallbackMsg::Deposit => {
-                let underlying = Contracts::load_underlying(deps)?;
-
-                if env.message.sender != underlying.address {
-                    return Err(StdError::unauthorized());
-                }
-
                 token::deposit(
                     deps,
-                    env,
-                    underlying,
+                    interest,
+                    balance.into(),
                     from,
                     amount.into()
                 )
             },
             ReceiverCallbackMsg::Repay { borrower } => {
-                let underlying = Contracts::load_underlying(deps)?;
-
-                if env.message.sender != underlying.address {
-                    return Err(StdError::unauthorized());
-                }
-
                 repay(
                     deps,
-                    env,
-                    underlying,
+                    interest,
                     if let Some(borrower) = borrower {
                         Account::from_id(&deps.storage, &borrower)?
                     } else {
@@ -172,16 +199,11 @@ pub trait Market {
                 borrower,
                 collateral
             } => {
-                let underlying = Contracts::load_underlying(deps)?;
-
-                if env.message.sender != underlying.address {
-                    return Err(StdError::unauthorized());
-                }
-
                 liquidate(
                     deps,
                     env,
-                    underlying,
+                    interest,
+                    balance.into(),
                     from,
                     Account::from_id(&deps.storage, &borrower)?,
                     collateral,
@@ -240,7 +262,7 @@ pub trait Market {
 
         let mut snapshot = account.get_borrow_snapshot(&deps.storage)?;
         snapshot.add_balance(latest.borrow_index(&deps.storage)?, amount)?;
-        account.save_borrow_snapshot(&mut deps.storage, &snapshot)?;
+        account.save_borrow_snapshot(&mut deps.storage, snapshot)?;
 
         TotalBorrows::increase(&mut deps.storage, amount)?;
 
@@ -258,7 +280,6 @@ pub trait Market {
             ],
             log: vec![
                 log("action", "borrow"),
-                log("borrow_info", snapshot.0)
             ],
             data: None
         })
@@ -363,7 +384,7 @@ pub trait Market {
     ) -> StdResult<HandleResponse> {
         let mut config = Constants::load_config(&deps.storage)?;
         if let Some(interest_model) = interest_model {
-            Contracts::save_interest_model(deps, &interest_model)?;
+            Contracts::save_interest_model(deps, interest_model)?;
         }
 
         if let Some(reserve_factor) = reserve_factor {
@@ -679,19 +700,31 @@ pub trait Market {
     #[query]
     fn borrowers(
         block: u64,
-        start_after: Option<Binary>,
-        limit: Option<u8>
+        pagination: Pagination
     ) -> StdResult<Vec<Borrower>> {
-        let borrowers = load_borrowers(deps, start_after, limit)?;
+        let borrowers = load_borrowers(deps, pagination)?;
         let mut result = Vec::with_capacity(borrowers.len());
 
         let overseer = Contracts::load_overseer(deps)?;
         let key = MasterKey::load(&deps.storage)?;
+
+        let underlying_asset = Contracts::load_underlying(deps)?;
+        let balance = snip20::balance_query(
+            &deps.querier,
+            Contracts::load_self_ref(deps)?.address,
+            Constants::load_vk(&deps.storage)?,
+            BLOCK_SIZE,
+            underlying_asset.code_hash.clone(),
+            underlying_asset.address.clone(),
+        )?.amount;
+
+        let interest = accrued_interest_at(deps, Some(block), balance)?;
         
         for record in borrowers {
             result.push(Borrower {
                 id: record.id,
-                info: record.info,
+                principal_balance: record.snapshot.info.principal,
+                actual_balance: record.snapshot.current_balance(interest.borrow_index)?,
                 liquidity: query_account_liquidity(
                     &deps.querier,
                     overseer.clone(),
@@ -717,25 +750,13 @@ pub trait Market {
 
 fn repay<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
-    env: Env,
-    underlying_asset: ContractLink<HumanAddr>,
+    mut interest: LatestInterest,
     borrower: Account,
     amount: Uint256
 ) -> StdResult<HandleResponse> {
-    let balance = snip20::balance_query(
-        &deps.querier,
-        env.contract.address,
-        Constants::load_vk(&deps.storage)?,
-        BLOCK_SIZE,
-        underlying_asset.code_hash,
-        underlying_asset.address,
-    )?.amount;
-
-    let mut latest = accrue_interest(deps, env.block.height, balance)?;
-
     let mut snapshot = borrower.get_borrow_snapshot(&deps.storage)?;
-    snapshot.subtract_balance(latest.borrow_index(&deps.storage)?, amount)?;
-    borrower.save_borrow_snapshot(&mut deps.storage, &snapshot)?;
+    snapshot.subtract_balance(interest.borrow_index(&deps.storage)?, amount)?;
+    borrower.save_borrow_snapshot(&mut deps.storage, snapshot)?;
 
     TotalBorrows::decrease(&mut deps.storage, amount)?;
 
@@ -745,7 +766,8 @@ fn repay<S: Storage, A: Api, Q: Querier>(
 fn liquidate<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
-    underlying_asset: ContractLink<HumanAddr>,
+    mut interest: LatestInterest,
+    underlying_balance: Uint256,
     liquidator_address: HumanAddr,
     borrower: Account,
     collateral: HumanAddr,
@@ -757,18 +779,7 @@ fn liquidate<S: Storage, A: Api, Q: Querier>(
         return Err(StdError::generic_err("Liquidator and borrower are the same account."));
     }
 
-    let balance = snip20::balance_query(
-        &deps.querier,
-        env.contract.address.clone(),
-        Constants::load_vk(&deps.storage)?,
-        BLOCK_SIZE,
-        underlying_asset.code_hash.clone(),
-        underlying_asset.address.clone(),
-    )?.amount;
-
-    let mut latest = accrue_interest(deps, env.block.height, balance)?;
-
-    let borrow_index = latest.borrow_index(&deps.storage)?;
+    let borrow_index = interest.borrow_index(&deps.storage)?;
     let mut snapshot = borrower.get_borrow_snapshot(&deps.storage)?;
 
     let borrower_address = borrower.address(&deps.api)?;
@@ -785,7 +796,7 @@ fn liquidate<S: Storage, A: Api, Q: Querier>(
 
     // Do repay
     snapshot.subtract_balance(borrow_index, amount)?;
-    borrower.save_borrow_snapshot(&mut deps.storage, &snapshot)?;
+    borrower.save_borrow_snapshot(&mut deps.storage, snapshot)?;
 
     TotalBorrows::decrease(&mut deps.storage, amount)?;
 
@@ -802,8 +813,8 @@ fn liquidate<S: Storage, A: Api, Q: Querier>(
     if this_is_collateral {
         seize(
             deps,
-            latest,
-            balance.into(),
+            interest,
+            underlying_balance,
             liquidator,
             borrower,
             seize_amount
@@ -844,7 +855,7 @@ fn seize<S: Storage, A: Api, Q: Querier>(
 ) -> StdResult<HandleResponse> {
     if borrower.subtract_balance(&mut deps.storage, amount).is_err() {
         return Err(StdError::generic_err(format!(
-            "Borrower collateral balance is less that the seize amount. Shortfall: {}",
+            "Borrower collateral balance is less than the seize amount. Shortfall: {}",
             (amount - borrower.get_balance(&deps.storage)?)?
         )));
     }

@@ -16,7 +16,7 @@ use serde::{Serialize,Deserialize};
 
 const CONFIG_KEY: &[u8] = b"config";
 
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 pub(crate) struct Config<A: Clone> {
     pub factory_info:  ContractLink<A>,
     pub lp_token_info: ContractLink<A>,
@@ -27,32 +27,37 @@ pub(crate) struct Config<A: Clone> {
     pub viewing_key:   ViewingKey,
 }
 
-impl Canonize<Config<CanonicalAddr>> for Config<HumanAddr> {
-    fn canonize (&self, api: &impl Api) -> StdResult<Config<CanonicalAddr>> {
+impl Canonize for Config<HumanAddr> {
+    type Output = Config<CanonicalAddr>;
+
+    fn canonize(self, api: &impl Api) -> StdResult<Self::Output> {
         Ok(Config {
             factory_info:  self.factory_info.canonize(api)?,
             lp_token_info: self.lp_token_info.canonize(api)?,
             pair:          self.pair.canonize(api)?,
             contract_addr: self.contract_addr.canonize(api)?,
-            viewing_key:   self.viewing_key.clone()
+            viewing_key:   self.viewing_key
         })
     }
 }
-impl Humanize<Config<HumanAddr>> for Config<CanonicalAddr> {
-    fn humanize (&self, api: &impl Api) -> StdResult<Config<HumanAddr>> {
+
+impl Humanize for Config<CanonicalAddr> {
+    type Output = Config<HumanAddr>;
+
+    fn humanize(self, api: &impl Api) -> StdResult<Self::Output> {
         Ok(Config {
             factory_info:  self.factory_info.humanize(api)?,
             lp_token_info: self.lp_token_info.humanize(api)?,
             pair:          self.pair.humanize(api)?,
             contract_addr: self.contract_addr.humanize(api)?,
-            viewing_key:   self.viewing_key.clone()
+            viewing_key:   self.viewing_key
         })
     }
 }
 
 pub(crate) fn store_config <S: Storage, A: Api, Q: Querier>(
     deps:   &mut Extern<S, A, Q>,
-    config: &Config<HumanAddr>
+    config: Config<HumanAddr>
 ) -> StdResult<()> {
     save(&mut deps.storage, CONFIG_KEY, &config.canonize(&deps.api)?)
 }
@@ -99,7 +104,7 @@ mod tests {
             viewing_key: ViewingKey("vk".into())
         };
 
-        store_config(&mut deps, &config)?;
+        store_config(&mut deps, config.clone())?;
 
         let result = load_config(&deps)?;
 

@@ -8,7 +8,6 @@ use amm_shared::fadroma::scrt::{
 };
 
 use crate::data::{Account, Config};
-use crate::storable::Storable;
 
 impl Config<HumanAddr> {
     const KEY: &'static [u8] = b"config";

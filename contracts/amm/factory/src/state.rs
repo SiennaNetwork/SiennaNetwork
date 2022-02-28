@@ -28,21 +28,25 @@ pub(crate) struct Config<A> {
     pub exchange_settings: ExchangeSettings<A>
 }
 
-impl Canonize<Config<CanonicalAddr>> for Config<HumanAddr> {
-    fn canonize(&self, api: &impl Api) -> StdResult<Config<CanonicalAddr>> {
+impl Canonize for Config<HumanAddr> {
+    type Output = Config<CanonicalAddr>;
+
+    fn canonize(self, api: &impl Api) -> StdResult<Self::Output> {
         Ok(Config {
-            lp_token_contract: self.lp_token_contract.clone(),
-            pair_contract: self.pair_contract.clone(),
+            lp_token_contract: self.lp_token_contract,
+            pair_contract: self.pair_contract,
             exchange_settings: self.exchange_settings.canonize(api)?,
         })
     }
 }
-impl Humanize<Config<HumanAddr>> for Config<CanonicalAddr> {
-    fn humanize(&self, api: &impl Api) -> StdResult<Config<HumanAddr>> {
+impl Humanize for Config<CanonicalAddr> {
+    type Output = Config<HumanAddr>;
+
+    fn humanize(self, api: &impl Api) -> StdResult<Self::Output> {
         Ok(Config {
-            lp_token_contract: self.lp_token_contract.clone(),
-            pair_contract: self.pair_contract.clone(),
-            exchange_settings: self.exchange_settings.clone().humanize(api)?,
+            lp_token_contract: self.lp_token_contract,
+            pair_contract: self.pair_contract,
+            exchange_settings: self.exchange_settings.humanize(api)?,
         })
     }
 }
@@ -50,7 +54,7 @@ impl Humanize<Config<HumanAddr>> for Config<CanonicalAddr> {
 /// Returns StdResult<()> resulting from saving the config to storage
 pub(crate) fn save_config<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
-    config: &Config<HumanAddr>,
+    config: Config<HumanAddr>,
 ) -> StdResult<()> {
     save(&mut deps.storage, CONFIG_KEY, &config.canonize(&deps.api)?)
 }
@@ -99,7 +103,7 @@ pub(crate) fn exchanges_store() -> IterableStorage<'static, Exchange<CanonicalAd
 /// Note that TokenPair(A, B) and TokenPair(B, A) is considered to be same.
 pub(crate) fn pair_exists<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
-    pair: &TokenPair<HumanAddr>,
+    pair: TokenPair<HumanAddr>,
 ) -> StdResult<bool> {
     let key = generate_pair_key(pair.canonize(&deps.api)?);
     let result: Option<CanonicalAddr> = ns_load(&deps.storage, NS_EXCHANGES, &key)?;
@@ -140,7 +144,7 @@ pub(crate) fn store_exchanges<S: Storage, A: Api, Q: Querier>(
 /// Get the address of an exchange contract which manages the given pair.
 pub(crate) fn get_address_for_pair<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
-    pair: &TokenPair<HumanAddr>,
+    pair: TokenPair<HumanAddr>,
 ) -> StdResult<HumanAddr> {
     let key = generate_pair_key(pair.canonize(&deps.api)?);
 

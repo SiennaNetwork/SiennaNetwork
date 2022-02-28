@@ -80,14 +80,17 @@ export type QueryMsg =
   | {
       borrowers: {
         block: number;
-        limit?: number | null;
-        start_after?: Binary | null;
+        pagination: Pagination;
         [k: string]: unknown;
       };
       [k: string]: unknown;
     }
   | {
       admin: QueryMsg1;
+      [k: string]: unknown;
+    }
+  | {
+      killswitch: QueryMsg1;
       [k: string]: unknown;
     };
 export type HumanAddr = string;
@@ -118,12 +121,6 @@ export type MarketPermissions = "account_info" | "balance" | "id";
  */
 export type MasterKey = ViewingKey;
 export type ViewingKey = string;
-/**
- * Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.
- *
- * This is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>
- */
-export type Binary = string;
 export type QueryMsg1 = {
   admin: {
     [k: string]: unknown;
@@ -140,4 +137,8 @@ export interface PermitParamsFor_MarketPermissions {
   chain_id: string;
   permissions: MarketPermissions[];
   permit_name: string;
+}
+export interface Pagination {
+  limit: number;
+  start: number;
 }

@@ -1,5 +1,7 @@
 mod state;
 
+use std::borrow::Borrow;
+
 use lend_shared::{
     core::{AuthenticatedUser, MasterKey},
     fadroma::{
@@ -20,10 +22,11 @@ use lend_shared::{
             query_price, Asset, AssetType, HandleMsg as OracleHandleMsg, InitMsg as OracleInitMsg,
         },
         overseer::{
-            AccountLiquidity, Config, HandleMsg, Market, MarketInitConfig, OverseerAuth,
-            OverseerPermissions, Pagination,
+            AccountLiquidity, Config, HandleMsg, Market,
+            MarketInitConfig, OverseerAuth, OverseerPermissions
         },
     },
+    core::Pagination
 };
 
 use state::{Account, Constants, Contracts, Markets, Whitelisting};
@@ -34,7 +37,7 @@ const QUOTE_SYMBOL: &str = "USD";
     entry,
     path = "lend_shared::interfaces::overseer",
     component(path = "admin"),
-    component(path = "auth")
+    component(path = "auth", skip(query))
 )]
 pub trait Overseer {
     #[init]
@@ -52,23 +55,19 @@ pub trait Overseer {
 
         Contracts::save_oracle(
             deps,
-            &ContractLink {
+            ContractLink {
                 address: HumanAddr::default(), // Added in RegisterOracle
                 code_hash: oracle_contract.code_hash.clone(),
             },
         )?;
 
-        Constants {
-            close_factor,
-            premium,
-        }
-        .save(&mut deps.storage)?;
+        Constants::save(&mut deps.storage, &Config::new(premium, close_factor)?)?;
 
         let self_ref = ContractLink {
             address: env.contract.address.clone(),
             code_hash: env.contract_code_hash.clone(),
         };
-        Contracts::save_self_ref(deps, &self_ref)?;
+        Contracts::save_self_ref(deps, self_ref.clone())?;
 
         Whitelisting::save_market_contract(&mut deps.storage, &market_contract)?;
 
@@ -102,14 +101,14 @@ pub trait Overseer {
             return Err(StdError::unauthorized());
         }
 
-        oracle.address = env.message.sender;
-        Contracts::save_oracle(deps, &oracle)?;
+        oracle.address = env.message.sender.clone();
+        Contracts::save_oracle(deps, oracle)?;
 
         Ok(HandleResponse {
             messages: vec![],
             log: vec![
                 log("action", "register_interest_token"),
-                log("oracle_address", oracle.address),
+                log("oracle_address", env.message.sender),
             ],
             data: None,
         })
@@ -171,9 +170,11 @@ pub trait Overseer {
 
         market.contract.address = env.message.sender;
 
-        Markets::push(deps, &market)?;
+        let address = market.contract.address.clone();
+        let log_address = address.to_string();
+        let symbol = market.symbol.clone();
 
-        let log_address = market.contract.address.to_string();
+        Markets::push(deps, market)?;
 
         Ok(HandleResponse {
             messages: vec![CosmosMsg::Wasm(WasmMsg::Execute {
@@ -182,8 +183,8 @@ pub trait Overseer {
                 send: vec![],
                 msg: to_binary(&OracleHandleMsg::UpdateAssets {
                     assets: vec![Asset {
-                        address: market.contract.address,
-                        symbol: market.symbol,
+                        address,
+                        symbol,
                     }],
                 })?,
             })],
@@ -251,7 +252,7 @@ pub trait Overseer {
             )));
         }
 
-        account.remove_market(&mut deps.storage, id);
+        account.remove_market(&mut deps.storage, id)?;
 
         Ok(HandleResponse {
             messages: vec![],
@@ -329,13 +330,31 @@ pub trait Overseer {
 
     #[handle]
     #[require_admin]
-    fn set_premium(premium: Decimal256) -> StdResult<HandleResponse> {
+    fn change_config(
+        premium_rate: Option<Decimal256>,
+        close_factor: Option<Decimal256>
+    ) -> StdResult<HandleResponse> {
         let mut constants = Constants::load(&deps.storage)?;
-        constants.premium = premium;
 
-        constants.save(&mut deps.storage)?;
+        if let Some(premium_rate) = premium_rate {
+            constants.set_premium(premium_rate)?;
+        }
 
-        Ok(HandleResponse::default())
+        if let Some(close_factor) = close_factor {
+            constants.set_close_factor(close_factor)?;
+        }
+
+        Constants::save(&mut deps.storage, &constants)?;
+
+        Ok(HandleResponse {
+            messages: vec![],
+            log: vec![
+                log("action", "change_config"),
+                log("premium_rate", constants.premium()),
+                log("close_factor", constants.close_factor())
+            ],
+            data: None
+        })
     }
 
     #[query]
@@ -371,7 +390,7 @@ pub trait Overseer {
             // This is ugly
             MarketAuth::Internal {
                 key: MasterKey::load(&deps.storage)?,
-                address: account.0.humanize(&deps.api)?,
+                address: account.0.borrow().humanize(&deps.api)?,
             },
             market,
             block,
@@ -420,9 +439,9 @@ pub trait Overseer {
         collateral: HumanAddr,
         repay_amount: Uint256,
     ) -> StdResult<Uint256> {
-        let premium = Constants::load(&deps.storage)?.premium;
+        let premium = Constants::load(&deps.storage)?.premium();
 
-        //  Read oracle prices for borrowed and collateral markets
+        // Read oracle prices for borrowed and collateral markets
         let oracle = Contracts::load_oracle(deps)?;
         let price_borrowed = query_price(
             &deps.querier,
@@ -461,15 +480,7 @@ pub trait Overseer {
 
     #[query]
     fn config() -> StdResult<Config> {
-        let Constants {
-            close_factor,
-            premium,
-        } = Constants::load(&deps.storage)?;
-
-        Ok(Config {
-            close_factor,
-            premium,
-        })
+        Constants::load(&deps.storage)
     }
 }
 

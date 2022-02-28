@@ -39,34 +39,39 @@ impl<A: PartialEq> PartialEq for TokenType<A> {
     }
 }
 
-impl Canonize<TokenType<CanonicalAddr>> for TokenType<HumanAddr> {
-    fn canonize(&self, api: &impl Api) -> StdResult<TokenType<CanonicalAddr>> {
+impl Canonize for TokenType<HumanAddr> {
+    type Output = TokenType<CanonicalAddr>;
+
+    fn canonize(self, api: &impl Api) -> StdResult<Self::Output> {
         Ok(match self {
             Self::CustomToken {
                 contract_addr,
                 token_code_hash,
             } => TokenType::CustomToken {
                 contract_addr: contract_addr.canonize(api)?,
-                token_code_hash: token_code_hash.clone(),
+                token_code_hash,
             },
             Self::NativeToken { denom } => TokenType::NativeToken {
-                denom: denom.clone(),
+                denom,
             },
         })
     }
 }
-impl Humanize<TokenType<HumanAddr>> for TokenType<CanonicalAddr> {
-    fn humanize(&self, api: &impl Api) -> StdResult<TokenType<HumanAddr>> {
+
+impl Humanize for TokenType<CanonicalAddr> {
+    type Output = TokenType<HumanAddr>;
+
+    fn humanize(self, api: &impl Api) -> StdResult<Self::Output> {
         Ok(match self {
             Self::CustomToken {
                 contract_addr,
                 token_code_hash,
             } => TokenType::CustomToken {
                 contract_addr: contract_addr.humanize(api)?,
-                token_code_hash: token_code_hash.clone(),
+                token_code_hash,
             },
             Self::NativeToken { denom } => TokenType::NativeToken {
-                denom: denom.clone(),
+                denom,
             },
         })
     }

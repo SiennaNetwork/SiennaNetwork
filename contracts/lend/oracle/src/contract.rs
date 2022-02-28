@@ -52,8 +52,8 @@ pub trait BandOracleConsumer {
         initial_assets: Vec<Asset>,
         callback: Callback<HumanAddr>
     ) -> StdResult<InitResponse> {
-        Contracts::save_source(deps, &source)?;
-        Contracts::save_overseer(deps, &callback.contract)?;
+        Contracts::save_source(deps, source)?;
+        Contracts::save_overseer(deps, callback.contract.clone())?;
 
         for asset in initial_assets {
             SymbolTable::save(deps, &asset)?;

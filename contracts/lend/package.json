@@ -3,9 +3,9 @@
   "private": true,
   "main": "index.ts",
   "dependencies": {
-    "@hackbg/fadroma":  "workspace:../../deps/fadroma",
-    "@sienna/api":      "workspace:*",
-    "@sienna/settings": "workspace:^1.0.0"
+    "@hackbg/fadroma": "workspace:../../deps/fadroma",
+    "@sienna/api": "workspace:*",
+    "@sienna/settings": "workspace:^1.0.0",
+    "@waiting/base64": "^4.2.9"
   }
 }
-

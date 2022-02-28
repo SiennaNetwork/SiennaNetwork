@@ -35,7 +35,7 @@ pub trait BandOracleConsumer {
     }
 
     #[query]
-    fn price(base_symbol: String, _quote_symbol: String) -> StdResult<BandResponse> {
+    fn get_reference_data(base_symbol: String, _quote_symbol: String) -> StdResult<BandResponse> {
         if let Some(price) = price_r(&deps.storage).may_load(base_symbol.as_bytes())? {
             return Ok(BandResponse {
                 rate: price,
@@ -47,7 +47,7 @@ pub trait BandOracleConsumer {
     }
 
     #[query]
-    fn prices(
+    fn get_reference_data_bulk(
         base_symbols: Vec<String>,
         _quote_symbols: Vec<String>,
     ) -> StdResult<Vec<BandResponse>> {

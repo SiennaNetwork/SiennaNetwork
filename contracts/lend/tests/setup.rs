@@ -1,29 +1,31 @@
 use std::str::FromStr;
 
-use lend_shared::fadroma::{
-    ensemble::{ContractEnsemble, ContractHarness, MockDeps, MockEnv},
-    from_binary, snip20_impl,
-    snip20_impl::msg::{
-        HandleMsg as Snip20HandleMsg,
-        InitConfig as Snip20InitConfig,
-        InitMsg as Snip20InitMsg,
-        QueryMsg as Snip20QueryMsg,
-        QueryAnswer as Snip20QueryResp,
+use lend_shared::{
+    fadroma::{
+        ensemble::{ContractEnsemble, ContractHarness, MockDeps, MockEnv},
+        from_binary, snip20_impl,
+        snip20_impl::msg::{
+            HandleMsg as Snip20HandleMsg, InitConfig as Snip20InitConfig, InitMsg as Snip20InitMsg,
+            QueryAnswer as Snip20QueryResp, QueryMsg as Snip20QueryMsg,
+        },
+        to_binary, Binary, Composable, ContractInstantiationInfo, ContractLink, Decimal256, Env,
+        HandleResponse, HumanAddr, InitResponse, Permit, StdError, StdResult, Uint128, Uint256
     },
-    to_binary, Binary, Composable, ContractLink, Decimal256, Env, HandleResponse, HumanAddr,
-    InitResponse, Permit, StdError, StdResult, Uint128, Uint256, ContractInstantiationInfo,
+    core::Pagination
 };
 
 use lend_shared::interfaces::{interest_model, market, overseer};
 use overseer::MarketInitConfig;
 
-use crate::{impl_contract_harness_default, ADMIN};
+use crate::impl_contract_harness_default;
 use lend_interest_model;
 use lend_market;
 use lend_oracle;
 use lend_overseer;
 
 use lend_oracle::SourceQuery;
+
+pub const ADMIN: &str = "admin";
 
 pub struct Token;
 impl ContractHarness for Token {
@@ -111,6 +113,34 @@ impl ContractHarness for MockBand {
     }
 }
 
+#[derive(Default)]
+pub struct LendConfig {
+    market: Option<Box<dyn ContractHarness>>,
+    close_factor: Option<Decimal256>,
+    premium: Option<Decimal256>
+}
+
+impl LendConfig {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn market(mut self, market: Box<dyn ContractHarness>) -> Self {
+        self.market = Some(market);
+        self
+    }
+
+    pub fn close_factor(mut self, close_factor: Decimal256) -> Self {
+        self.close_factor = Some(close_factor);
+        self
+    }
+
+    pub fn premium(mut self, premium: Decimal256) -> Self {
+        self.premium = Some(premium);
+        self
+    }
+}
+
 pub struct Lend {
     pub ensemble: ContractEnsemble,
     pub overseer: ContractLink<HumanAddr>,
@@ -120,14 +150,11 @@ pub struct Lend {
 }
 
 impl Lend {
-    pub fn new(
-        market: Option<Box<dyn ContractHarness>>,
-        overseer: Option<Box<dyn ContractHarness>>,
-    ) -> Self {
+    pub fn new(config: LendConfig) -> Self {
         let mut ensemble = ContractEnsemble::new(50);
 
-        let overseer = ensemble.register(overseer.unwrap_or(Box::new(Overseer)));
-        let market = ensemble.register(market.unwrap_or(Box::new(Market)));
+        let overseer = ensemble.register(Box::new(Overseer));
+        let market = ensemble.register(config.market.unwrap_or(Box::new(Market)));
         let oracle = ensemble.register(Box::new(Oracle));
         let mock_band = ensemble.register(Box::new(MockBand));
         let token = ensemble.register(Box::new(Token));
@@ -152,11 +179,11 @@ impl Lend {
                 interest.id,
                 &interest_model::InitMsg {
                     admin: None,
-                    base_rate_year: Decimal256::zero(),
-                    multiplier_year: Decimal256::one(),
-                    jump_multiplier_year: Decimal256::zero(),
-                    jump_threshold: Decimal256::zero(),
-                    blocks_year: Some(6311520),
+                    base_rate_year: Decimal256::from_str("0.02").unwrap(),
+                    multiplier_year: Decimal256::from_str("0.02").unwrap(),
+                    jump_multiplier_year: Decimal256::from_str("0.02").unwrap(),
+                    jump_threshold: Decimal256::from_str("0.09").unwrap(),
+                    blocks_year: None,
                 },
                 MockEnv::new(
                     ADMIN,
@@ -174,8 +201,8 @@ impl Lend {
                 &overseer::InitMsg {
                     admin: None,
                     prng_seed: Binary::from(b"whatever"),
-                    close_factor: Decimal256::from_uint256(51000000000000000u128).unwrap(),
-                    premium: Decimal256::one(),
+                    close_factor: config.close_factor.unwrap_or(Decimal256::one()),
+                    premium: config.premium.unwrap_or(Decimal256::one()),
                     market_contract: market,
                     oracle_contract: oracle,
                     oracle_source: mock_band.clone(),
@@ -230,10 +257,10 @@ impl Lend {
         self.ensemble.query(
             self.overseer.address.clone(),
             overseer::QueryMsg::Markets {
-                pagination: overseer::Pagination {
+                pagination: Pagination {
                     start: 0,
                     limit: 30,
-                },
+                }
             },
         )
     }
@@ -243,15 +270,16 @@ impl Lend {
         underlying_asset: ContractLink<HumanAddr>,
         ltv_ratio: Decimal256,
         exchange_rate: Option<Decimal256>,
+        reserve_factor: Option<Decimal256>,
     ) -> StdResult<overseer::Market<HumanAddr>> {
         let result = self.ensemble.query(
             underlying_asset.address.clone(),
-            Snip20QueryMsg::TokenInfo {}
+            Snip20QueryMsg::TokenInfo {},
         )?;
 
         let token_symbol = match result {
             Snip20QueryResp::TokenInfo { symbol, .. } => symbol,
-            _ => panic!("Expecting Snip20QueryResp::TokenInfo")
+            _ => panic!("Expecting Snip20QueryResp::TokenInfo"),
         };
 
         self.ensemble.execute(
@@ -264,7 +292,7 @@ impl Lend {
                     ltv_ratio,
                     config: market::Config {
                         initial_exchange_rate: exchange_rate.unwrap_or(Decimal256::one()),
-                        reserve_factor: Decimal256::one(),
+                        reserve_factor: reserve_factor.unwrap_or(Decimal256::zero()),
                         seize_factor: Decimal256::from_str("0.028").unwrap(),
                     },
                     interest_model_contract: self.interest_model.clone(),
@@ -313,25 +341,26 @@ impl Lend {
     ) {
         let address = address.into();
 
-        let token: ContractLink<HumanAddr> = self.ensemble.query(
-            market.clone(),
-            market::QueryMsg::UnderlyingAsset {}
-        ).unwrap();
+        let token: ContractLink<HumanAddr> = self
+            .ensemble
+            .query(market.clone(), market::QueryMsg::UnderlyingAsset {})
+            .unwrap();
 
         self.prefund_user(address.clone(), amount, token.clone());
 
-        self.ensemble.execute(
-            &Snip20HandleMsg::Send {
-                recipient: market,
-                recipient_code_hash: None,
-                amount,
-                msg: Some(to_binary(&market::ReceiverCallbackMsg::Deposit {}).unwrap()),
-                memo: None,
-                padding: None,
-            },
-            MockEnv::new(address, token),
-        )
-        .unwrap()
+        self.ensemble
+            .execute(
+                &Snip20HandleMsg::Send {
+                    recipient: market,
+                    recipient_code_hash: None,
+                    amount,
+                    msg: Some(to_binary(&market::ReceiverCallbackMsg::Deposit {}).unwrap()),
+                    memo: None,
+                    padding: None,
+                },
+                MockEnv::new(address, token),
+            )
+            .unwrap()
     }
 
     pub fn new_underlying_token(
@@ -343,7 +372,7 @@ impl Lend {
         let underlying_token = self.ensemble.instantiate(
             self.token.id,
             &Snip20InitMsg {
-                name: "Underlying Token".into(),
+                name: format!("Underlying Token: {}", symbol),
                 admin: None,
                 symbol: symbol.into(),
                 decimals,
@@ -363,10 +392,80 @@ impl Lend {
         )?;
         Ok(underlying_token)
     }
+
+    #[inline]
+    pub fn account_info(
+        &self,
+        address: impl Into<HumanAddr>,
+        market: HumanAddr,
+    ) -> market::AccountInfo {
+        self.ensemble
+            .query(
+                market.clone(),
+                market::QueryMsg::Account {
+                    method: Permit::new(
+                        address,
+                        vec![market::MarketPermissions::AccountInfo],
+                        vec![market],
+                        "balance",
+                    )
+                    .into(),
+                    block: None,
+                },
+            )
+            .unwrap()
+    }
+
+    #[inline]
+    pub fn _underlying_balance(&self, address: impl Into<HumanAddr>, market: HumanAddr) -> Uint256 {
+        self.ensemble
+            .query(
+                market.clone(),
+                market::QueryMsg::BalanceUnderlying {
+                    method: Permit::new(
+                        address,
+                        vec![market::MarketPermissions::Balance],
+                        vec![market],
+                        "balance",
+                    )
+                    .into(),
+                    block: None,
+                },
+            )
+            .unwrap()
+    }
+
+    #[inline]
+    pub fn id(&self, address: impl Into<HumanAddr>, market: HumanAddr) -> Binary {
+        self.ensemble
+            .query(
+                market.clone(),
+                market::QueryMsg::Id {
+                    method: Permit::new(
+                        address,
+                        vec![market::MarketPermissions::Id],
+                        vec![market],
+                        "id",
+                    )
+                    .into(),
+                },
+            )
+            .unwrap()
+    }
+
+    #[inline]
+    pub fn state(&self, market: HumanAddr, block: Option<u64>) -> market::State {
+        self.ensemble.query(market, market::QueryMsg::State { block }).unwrap()
+    }
+
+    #[inline]
+    pub fn exchange_rate(&self, market: HumanAddr, block: Option<u64>) -> Decimal256 {
+        self.ensemble.query(market, market::QueryMsg::ExchangeRate { block }).unwrap()
+    }
 }
 
 impl Default for Lend {
     fn default() -> Self {
-        Lend::new(None, None)
+        Lend::new(LendConfig::new())
     }
 }

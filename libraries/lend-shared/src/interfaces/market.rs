@@ -1,7 +1,6 @@
-use std::fmt::Display;
-
 use fadroma::{
     admin,
+    killswitch,
     cosmwasm_std,
     derive_contract::*,
     snip20_impl::msg::QueryAnswer as Snip20Response,
@@ -18,9 +17,12 @@ use crate::interfaces::overseer::{
     AccountLiquidity,
     Market as EnteredMarket
 };
-use crate::core::{MasterKey, AuthMethod};
+use crate::core::{MasterKey, AuthMethod, Pagination};
 
-#[interface(component(path = "admin"))]
+#[interface(
+    component(path = "admin"),
+    component(path = "killswitch")
+)]
 pub trait Market {
     #[init]
     fn new(
@@ -137,8 +139,7 @@ pub trait Market {
     #[query]
     fn borrowers(
         block: u64,
-        start_after: Option<Binary>,
-        limit: Option<u8>
+        pagination: Pagination
     ) -> StdResult<Vec<Borrower>>;
 }
 
@@ -186,7 +187,8 @@ pub struct Config {
 #[serde(deny_unknown_fields)]
 pub struct Borrower {
     pub id: Binary,
-    pub info: BorrowerInfo,
+    pub principal_balance: Uint256,
+    pub actual_balance: Uint256,
     pub liquidity: AccountLiquidity,
     pub markets: Vec<EnteredMarket<HumanAddr>>
 }
@@ -222,12 +224,6 @@ pub enum ReceiverCallbackMsg {
     Liquidate {
         borrower: Binary,
         collateral: HumanAddr
-    }
-}
-
-impl Display for BorrowerInfo {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "total_balance: {}, global_index: {}", self.principal, self.interest_index)
     }
 }
 

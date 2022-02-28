@@ -1,20 +1,18 @@
 use amm_shared::fadroma::{
-    platform::{
-        from_binary, log, Api, BankMsg, Binary, CanonicalAddr, Coin, Env, Extern,
-        HandleResponse, HumanAddr, Querier, StdError, StdResult, Storage, Uint128,
-        secret_toolkit::snip20,
-        BLOCK_SIZE,
-    },
-    storage::traits1::Storable,
     admin::{assert_admin, load_admin},
     auth_proc::require_admin,
-    convert_token
+    convert_token,
+    platform::{
+        from_binary, log, secret_toolkit::snip20, Api, BankMsg, Binary, CanonicalAddr, Coin, Env,
+        Extern, HandleResponse, HumanAddr, Querier, StdError, StdResult, Storage, Uint128,
+        BLOCK_SIZE,
+    }
 };
-use amm_shared::TokenType;
 use amm_shared::msg::ido::{ReceiverCallbackMsg, SaleType};
+use amm_shared::TokenType;
 
 use crate::data::{
-    increment_total_pre_lock_amount, load_viewing_key, Account, Config, SaleSchedule,
+    increment_total_pre_lock_amount, load_viewing_key, Account, Config, SaleSchedule
 };
 
 use crate::helpers::*;
@@ -165,7 +163,6 @@ pub(crate) fn pre_lock<S: Storage, A: Api, Q: Querier>(
     }
 
     account.pre_lock_amount += amount;
-
     account.save(deps)?;
 
     // Save the amount that was pre locked
@@ -238,7 +235,6 @@ pub(crate) fn swap<S: Storage, A: Api, Q: Querier>(
     }
 
     account.pre_lock_amount = Uint128(0_u128);
-
     account.save(deps)?;
 
     let recipient = recipient.unwrap_or(from);

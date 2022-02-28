@@ -5,6 +5,8 @@ export type Uint128 = string;
 export type Uint256 = string;
 export type Address = string;
 export type Decimal = string;
+export type Decimal256 = string;
+
 /**
  * Base64 encoded
  */
@@ -19,6 +21,11 @@ export interface Coin {
 export interface Fee {
     readonly amount: ReadonlyArray<Coin>
     readonly gas: Uint128
+}
+
+export interface Pagination {
+    limit: number;
+    start: number;
 }
 
 export function decode_data<T>(result: ExecuteResult | InstantiateResult): T {

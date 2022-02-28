@@ -1,3 +1,5 @@
+use std::borrow::Borrow;
+
 use amm_shared::fadroma::{
     platform::{
         to_binary, Api, CanonicalAddr, Extern, HumanAddr, Querier, QueryResult, Storage,
@@ -77,7 +79,7 @@ pub(crate) fn get_balance<S: Storage, A: Api, Q: Querier>(
     address: HumanAddr,
     key: String,
 ) -> QueryResult {
-    let canonical = address.canonize(&deps.api)?;
+    let canonical = address.borrow().canonize(&deps.api)?;
     authenticate(&deps.storage, &ViewingKey(key), canonical.as_slice())?;
 
     let account = Account::load_self(&deps, &address)?;

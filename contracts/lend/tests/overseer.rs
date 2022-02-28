@@ -5,15 +5,15 @@ use lend_shared::{
         decimal::one_token,
         ensemble::{ContractHarness, MockDeps, MockEnv},
         from_binary,
-        snip20_impl::msg::{HandleMsg as Snip20HandleMsg},
+        snip20_impl::msg::HandleMsg as Snip20HandleMsg,
         to_binary, Binary, Composable, Decimal256, Env, HandleResponse, HumanAddr, InitResponse,
         Permit, StdError, StdResult, Uint128, Uint256,
     },
     interfaces::{market, overseer::*},
+    core::Pagination
 };
 
-use crate::setup::Lend;
-use crate::ADMIN;
+use crate::setup::{Lend, LendConfig, ADMIN};
 
 const BORROWER: &str = "borrower";
 
@@ -73,10 +73,10 @@ fn whitelist() {
 
     assert_eq!(StdError::unauthorized(), res.unwrap_err());
 
-    lend.whitelist_market(underlying_1.clone(), Decimal256::percent(90), None)
+    lend.whitelist_market(underlying_1.clone(), Decimal256::percent(90), None, None)
         .unwrap();
 
-    lend.whitelist_market(underlying_2.clone(), Decimal256::percent(90), None)
+    lend.whitelist_market(underlying_2.clone(), Decimal256::percent(90), None, None)
         .unwrap();
 
     let res: Vec<Market<HumanAddr>> = lend
@@ -106,11 +106,11 @@ fn enter_and_exit_markets() {
     lend.prefund_user(BORROWER, Uint128(5 * one_token(3)), underlying_2.clone());
 
     let base_market = lend
-        .whitelist_market(underlying_1.clone(), Decimal256::percent(90), None)
+        .whitelist_market(underlying_1.clone(), Decimal256::percent(90), None, None)
         .unwrap();
 
     let quote_market = lend
-        .whitelist_market(underlying_2.clone(), Decimal256::percent(90), None)
+        .whitelist_market(underlying_2.clone(), Decimal256::percent(90), None, None)
         .unwrap();
 
     // enter market
@@ -217,7 +217,7 @@ fn returns_right_liquidity() {
     lend.prefund_user(BORROWER, Uint128(5 * one_token(6)), underlying_1.clone());
 
     let market = lend
-        .whitelist_market(underlying_1.clone(), Decimal256::percent(50), None)
+        .whitelist_market(underlying_1.clone(), Decimal256::percent(50), None, None)
         .unwrap();
 
     lend.ensemble
@@ -287,7 +287,7 @@ fn liquidity_collateral_factor() {
     );
 
     let market = lend
-        .whitelist_market(underlying_1.clone(), Decimal256::percent(50), None)
+        .whitelist_market(underlying_1.clone(), Decimal256::percent(50), None, None)
         .unwrap();
 
     lend.set_oracle_price(market.symbol.as_bytes(), Uint128(1_000_000_000_000_000_000))
@@ -397,13 +397,13 @@ fn liquidity_entering_markets() {
     lend.prefund_user(BORROWER, Uint128(5 * one_token(6)), underlying_3.clone());
 
     let market_one = lend
-        .whitelist_market(underlying_1.clone(), Decimal256::percent(50), None)
+        .whitelist_market(underlying_1.clone(), Decimal256::percent(50), None, None)
         .unwrap();
     let market_two = lend
-        .whitelist_market(underlying_2.clone(), Decimal256::permille(666), None)
+        .whitelist_market(underlying_2.clone(), Decimal256::permille(666), None, None)
         .unwrap();
     let market_three = lend
-        .whitelist_market(underlying_3.clone(), Decimal256::zero(), None)
+        .whitelist_market(underlying_3.clone(), Decimal256::zero(), None, None)
         .unwrap();
 
     // set underlying prices
@@ -480,7 +480,13 @@ fn liquidity_entering_markets() {
     let collateral_three = (collateral_one + collateral_two).unwrap();
 
     let res = lend
-        .get_liquidity(BORROWER, None, Uint256::from(0u128), Uint256::from(0u128), None)
+        .get_liquidity(
+            BORROWER,
+            None,
+            Uint256::from(0u128),
+            Uint256::from(0u128),
+            None,
+        )
         .unwrap();
     assert_eq!(collateral_three, res.liquidity);
     assert_eq!(Uint256::from(0u128), res.shortfall);
@@ -536,7 +542,8 @@ fn liquidity_entering_markets() {
 
 #[test]
 fn calculate_amount_seize() {
-    let mut lend = Lend::new(Some(Box::new(MarketImpl)), None);
+    let config = LendConfig::new().market(Box::new(MarketImpl));
+    let mut lend = Lend::new(config);
 
     let underlying_1 = lend.new_underlying_token("ONE", 6).unwrap();
     let underlying_2 = lend.new_underlying_token("TWO", 3).unwrap();
@@ -545,10 +552,10 @@ fn calculate_amount_seize() {
     lend.prefund_user(BORROWER, Uint128(5 * one_token(3)), underlying_2.clone());
 
     let collateral_market = lend
-        .whitelist_market(underlying_1.clone(), Decimal256::percent(50), None)
+        .whitelist_market(underlying_1.clone(), Decimal256::percent(50), None, None)
         .unwrap();
     let borrowed_market = lend
-        .whitelist_market(underlying_2.clone(), Decimal256::permille(666), None)
+        .whitelist_market(underlying_2.clone(), Decimal256::permille(666), None, None)
         .unwrap();
 
     let cases = [
@@ -612,7 +619,10 @@ fn calculate_amount_seize() {
         // set premium
         lend.ensemble
             .execute(
-                &HandleMsg::SetPremium { premium: *premium },
+                &HandleMsg::ChangeConfig {
+                    premium_rate: Some(*premium),
+                    close_factor: None,
+                },
                 MockEnv::new(ADMIN, lend.overseer.clone()),
             )
             .unwrap();
