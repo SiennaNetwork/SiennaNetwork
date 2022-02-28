@@ -25,6 +25,12 @@ pub struct Poll {
     pub current_quorum: Decimal,
 }
 
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
+pub struct PollInfo {
+    pub instance: Poll,
+    pub result: PollResult
+}
+
 impl Poll {
     pub const TOTAL: &'static [u8] = b"/gov/polls/total";
     pub const CREATOR: &'static [u8] = b"/gov/poll/creator/";
@@ -187,8 +193,8 @@ where
         now: Moment,
         update: UpdateResultReason,
     ) -> StdResult<PollResult> {
-        let mut result = PollResult::get(core, poll_id).unwrap_or(PollResult::new(core, poll_id));
-        
+        let mut result = PollResult::get(core, poll_id)?;
+
         match update {
             UpdateResultReason::ChangeVoteChoice { choice, power } => {
                 result.transfer_vote(choice, power)?;

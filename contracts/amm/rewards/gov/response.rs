@@ -9,8 +9,8 @@ use crate::time_utils::Moment;
 use super::{
     config::{GovernanceConfig, IGovernanceConfig},
     governance::Governance,
-    poll::{IPoll, Poll},
-    vote::{IVote, Vote, VoteType},
+    poll::{IPoll, Poll, PollInfo},
+    vote::{IVote, Vote, VoteType}, poll_result::{PollResult, IPollResult},
 };
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -21,12 +21,12 @@ pub enum GovernanceResponse {
         total: usize,
         total_pages: u64,
     },
-    Poll(Poll),
+    Poll(PollInfo),
     CreateViewingKey {
         key: ViewingKey,
     },
     VoteStatus {
-        variant: VoteType,
+        choice: VoteType,
         power: Uint128,
     },
 
@@ -73,7 +73,11 @@ where
     }
     fn poll(core: &C, id: u64, now: Moment) -> StdResult<GovernanceResponse> {
         let poll = Poll::get(core, id, now)?;
-        Ok(GovernanceResponse::Poll(poll))
+        let poll_res = PollResult::get(core, id)?;
+        Ok(GovernanceResponse::Poll(PollInfo {
+            instance: poll,
+            result: poll_res
+        }))
     }
     fn config(core: &C) -> StdResult<Self> {
         let config = GovernanceConfig::get(core)?;
@@ -84,7 +88,7 @@ where
         let vote = Vote::get(core, address, poll_id)?;
         Ok(GovernanceResponse::VoteStatus {
             power: vote.power.into(),
-            variant: vote.choice,
+            choice: vote.choice,
         })
     }
 }

@@ -98,11 +98,11 @@ where
         Ok(())
     }
 
-    fn new(core: &C, variant: VoteType, voter: HumanAddr, vote_power: Uint128) -> StdResult<Self> {
+    fn new(core: &C, choice: VoteType, voter: HumanAddr, vote_power: Uint128) -> StdResult<Self> {
         let voter = core.canonize(voter)?;
         Ok(Self {
             power: vote_power,
-            choice: variant,
+            choice,
             voter,
         })
     }

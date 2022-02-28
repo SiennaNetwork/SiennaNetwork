@@ -1,9 +1,10 @@
 use fadroma::{Api, Composable, Querier, StdError, StdResult, Storage, Uint128};
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use super::vote::VoteType;
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct PollResult {
     pub poll_id: u64,
     pub yes_votes: Uint128,

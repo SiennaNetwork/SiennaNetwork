@@ -1,12 +1,11 @@
-use fadroma::{
-    Api, Composable, HumanAddr, Querier, StdError, StdResult, Storage, Uint128,
-};
+use fadroma::{Api, Composable, HumanAddr, Querier, StdError, StdResult, Storage, Uint128};
 use serde::{Deserialize, Serialize};
 
 use crate::time_utils::Moment;
 
 use super::{
     poll::{IPoll, Poll, UpdateResultReason},
+    poll_result::{IPollResult, PollResult},
     vote::{IVote, Vote, VoteType},
 };
 
@@ -141,6 +140,8 @@ where
 
     fn create_poll(core: &mut C, sender: HumanAddr, poll: &Poll, now: Moment) -> StdResult<()> {
         poll.store(core)?;
+        PollResult::new(core, poll.id).store(core)?;
+        
         append_created_poll(core, sender, poll.id, now)?;
         Ok(())
     }
@@ -216,11 +217,13 @@ where
         now: Moment,
     ) -> StdResult<()> {
         let mut vote = Vote::get(core, sender.clone(), poll_id)?;
+
         if vote.choice == choice {
             return Err(StdError::generic_err(
                 "Your vote is not changed. You tried to cast the same vote. ",
             ));
         };
+
         Poll::update_result(
             core,
             poll_id,

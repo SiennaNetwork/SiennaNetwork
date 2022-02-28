@@ -59,7 +59,7 @@ fn should_create_poll() {
         .unwrap();
 
     let poll_after = amm.get_poll(1, 1);
-    assert_eq!(1, poll_after.id);
+    assert_eq!(1, poll_after.instance.id);
 }
 
 #[test]
@@ -107,8 +107,8 @@ fn should_cast_vote() {
         )
         .unwrap();
     match vote {
-        Response::Governance(VoteStatus { variant, power }) => {
-            assert_eq!(variant, VoteType::Yes);
+        Response::Governance(VoteStatus { choice, power }) => {
+            assert_eq!(choice, VoteType::Yes);
             assert_eq!(power, Uint128(3600))
         }
         _ => panic!("invalid type for vote status returned."),
@@ -162,14 +162,15 @@ fn should_change_choice() {
             }),
         )
         .unwrap();
+
     match vote {
-        Response::Governance(VoteStatus { variant, power }) => {
-            assert_eq!(variant, VoteType::No);
+        Response::Governance(VoteStatus { choice, power }) => {
+            assert_eq!(choice, VoteType::No);
             assert_eq!(power, Uint128(3600))
         }
         _ => panic!("invalid type for vote status returned."),
     }
-
+    
     let change_vote = GovernanceHandle::ChangeVoteChoice {
         choice: VoteType::Yes,
         poll_id: 1,
@@ -190,8 +191,8 @@ fn should_change_choice() {
         )
         .unwrap();
     match vote {
-        Response::Governance(VoteStatus { variant, power }) => {
-            assert_eq!(variant, VoteType::Yes);
+        Response::Governance(VoteStatus { choice, power }) => {
+            assert_eq!(choice, VoteType::Yes);
             assert_eq!(power, Uint128(3600))
         }
         _ => panic!("invalid type for vote status returned."),
@@ -300,8 +301,8 @@ fn should_update_after_deposit() {
         )
         .unwrap();
     match vote {
-        Response::Governance(VoteStatus { variant, power }) => {
-            assert_eq!(variant, VoteType::No);
+        Response::Governance(VoteStatus { choice, power }) => {
+            assert_eq!(choice, VoteType::No);
             assert_eq!(power, Uint128(3700))
         }
         _ => panic!("invalid type for vote status returned."),

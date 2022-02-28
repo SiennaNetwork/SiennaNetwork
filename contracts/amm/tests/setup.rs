@@ -24,7 +24,7 @@ use factory::contract as factory;
 use lp_token;
 use rewards::{
     auth::AuthHandle,
-    gov::{poll::Poll, query::GovernanceQuery, response::GovernanceResponse},
+    gov::{poll::{PollInfo}, query::GovernanceQuery, response::GovernanceResponse},
     handle::RewardsHandle,
     Response,
 };
@@ -302,7 +302,7 @@ impl Amm {
             } => self.get_balance(address, liquidity_token.into()),
         }
     }
-    pub fn get_poll(&self, id: u64, now: u64) -> Poll {
+    pub fn get_poll(&self, id: u64, now: u64) -> PollInfo {
         let result = self
             .ensemble
             .query(
