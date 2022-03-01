@@ -2,8 +2,7 @@ import { Address, Uint128, Uint256, Fee, ContractInfo, ViewingKey } from '../cor
 import { SmartContract, Querier } from '../contract'
 import { ViewingKeyExecutor } from '../executors/viewing_key_executor'
 
-import { ExecuteResult } from 'secretjs'
-import { GetGovernanceConfigResponse, GetPollResponse, GetPollsResponse, GetVoteStatusResponse, GovernanceConfig, Poll, PollMetadata, VoteStatus, VoteType } from './governance';
+import { Tx } from 'secretjs'
 
 export type Moment = number;
 export type Duration = number;
@@ -83,28 +82,28 @@ export interface RewardsAccount {
 
 export class RewardsV3Contract extends SmartContract<RewardsV3Executor, RewardsV3Querier> {
     exec(fee?: Fee, memo?: string): RewardsV3Executor {
-        return new RewardsV3Executor(this.address, this.execute_client, fee, memo)
+        return new RewardsV3Executor(this.address, this.client, fee, memo)
     }
 
     query(): RewardsV3Querier {
-        return new RewardsV3Querier(this.address, this.query_client)
+        return new RewardsV3Querier(this.address, this.client)
     }
 }
 
 class RewardsV3Executor extends ViewingKeyExecutor {
-    async claim() {
-        const msg = { rewards: { claim: {} } }
+    async claim(): Promise<Tx> {
+        const msg = { rewards: { claim: { } } }
 
         return this.run(msg, '80000')
     }
 
-    async deposit_tokens(amount: Uint128) {
+    async deposit_tokens(amount: Uint128): Promise<Tx> {
         const msg = { rewards: { deposit: { amount } } }
 
         return this.run(msg, '75000')
     }
 
-    async withdraw_tokens(amount: Uint128) {
+    async withdraw_tokens(amount: Uint128): Promise<Tx> {
         const msg = { rewards: { withdraw: { amount } } }
 
         return this.run(msg, '75000')

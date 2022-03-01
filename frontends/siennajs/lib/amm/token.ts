@@ -1,4 +1,5 @@
-import { Uint128, Address, Coin, create_coin } from "../core";
+import { Uint128, Address, create_coin } from "../core";
+import { Coin } from "secretjs";
 
 export type TokenType = CustomToken | NativeToken;
 

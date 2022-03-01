@@ -4,7 +4,7 @@ import { SmartContract, Querier } from '../contract'
 import { ViewingKeyExecutor } from '../executors/viewing_key_executor'
 import { Snip20Contract } from '../snip20'
 
-import { SigningCosmWasmClient, ExecuteResult } from 'secretjs'
+import { SecretNetworkClient, Tx } from 'secretjs'
 
 export type MaybeTokenAddress = Address | null
 
@@ -33,14 +33,14 @@ export class LaunchpadContract extends SmartContract<LaunchpadExecutor, Launchpa
         return new LaunchpadExecutor(
             this.address,
             () => this.query.apply(this),
-            this.execute_client,
+            this.client,
             fee,
             memo
         )
     }
     
     query(): LaunchpadQuerier {
-        return new LaunchpadQuerier(this.address, this.query_client)
+        return new LaunchpadQuerier(this.address, this.client)
     }
 }
 
@@ -50,7 +50,7 @@ export class LaunchpadExecutor extends ViewingKeyExecutor {
     constructor(
         address: Address,
         private querier: () => LaunchpadQuerier,
-        client?: SigningCosmWasmClient,
+        client: SecretNetworkClient,
         fee?: Fee,
         memo?: string,
     ) {
@@ -77,7 +77,7 @@ export class LaunchpadExecutor extends ViewingKeyExecutor {
         throw new Error(`Unsupported token address provided for locking`);
     }
 
-    async lock(amount: Uint128, token_address?: Address): Promise<ExecuteResult> {
+    async lock(amount: Uint128, token_address?: Address): Promise<Tx> {
         token_address = await this.verify_token_address(token_address);
 
         if (!token_address) {
@@ -99,7 +99,7 @@ export class LaunchpadExecutor extends ViewingKeyExecutor {
         return snip20.exec(fee, this.memo).send(this.address, amount, msg)
     }
 
-    async unlock(entries: number, token_address?: Address): Promise<ExecuteResult> {
+    async unlock(entries: number, token_address?: Address): Promise<Tx> {
         token_address = await this.verify_token_address(token_address);
 
         const msg = { unlock: { entries } }

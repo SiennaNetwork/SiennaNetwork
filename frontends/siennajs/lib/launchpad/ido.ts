@@ -7,7 +7,7 @@ import { SmartContract, Querier } from '../contract'
 import { ViewingKeyExecutor } from '../executors/viewing_key_executor'
 import { Snip20Contract } from '../snip20'
 
-import { SigningCosmWasmClient, ExecuteResult } from 'secretjs'
+import { SecretNetworkClient, Tx } from 'secretjs'
 
 export enum SaleType {
     PreLockAndSwap = "PreLockAndSwap",
@@ -108,14 +108,14 @@ export class IdoContract extends SmartContract<IdoExecutor, IdoQuerier> {
         return new IdoExecutor(
             this.address,
             () => this.query.apply(this),
-            this.execute_client,
+            this.client,
             fee,
             memo
         )
     }
     
     query(): IdoQuerier {
-        return new IdoQuerier(this.address, this.query_client)
+        return new IdoQuerier(this.address, this.client)
     }
 }
 
@@ -123,14 +123,14 @@ export class IdoExecutor extends ViewingKeyExecutor {
     constructor(
         address: Address,
         private querier: () => IdoQuerier,
-        client?: SigningCosmWasmClient,
+        client: SecretNetworkClient,
         fee?: Fee,
         memo?: string,
     ) {
         super(address, client, fee, memo)
     }
 
-    async swap(amount: Uint128, recipient?: Address): Promise<ExecuteResult> {
+    async swap(amount: Uint128, recipient?: Address): Promise<Tx> {
         const info = await this.querier().get_sale_info()
 
         if (get_token_type(info.input_token) == TypeOfToken.Native) {
@@ -159,7 +159,7 @@ export class IdoExecutor extends ViewingKeyExecutor {
         return snip20.exec(fee, this.memo).send(this.address, amount, msg)
     }
 
-    async admin_refund(recipient?: Address): Promise<ExecuteResult> {
+    async admin_refund(recipient?: Address): Promise<Tx> {
         const msg = {
             admin_refund: {
                 address: recipient
@@ -169,7 +169,7 @@ export class IdoExecutor extends ViewingKeyExecutor {
         return this.run(msg, '300000')
     }
 
-    async admin_claim(recipient?: Address): Promise<ExecuteResult> {
+    async admin_claim(recipient?: Address): Promise<Tx> {
         const msg = {
             admin_claim: {
                 address: recipient
@@ -179,7 +179,7 @@ export class IdoExecutor extends ViewingKeyExecutor {
         return this.run(msg, '300000')
     }
 
-    async admin_add_addresses(addresses: Address[]): Promise<ExecuteResult> {
+    async admin_add_addresses(addresses: Address[]): Promise<Tx> {
         const msg = {
             admin_add_addresses: {
                 addresses
@@ -193,7 +193,7 @@ export class IdoExecutor extends ViewingKeyExecutor {
         sale_amount: Uint128,
         end_time: number,
         start_time?: number
-    ): Promise<ExecuteResult> {
+    ): Promise<Tx> {
         const msg = {
             activate: {
                 end_time,
