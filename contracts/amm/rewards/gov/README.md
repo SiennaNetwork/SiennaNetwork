@@ -34,14 +34,29 @@ High level flow overview
 
 ![high level overview](../doc/gov_high_flow.png)  
 
-When a user votes in a poll his balance is checked and his voting power is registered for the given poll
-This causes the result to be (re)calculated according to this formula:
-```
-tallied vote power = yes votes + no votes
-tally = tallied vote power / total staked in pool
+---
 
-result = participation > quorum
+**Detailed explanation**
+![detail](../doc/gov_detailed.png)
+As can be seen from the diagram, most of the function calls are done inside the User struct. This User struct is meant to act as one source of truth for doing any sort of operation. 
+The user then creates the rest of the data thats needed and mainly calls the update_result() function inside the Poll structure. This function exists in order to avoid making some sort of update to the result without re-calculating.  
+Currently a poll supports the following updates:
+```rust
+pub enum UpdateResultReason {
+    ChangeVotePower { choice: VoteType, power_diff: i128 },
+    ChangeVoteChoice { choice: VoteType, power: u128 },
+}
 ```
+Any sort of new update must be added here with the appropriate payload, then handled inside the update function. 
+
+**Staking and unstaking**
+![staking](../doc/gov_staking.png)
+Due to the way the polls and votes are stored (check the Docs section), there is no way to iterate over the active polls user has voted on, and as such there is no way to update them all when the user's staked balance changes.  
+As such, whenever the user votes or creates a new poll, the id of the given polls are saved in storage.  
+When the user stakes more tokens the list is filtered to only non expired ones. After which the list is iterated over and the update_result() is called for each poll in order to re-calculate the result with his new voting power.  
+Unstaking on the other hand must be blocked (see the limitations section). When a user attempts to unstake, the created and active lists are checked for any non expired polls. If there are any active polls, the action is blocked. If there are any created polls, the user can unstake only if his new balance is still higher than the pre-configured threshold.  
+  
+
 
 ## Docs  
 The entirety of governance is saved into the following data structures  
