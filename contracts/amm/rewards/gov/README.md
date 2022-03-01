@@ -23,12 +23,12 @@ Updating of all active polls occurs when a stake holder stakes or unstakes (*acc
 * quorum - minimum percentage of voting power that needs to be casted on a proposal for the result to be valid. (value between 0 and 1, defaults to 0.3)
 * deadline - the amount of time, in seconds, a poll lasts. Expiration is then set as current_time + deadline (defaults to 7 days)
 ## Privacy model
-| Data           | Private     | Notes              |
-| ---------------| ----------- | -------------------|
-| Polls          | No          |                    |
-| Poll Results   | No          |                    |
-| Votes          | Yes         | Under vieweing key |
-## Control flows
+| Data           | Public                       |
+| ---------------| -----------------------------|
+| Polls          | Yes                          |
+| Poll Results   | Yes                          |
+| Votes          | No (except with viewing key) |
+## Control flows´
 ### User flow  
 High level flow overview
 ![high level overview](../doc/gov_high_flow.png)  
