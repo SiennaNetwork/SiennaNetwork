@@ -26,6 +26,7 @@ Updating of all active polls occurs when a stake holder stakes or unstakes (*acc
 ## Control flows
 ### User flow  
 High level flow overview
+
 ![high level overview](../doc/gov_high_flow.png)  
 
 When a user votes in a poll his balance is checked and his voting power is registered for the given poll
@@ -36,6 +37,7 @@ participation = tally / total staked in pool
 
 result = participation > quorum
 ```
+
 ## Docs  
 The entirety of governance is saved into the following data structures  
   

@@ -85,8 +85,7 @@ where
                 }
 
                 let account = Account::from_env(core, &env)?;
-                let power = account.staked;
-                // let power = Uint128(200);
+                let power = account.staked; // Uint128(200);
 
                 User::add_vote(core, poll_id, sender, choice, power, now)?;
                 Ok(HandleResponse::default())
