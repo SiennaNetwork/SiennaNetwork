@@ -24,7 +24,11 @@ use factory::contract as factory;
 use lp_token;
 use rewards::{
     auth::AuthHandle,
-    gov::{poll::{PollInfo}, query::GovernanceQuery, response::GovernanceResponse},
+    gov::{
+        poll::{Poll, PollInfo},
+        query::GovernanceQuery,
+        response::GovernanceResponse,
+    },
     handle::RewardsHandle,
     Response,
 };
@@ -315,6 +319,29 @@ impl Amm {
             _ => panic!("wrong response"),
         }
     }
+    pub fn get_polls(&self, page: u64, take: u64, asc: bool, now: u64) -> Vec<Poll> {
+        let result = self
+            .ensemble
+            .query(
+                self.rewards.address.clone(),
+                &sienna_rewards::Query::Governance(GovernanceQuery::Polls {
+                    now,
+                    page,
+                    take,
+                    asc,
+                }),
+            )
+            .unwrap();
+        match result {
+            sienna_rewards::Response::Governance(GovernanceResponse::Polls {
+                polls,
+                total: _,
+                total_pages: _,
+            }) => polls,
+            _ => panic!("wrong response"),
+        }
+    }
+
     pub fn deposit_lp_into_rewards(&mut self, address: HumanAddr, amount: Uint128) {
         self.ensemble
             .execute(

@@ -4,7 +4,7 @@
 Sienna Governance serves the purpose of applying changes to the network based on the opinions of stake holders.  
 Stake holders can create text based polls and other holders can vote on them.  
       
-* The voting power of a user is dependent on the total amount of staked tokens in the rewards pool
+* The voting power of a user is dependent on the total amount of staked tokens in the rewards pool (his balance is added to the votes)
 * There are no consequences of polls failing
 * User can vote in any number of polls  
 * User can stake more tokens to update his voting power
@@ -22,8 +22,13 @@ Updating of all active polls occurs when a stake holder stakes or unstakes (*acc
 * threshold - the minimum amount of tokens needed in order to create a poll (defaults to 3500)
 * quorum - minimum percentage of voting power that needs to be casted on a proposal for the result to be valid. (value between 0 and 1, defaults to 0.3)
 * deadline - the amount of time, in seconds, a poll lasts. Expiration is then set as current_time + deadline (defaults to 7 days)
-
-## Control flows
+## Privacy model
+| Data           | Public                       |
+| ---------------| -----------------------------|
+| Polls          | Yes                          |
+| Poll Results   | Yes                          |
+| Votes          | No (except with viewing key) |
+## Control flows´
 ### User flow  
 High level flow overview
 
@@ -32,8 +37,8 @@ High level flow overview
 When a user votes in a poll his balance is checked and his voting power is registered for the given poll
 This causes the result to be (re)calculated according to this formula:
 ```
-tally = yes votes + no votes
-participation = tally / total staked in pool
+tallied vote power = yes votes + no votes
+tally = tallied vote power / total staked in pool
 
 result = participation > quorum
 ```

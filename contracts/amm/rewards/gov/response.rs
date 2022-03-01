@@ -10,7 +10,8 @@ use super::{
     config::{GovernanceConfig, IGovernanceConfig},
     governance::Governance,
     poll::{IPoll, Poll, PollInfo},
-    vote::{IVote, Vote, VoteType}, poll_result::{PollResult, IPollResult},
+    poll_result::{IPollResult, PollResult},
+    vote::{IVote, Vote, VoteType},
 };
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -51,19 +52,41 @@ where
     Q: Querier,
     C: Governance<S, A, Q>,
 {
-    fn polls(core: &C, take: u64, page: u64, _asc: bool, now: Moment) -> StdResult<Self> {
-        let take = min(take, 10);
-
+    fn polls(core: &C, take: u64, page: u64, asc: bool, now: Moment) -> StdResult<Self> {
         let total = Poll::count(core)?;
         let total_pages = (total + take - 1) / take;
+        let mut take = min(take, 10);
 
-        let start = (page - 1) * take;
-        let end = min(start + take, total);
+        let build_ascended = |take| -> StdResult<Vec<Poll>> {
+            let start = (page - 1) * take;
+            let end = min(start + take, total);
+            let mut polls = vec![];
+            for index in start + 1..=end {
+                polls.push(Poll::get(core, index, now)?);
+            }
+            Ok(polls)
+        };
 
-        let mut polls = vec![];
-        for index in start + 1..=end {
-            polls.push(Poll::get(core, index, now)?);
-        }
+        let mut build_descended = || -> StdResult<Vec<Poll>> {
+            let end = total.checked_sub(take * page).unwrap_or(0);
+            if end == 0 {
+                take = total - take * (page - 1);
+            }
+
+            let start = end + take;
+
+            let mut polls = vec![];
+            for index in end + 1..=start {
+                polls.push(Poll::get(core, index, now)?);
+            }
+            Ok(polls)
+        };
+
+        let polls = if asc {
+            build_ascended(take)?
+        } else {
+            build_descended()?
+        };
 
         Ok(GovernanceResponse::Polls {
             total: polls.len().into(),
@@ -76,7 +99,7 @@ where
         let poll_res = PollResult::get(core, id)?;
         Ok(GovernanceResponse::Poll(PollInfo {
             instance: poll,
-            result: poll_res
+            result: poll_res,
         }))
     }
     fn config(core: &C) -> StdResult<Self> {

@@ -15,6 +15,7 @@ pub enum GovernanceQuery {
     Polls {
         take: u64,
         page: u64,
+        asc: bool,
         now: Moment,
     },
     Poll {
@@ -37,9 +38,12 @@ where
 {
     fn dispatch_query(self, core: &C) -> StdResult<GovernanceResponse> {
         match self {
-            GovernanceQuery::Polls { take, page, now } => {
-                GovernanceResponse::polls(core, take, page, false, now)
-            }
+            GovernanceQuery::Polls {
+                take,
+                page,
+                now,
+                asc,
+            } => GovernanceResponse::polls(core, take, page, asc, now),
             GovernanceQuery::Poll { id, now } => GovernanceResponse::poll(core, id, now),
             GovernanceQuery::Config {} => GovernanceResponse::config(core),
             GovernanceQuery::VoteStatus {

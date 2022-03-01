@@ -50,14 +50,44 @@ fn should_create_poll() {
     //deposit some funds
     amm.deposit_lp_into_rewards(sender, Uint128(3600));
 
-    //create poll
+    //create multiple poll
     amm.ensemble
         .execute(
-            &Handle::Governance(GovernanceHandle::CreatePoll { meta }),
-            env,
+            &Handle::Governance(GovernanceHandle::CreatePoll { meta: meta.clone() }),
+            env.clone(),
         )
         .unwrap();
 
+    let poll_after = amm.get_poll(1, 1);
+    assert_eq!(1, poll_after.instance.id);
+}
+#[test]
+fn should_paginate_polls() {
+    let mut amm = Amm::new();
+    let sender = HumanAddr::from("user_b");
+    let meta = PollMetadata {
+        description: "this is a description that longer than 8 characters.".to_string(),
+        title: "This is a title, no really".to_string(),
+        poll_type: PollType::SiennaRewards,
+    };
+
+    let env = MockEnv::new(sender.clone(), amm.rewards.to_owned().try_into().unwrap());
+
+    //deposit some funds
+    amm.deposit_lp_into_rewards(sender, Uint128(3600));
+
+    //create multiple poll
+    for _ in 1..=51 {
+        amm.ensemble
+            .execute(
+                &Handle::Governance(GovernanceHandle::CreatePoll { meta: meta.clone() }),
+                env.clone(),
+            )
+            .unwrap();
+    }
+
+    let polls = amm.get_polls(6, 10, true, 1);
+    assert_eq!(polls[0].id, 51);
     let poll_after = amm.get_poll(1, 1);
     assert_eq!(1, poll_after.instance.id);
 }
@@ -170,7 +200,7 @@ fn should_change_choice() {
         }
         _ => panic!("invalid type for vote status returned."),
     }
-    
+
     let change_vote = GovernanceHandle::ChangeVoteChoice {
         choice: VoteType::Yes,
         poll_id: 1,
