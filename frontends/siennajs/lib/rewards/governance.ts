@@ -39,6 +39,16 @@ export interface Poll {
     current_quorum: Decimal
 }
 
+export interface PollResult {
+    poll_id: number,
+    yes_votes: Uint128,
+    no_votes: Uint128,
+}
+export interface PollInfo {
+    instance: Poll,
+    result: PollResult
+}
+
 export interface VoteStatus {
     power: Uint128,
     choice: VoteType
