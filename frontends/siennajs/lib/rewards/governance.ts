@@ -21,9 +21,9 @@ export type Expiration = {
 }
 
 export interface GovernanceConfig {
-    threshold?: Uint128
-    deadline?: number
-    quorum?: Decimal
+    threshold: Uint128
+    deadline: number
+    quorum: Decimal
 }
 export interface PollMetadata {
     title: String,
