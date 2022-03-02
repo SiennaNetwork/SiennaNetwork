@@ -1,19 +1,15 @@
 pub use fadroma::*;
-use time_utils::Moment;
 extern crate fadroma;
 use account::Amount;
 use account::{Account, *};
-use bus_queue::BusQueue;
 use config::{IRewardsConfig, RewardsConfig};
 use gov::config::GovernanceConfig;
 use gov::governance::Governance;
 use gov::handle::GovernanceHandle;
 use gov::query::GovernanceQuery;
 use gov::response::GovernanceResponse;
-use gov::user::{IUser, User};
 use handle::RewardsHandle;
 use query::{RewardsQuery, RewardsResponse};
-use std::collections::HashMap;
 // pub mod algo;      use crate::algo::{*, RewardsResponse};
 pub mod auth;
 use crate::auth::{Auth, *};
@@ -25,7 +21,6 @@ pub mod migration;
 use crate::migration::*;
 
 pub mod account;
-pub mod bus_queue;
 pub mod config;
 pub mod errors;
 pub mod gov; // use crate::gov::*;
@@ -105,7 +100,6 @@ pub trait Contract<S: Storage, A: Api, Q: Querier>:
     + Emigration<S, A, Q>
     + KeplrCompat<S, A, Q>
     + Drain<S, A, Q>
-    + BusQueue<S, A, Q>
     + Sized
 {
     fn init(&mut self, env: Env, msg: Init) -> StdResult<InitResponse> {
@@ -117,18 +111,10 @@ pub trait Contract<S: Storage, A: Api, Q: Querier>:
     fn query(&self, msg: Query) -> StdResult<Response> {
         msg.dispatch_query(self)
     }
-
-    fn init_bindings(&mut self) {
-        //core: &mut C) {
-        self.bind("get_active_polls", |x: &Self, time: Moment| -> Vec<u64> {
-            User::active_polls(x, HumanAddr::default(), time).unwrap()
-        });
-    }
 }
 
 pub trait Rewards<S: Storage, A: Api, Q: Querier>:
 Composable<S, A, Q> // to compose with other modules
-+ BusQueue<S, A, Q>
 + Auth<S, A, Q>     // to authenticate txs/queries
 + Sized             // to pass mutable self-reference to Total and Account
 {
@@ -289,19 +275,6 @@ macro_rules! compose {
         impl<S: Storage, A: Api, Q: Querier> Rewards<S, A, Q> for $Core {}
 
         impl<S: Storage, A: Api, Q: Querier> Governance<S, A, Q> for $Core {}
-
-        impl<S: Storage, A: Api, Q: Querier> BusQueue<S, A, Q> for $Core {
-            fn init_bindings(&mut self) {}
-            fn bind<Core, Fin, Fout: Default>(&mut self, msg: &str, func: fn(Core, Fin) -> Fout) {
-                // extend self to store bindings, local var is just a test
-                let mut bindings = HashMap::<String, fn(Core, Fin) -> Fout>::new();
-                bindings.insert(String::from(msg), func);
-            }
-
-            fn broadcast<Fin, Fout: Default>(&self, _msg: &str, _arg: Fin) -> StdResult<Fout> {
-                Ok(Fout::default())
-            }
-        }
 
         impl<S: Storage, A: Api, Q: Querier> crate::keplr::KeplrCompat<S, A, Q> for $Core {
             fn token_info(&self) -> StdResult<Response> {
