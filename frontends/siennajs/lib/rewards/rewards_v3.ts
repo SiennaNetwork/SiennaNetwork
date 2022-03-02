@@ -19,6 +19,8 @@ import {
   Poll,
   PollInfo,
   PollMetadata,
+  PollsCollection,
+  SortingDirection,
   VoteStatus,
   VoteType,
 } from "./governance";
@@ -172,18 +174,19 @@ class RewardsV3Querier extends Querier {
     return result.rewards.user_info;
   }
 
-  async get_poll(poll_id: number, now: number): Promise<GetPollsResponse> {
+  async get_poll(poll_id: number, now: number): Promise<PollInfo> {
     const msg = { governance: { poll: { poll_id, now } } }; 
-    return this.run(msg);
+    const result = await this.run(msg) as GetPollResponse;
+    return result.poll;
   }
 
   async get_polls(
     now: number,
     page: number,
-    take: number
-  ): Promise<GetPollsResponse> {
-    const msg = { governance: { polls: { now, page, take } } };
-
+    take: number,
+    sort: SortingDirection
+  ): Promise<PollsCollection> {
+    const msg = { governance: { polls: { now, page, take, asc: !!sort } } };
     return this.run(msg);
   }
   async get_vote_status(

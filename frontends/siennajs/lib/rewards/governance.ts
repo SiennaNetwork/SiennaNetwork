@@ -55,13 +55,15 @@ export interface VoteStatus {
 }
 
 export interface GetPollResponse {
-    poll: Poll
+    poll: PollInfo
 }
 export interface GetPollsResponse {
     polls: Array<Poll>,
     total: number,
     total_pages: number
 }
+
+export type PollsCollection = GetPollsResponse;
 export interface GetVoteStatusResponse {
     vote_status: {
         power: Uint128,
@@ -72,3 +74,7 @@ export interface GetGovernanceConfigResponse {
     config: GovernanceConfig
 }
 
+export enum SortingDirection {
+    Ascending = 1,
+    Descending = 0
+}
