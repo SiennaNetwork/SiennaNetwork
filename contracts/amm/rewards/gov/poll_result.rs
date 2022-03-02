@@ -21,9 +21,7 @@ impl PollResult {
                 let new_vote = vote
                     .u128()
                     .checked_sub(amount.abs() as u128)
-                    .ok_or(StdError::generic_err(format!(
-                        "Not enough voting power available"
-                    )))
+                    .ok_or(StdError::generic_err("Not enough voting power available"))
                     .unwrap();
                 *vote = Uint128(new_vote);
             }
@@ -88,9 +86,8 @@ where
     }
 
     fn get(core: &C, poll_id: u64) -> StdResult<Self> {
-        Ok(core
-            .get_ns::<Self>(Self::SELF, &poll_id.to_be_bytes())?
-            .ok_or(StdError::generic_err("failed to parse poll result"))?)
+        core.get_ns::<Self>(Self::SELF, &poll_id.to_be_bytes())?
+            .ok_or(StdError::generic_err("failed to parse poll result"))
     }
     fn new(_: &C, poll_id: u64) -> Self {
         Self {

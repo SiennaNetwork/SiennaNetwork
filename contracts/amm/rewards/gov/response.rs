@@ -68,7 +68,7 @@ where
         };
 
         let mut build_descended = || -> StdResult<Vec<Poll>> {
-            let end = total.checked_sub(take * page).unwrap_or(0);
+            let end = total.saturating_sub(take * page);
             if end == 0 {
                 take = total - take * (page - 1);
             }
@@ -89,7 +89,7 @@ where
         };
 
         Ok(GovernanceResponse::Polls {
-            total: polls.len().into(),
+            total: polls.len(),
             polls,
             total_pages,
         })
@@ -110,7 +110,7 @@ where
     fn vote_status(core: &C, poll_id: u64, address: HumanAddr) -> StdResult<Self> {
         let vote = Vote::get(core, address, poll_id)?;
         Ok(GovernanceResponse::VoteStatus {
-            power: vote.power.into(),
+            power: vote.power,
             choice: vote.choice,
         })
     }

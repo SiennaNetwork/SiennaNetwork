@@ -38,11 +38,10 @@ where
     }
 
     fn get(core: &C, poll_id: u64) -> StdResult<Self> {
-        Ok(core
-            .get_ns(Self::SELF, &poll_id.to_be_bytes())?
+        core.get_ns(Self::SELF, &poll_id.to_be_bytes())?
             .ok_or(StdError::generic_err(
                 "failed to parse PollMetadata from storage",
-            ))?)
+            ))
     }
 }
 

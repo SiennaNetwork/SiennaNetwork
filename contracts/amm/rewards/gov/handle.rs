@@ -55,7 +55,7 @@ where
                 let account = Account::from_env(core, &env)?;
                 let threshold = GovernanceConfig::threshold(core)?;
 
-                if account.staked < threshold.into() {
+                if account.staked < threshold {
                     return Err(StdError::generic_err("Insufficient funds to create a poll"));
                 };
 

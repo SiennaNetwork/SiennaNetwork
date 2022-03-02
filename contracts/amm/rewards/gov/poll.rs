@@ -28,7 +28,7 @@ pub struct Poll {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct PollInfo {
     pub instance: Poll,
-    pub result: PollResult
+    pub result: PollResult,
 }
 
 impl Poll {
@@ -87,7 +87,7 @@ where
         let total = Self::count(core)?;
         let total = total
             .checked_add(1)
-            .ok_or(StdError::generic_err("total integer overflow"))?;
+            .ok_or_else(|| StdError::generic_err("total integer overflow"))?;
 
         core.set(Self::TOTAL, total)?;
 
@@ -96,7 +96,7 @@ where
     fn count(core: &C) -> StdResult<u64> {
         Ok(core
             .get::<u64>(Self::TOTAL)?
-            .ok_or(StdError::generic_err("can't find total id count"))?)
+            .ok_or_else(|| StdError::generic_err("can't find total id count"))?)
     }
 
     fn store(&self, core: &mut C) -> StdResult<()> {
@@ -114,7 +114,7 @@ where
         core.set_ns(Self::STATUS, &self.id.to_be_bytes(), status)?;
         core.set_ns(Self::CURRENT_QUORUM, &self.id.to_be_bytes(), current_quorum)?;
 
-        metadata.store(core, id.clone())?;
+        metadata.store(core, *id)?;
 
         Ok(())
     }
@@ -139,35 +139,31 @@ where
     }
 
     fn creator(core: &C, poll_id: u64) -> StdResult<CanonicalAddr> {
-        Ok(core
-            .get_ns::<CanonicalAddr>(Self::CREATOR, &poll_id.to_be_bytes())?
-            .ok_or(StdError::generic_err("failed to parse poll creator"))?)
+        core.get_ns::<CanonicalAddr>(Self::CREATOR, &poll_id.to_be_bytes())?
+            .ok_or_else(|| StdError::generic_err("failed to parse poll creator"))
     }
     fn metadata(core: &C, poll_id: u64) -> StdResult<PollMetadata> {
         PollMetadata::get(core, poll_id)
     }
 
     fn expiration(core: &C, poll_id: u64) -> StdResult<Expiration> {
-        Ok(core
-            .get_ns::<Expiration>(Self::EXPIRATION, &poll_id.to_be_bytes())?
-            .ok_or(StdError::generic_err("failed to parse poll expiration"))?)
+        core.get_ns::<Expiration>(Self::EXPIRATION, &poll_id.to_be_bytes())?
+            .ok_or_else(|| StdError::generic_err("failed to parse poll expiration"))
     }
 
     fn status(core: &C, poll_id: u64) -> StdResult<PollStatus> {
-        Ok(core
-            .get_ns::<PollStatus>(Self::STATUS, &poll_id.to_be_bytes())?
-            .ok_or(StdError::generic_err("failed to parse poll expiration"))?)
+        core.get_ns::<PollStatus>(Self::STATUS, &poll_id.to_be_bytes())?
+            .ok_or_else(|| StdError::generic_err("failed to parse poll expiration"))
     }
 
     fn commit_status(core: &mut C, poll_id: u64, status: PollStatus) -> StdResult<()> {
-        core.set_ns(Self::STATUS, &poll_id.to_be_bytes(), status.clone())?;
+        core.set_ns(Self::STATUS, &poll_id.to_be_bytes(), status)?;
         Ok(())
     }
 
     fn current_quorum(core: &C, poll_id: u64) -> StdResult<Decimal> {
-        Ok(core
-            .get_ns::<Decimal>(Self::CURRENT_QUORUM, &poll_id.to_be_bytes())?
-            .ok_or(StdError::generic_err("failed to parse poll expiration"))?)
+        core.get_ns::<Decimal>(Self::CURRENT_QUORUM, &poll_id.to_be_bytes())?
+            .ok_or_else(|| StdError::generic_err("failed to parse poll expiration"))
     }
 
     fn new(

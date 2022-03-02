@@ -20,13 +20,13 @@ impl User {
     pub const CREATED_POLLS: &'static [u8] = b"gov/user/created_polls";
 
     pub fn can_unstake(&self, balance: u128, threshold: u128, amount: u128) -> bool {
-        if self.active_polls.len() > 0 {
+        if !self.active_polls.is_empty() {
             return false;
         }
-        if self.created_polls.len() > 0 {
+        if !self.created_polls.is_empty() {
             return balance - amount > threshold;
         }
-        return true;
+        true
     }
 }
 
@@ -95,7 +95,7 @@ where
     }
 
     fn active_polls(core: &C, address: HumanAddr, timestamp: Moment) -> StdResult<Vec<u64>> {
-        let canonized_address = core.canonize(address.clone())?;
+        let canonized_address = core.canonize(address)?;
         let polls = core
             .get_ns::<Vec<u64>>(Self::ACTIVE_POLLS, canonized_address.as_slice())?
             .unwrap_or_default();
@@ -109,7 +109,7 @@ where
             canonized_address.as_slice(),
             &self.created_polls,
         )?;
-        User::set_active_polls(core, address.clone(), &self.active_polls)?;
+        User::set_active_polls(core, address, &self.active_polls)?;
         Ok(())
     }
 
@@ -141,13 +141,13 @@ where
     fn create_poll(core: &mut C, sender: HumanAddr, poll: &Poll, now: Moment) -> StdResult<()> {
         poll.store(core)?;
         PollResult::new(core, poll.id).store(core)?;
-        
+
         append_created_poll(core, sender, poll.id, now)?;
         Ok(())
     }
 
     fn created_polls(core: &C, address: HumanAddr, timestamp: Moment) -> StdResult<Vec<u64>> {
-        let canonized_adr = core.canonize(address.clone())?;
+        let canonized_adr = core.canonize(address)?;
         let polls = core
             .get_ns::<Vec<u64>>(User::CREATED_POLLS, canonized_adr.as_slice())?
             .unwrap_or_default();
@@ -162,18 +162,18 @@ where
         power: Uint128,
         now: Moment,
     ) -> StdResult<()> {
-        if let Ok(_) = Vote::get(core, sender.clone(), poll_id) {
+        if Vote::get(core, sender.clone(), poll_id).is_ok() {
             return Err(StdError::generic_err(
                 "Already voted. Can't cast a vote for a second time. ",
             ));
         }
-        Vote::new(core, choice.clone(), sender.clone(), power)?.store(
+        Vote::new(core, choice, sender.clone(), power)?.store(
             core,
             sender.clone(),
             poll_id,
         )?;
 
-        append_active_poll(core, sender.clone(), poll_id, now)?;
+        append_active_poll(core, sender, poll_id, now)?;
         Poll::update_result(
             core,
             poll_id,
@@ -195,7 +195,7 @@ where
     ) -> StdResult<()> {
         Vote::increase(core, sender.clone(), poll_id, power_diff.u128())
             .expect("Failed to increase vote");
-        let vote = Vote::get(core, sender.clone(), poll_id)?;
+        let vote = Vote::get(core, sender, poll_id)?;
         Poll::update_result(
             core,
             poll_id,
@@ -236,7 +236,7 @@ where
         .expect("Failed to update poll results");
 
         vote.choice = choice;
-        vote.store(core, sender.clone(), poll_id)?;
+        vote.store(core, sender, poll_id)?;
 
         Ok(())
     }
@@ -244,7 +244,7 @@ where
     fn remove_vote(core: &mut C, poll_id: u64, sender: HumanAddr, now: Moment) -> StdResult<()> {
         let vote = Vote::get(core, sender.clone(), poll_id)?;
         Vote::remove(core, sender.clone(), poll_id)?;
-        User::remove_active_poll(core, sender.clone(), poll_id, now)?;
+        User::remove_active_poll(core, sender, poll_id, now)?;
         Poll::update_result(
             core,
             poll_id,
