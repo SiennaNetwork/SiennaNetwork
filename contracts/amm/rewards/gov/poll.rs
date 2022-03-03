@@ -18,7 +18,7 @@ use super::{
 #[serde(rename_all = "snake_case")]
 pub struct Poll {
     pub id: u64,
-    pub creator: CanonicalAddr,
+    pub creator: HumanAddr,
     pub metadata: PollMetadata,
     pub expiration: Expiration,
     pub status: PollStatus,
@@ -51,7 +51,7 @@ where
 
     fn new(
         core: &mut C,
-        creator: CanonicalAddr,
+        creator: &HumanAddr,
         expiration: Expiration,
         metadata: PollMetadata,
         current_quorum: Decimal,
@@ -109,7 +109,11 @@ where
             current_quorum,
         } = self;
 
-        core.set_ns(Self::CREATOR, &self.id.to_be_bytes(), creator)?;
+        core.set_ns(
+            Self::CREATOR,
+            &self.id.to_be_bytes(),
+            creator.canonize(core.api())?,
+        )?;
         core.set_ns(Self::EXPIRATION, &self.id.to_be_bytes(), expiration)?;
         core.set_ns(Self::STATUS, &self.id.to_be_bytes(), status)?;
         core.set_ns(Self::CURRENT_QUORUM, &self.id.to_be_bytes(), current_quorum)?;
@@ -120,7 +124,7 @@ where
     }
 
     fn get(core: &C, poll_id: u64, now: Moment) -> StdResult<Self> {
-        let creator = Self::creator(core, poll_id)?;
+        let creator = Self::creator(core, poll_id)?.humanize(core.api())?;
         let expiration = Self::expiration(core, poll_id)?;
         let mut status = Self::status(core, poll_id)?;
         if !expiration.is_expired(now) {
@@ -168,15 +172,15 @@ where
 
     fn new(
         core: &mut C,
-        creator: CanonicalAddr,
+        creator: &HumanAddr,
         expiration: Expiration,
         metadata: PollMetadata,
         current_quorum: Decimal,
     ) -> StdResult<Self> {
         let id = Self::create_id(core)?;
         Ok(Self {
+            creator: creator.clone(),
             id,
-            creator,
             current_quorum,
             expiration,
             metadata,

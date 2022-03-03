@@ -230,9 +230,6 @@ where
         } else if self.total.staked < amount {
             errors::withdraw_fatal(self.total.staked, amount)
         } else {
-            // testing pub/sub between traits. Message string will be enum, not a string
-            // let polls = core.broadcast::<Moment, Vec<u64>>("get_active_polls", self.total.clock.now)?;
-
             // TODO probably must go into commit_withdrawal since other methods call it directly
             let user = User::get(core, &self.address, self.total.clock.now)?;
             let threshold = GovernanceConfig::threshold(core)?;
@@ -303,14 +300,7 @@ where
     fn commit_deposit(&mut self, core: &mut C, amount: Amount) -> StdResult<()> {
         let user = User::get(core, &self.address, self.total.clock.now)?;
         user.active_polls.into_iter().for_each(|poll_id| {
-            User::increase_vote_power(
-                core,
-                poll_id,
-                &self.address,
-                amount,
-                self.total.clock.now,
-            )
-            .expect("Increasing voting power failed");
+            User::increase_vote_power(core, poll_id, &self.address, amount, self.total.clock.now).unwrap()
         });
 
         self.commit_elapsed(core)?;

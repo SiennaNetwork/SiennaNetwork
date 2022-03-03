@@ -167,11 +167,7 @@ where
                 "Already voted. Can't cast a vote for a second time. ",
             ));
         }
-        Vote::new(core, choice, sender, power)?.store(
-            core,
-            sender,
-            poll_id,
-        )?;
+        Vote::new(core, choice, sender, power)?.store(core, sender, poll_id)?;
 
         append_active_poll(core, sender, poll_id, now)?;
         Poll::update_result(
@@ -193,8 +189,7 @@ where
         power_diff: Uint128,
         now: Moment,
     ) -> StdResult<()> {
-        Vote::increase(core, sender, poll_id, power_diff.u128())
-            .expect("Failed to increase vote");
+        Vote::increase(core, sender, poll_id, power_diff.u128()).unwrap();
         let vote = Vote::get(core, sender, poll_id)?;
         Poll::update_result(
             core,
@@ -205,7 +200,7 @@ where
                 power_diff: power_diff.u128() as i128,
             },
         )
-        .expect("Failed to update poll results");
+        .unwrap();
         Ok(())
     }
 
@@ -233,7 +228,7 @@ where
                 power: vote.power.u128(),
             },
         )
-        .expect("Failed to update poll results");
+        .unwrap();
 
         vote.choice = choice;
         vote.store(core, sender, poll_id)?;
@@ -254,7 +249,7 @@ where
                 power_diff: -(vote.power.u128() as i128),
             },
         )
-        .expect("Failed to update poll results");
+        .unwrap();
         Ok(())
     }
 }
@@ -306,7 +301,7 @@ where
     Q: Querier,
     C: Composable<S, A, Q>,
 {
-    let canonized_address = core.canonize(address.clone())?;
+    let canonized_address = core.canonize(address)?;
     let mut polls = User::created_polls(core, address, now)?;
     polls.push(poll_id);
     core.set_ns(User::CREATED_POLLS, canonized_address.as_slice(), polls)?;

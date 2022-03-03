@@ -1,4 +1,3 @@
-
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -7,7 +6,6 @@ use fadroma::*;
 use crate::account::{Account, IAccount};
 use crate::auth::Auth;
 use crate::errors::poll_expired;
-use crate::time_utils::Moment;
 
 use super::user::{IUser, User};
 use super::validator;
@@ -37,8 +35,6 @@ where
     C: Governance<S, A, Q>,
 {
     fn dispatch_handle(self, core: &mut C, env: Env) -> StdResult<HandleResponse> {
-        let now: Moment = env.block.time;
-        let sender = env.message.sender.clone();
         match self {
             GovernanceHandle::CreatePoll { meta } => {
                 validator::validate_text_length(
@@ -62,49 +58,50 @@ where
 
                 let deadline = GovernanceConfig::deadline(core)?;
                 let current_quorum = GovernanceConfig::quorum(core)?;
-                let current_time = env.block.time;
-                let expiration = Expiration::AtTime(current_time + deadline);
-                let creator = core.canonize(&sender)?;
+                let expiration = Expiration::AtTime(env.block.time + deadline);
 
-                let poll = Poll::new(core, creator, expiration, meta, current_quorum)?;
-                User::create_poll(core, &sender, &poll, current_time)?;
+                let poll = Poll::new(core, &env.message.sender, expiration, meta, current_quorum)?;
+                User::create_poll(core, &env.message.sender, &poll, env.block.time)?;
 
                 Ok(HandleResponse {
                     data: Some(to_binary(&poll)?),
-                    log: vec![
-                        log("ACTION", "CREATE_POLL"),
-                        log("POLL_ID", format!("{}", &poll.id)),
-                        log("POLL_CREATOR", format!("{}", &poll.creator)),
-                    ],
+                    log: vec![],
                     messages: vec![],
                 })
             }
             GovernanceHandle::Vote { choice, poll_id } => {
                 let expiration = Poll::expiration(core, poll_id)?;
-                if expiration.is_expired(now) {
+                if expiration.is_expired(env.block.time) {
                     return poll_expired();
                 }
 
                 let account = Account::from_env(core, &env)?;
-                let power = account.staked; // Uint128(200);
+                let power = account.staked;
 
-                User::add_vote(core, poll_id, &sender, choice, power, now)?;
+                User::add_vote(
+                    core,
+                    poll_id,
+                    &env.message.sender,
+                    choice,
+                    power,
+                    env.block.time,
+                )?;
                 Ok(HandleResponse::default())
             }
             GovernanceHandle::ChangeVoteChoice { choice, poll_id } => {
                 let expiration = Poll::expiration(core, poll_id)?;
-                if expiration.is_expired(now) {
+                if expiration.is_expired(env.block.time) {
                     return poll_expired();
                 }
-                User::change_choice(core, poll_id, &sender, choice, now)?;
+                User::change_choice(core, poll_id, &env.message.sender, choice, env.block.time)?;
                 Ok(HandleResponse::default())
             }
             GovernanceHandle::Unvote { poll_id } => {
                 let expiration = Poll::expiration(core, poll_id)?;
-                if expiration.is_expired(now) {
+                if expiration.is_expired(env.block.time) {
                     return poll_expired();
                 }
-                User::remove_vote(core, poll_id, &sender, now)?;
+                User::remove_vote(core, poll_id, &env.message.sender, env.block.time)?;
                 Ok(HandleResponse::default())
             }
 

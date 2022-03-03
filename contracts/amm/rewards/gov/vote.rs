@@ -22,15 +22,7 @@ impl Vote {
 
     fn build_prefix(poll_id: u64) -> StdResult<Vec<u8>> {
         let poll_id = poll_id.to_be_bytes().to_vec();
-
-        //TODO: Cleaner way to handle this?
-        let len = Self::VOTE.len() + poll_id.as_slice().len();
-
-        let mut key = Vec::with_capacity(len);
-        key.extend_from_slice(Self::VOTE);
-        key.extend_from_slice(poll_id.as_slice());
-
-        Ok(key)
+        Ok(vec![Self::VOTE, poll_id.as_slice()].concat())
     }
 }
 pub trait IVote<S, A, Q, C>
@@ -67,7 +59,7 @@ where
         let key = core.canonize(address)?;
         core.get_ns::<Vote>(&prefix, key.as_slice())?
             .ok_or(StdError::generic_err(
-                "can't find vote for user on that poll",
+                "Can't find vote for user on that poll",
             ))
     }
 
@@ -86,12 +78,13 @@ where
     }
 
     fn remove(core: &mut C, address: &HumanAddr, poll_id: u64) -> StdResult<()> {
-        //again, better way to handle concat?
-        let mut prefix = Self::build_prefix(poll_id)?;
-        let key = core.canonize(address)?;
-        prefix.extend_from_slice(key.as_slice());
+        let key = [
+            &Self::build_prefix(poll_id)?,
+            core.canonize(address)?.as_slice(),
+        ]
+        .concat();
 
-        core.storage_mut().remove(&prefix);
+        core.storage_mut().remove(&key);
 
         Ok(())
     }
