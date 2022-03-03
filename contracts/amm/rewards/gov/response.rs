@@ -23,9 +23,6 @@ pub enum GovernanceResponse {
         total_pages: u64,
     },
     Poll(PollInfo),
-    CreateViewingKey {
-        key: ViewingKey,
-    },
     VoteStatus {
         choice: VoteType,
         power: Uint128,
