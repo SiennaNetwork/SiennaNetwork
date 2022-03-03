@@ -130,36 +130,36 @@ where
     fn self_link(core: &C) -> StdResult<ContractLink<HumanAddr>> {
         let link = core
             .get::<ContractLink<CanonicalAddr>>(Self::SELF)?
-            .ok_or(StdError::generic_err("no self link"))?;
+            .ok_or_else(|| StdError::generic_err("no self link"))?;
         Ok(core.humanize(link)?)
     }
     fn lp_token(core: &C) -> StdResult<ISnip20> {
         let link = core
             .get::<ContractLink<CanonicalAddr>>(Self::LP_TOKEN)?
-            .ok_or(StdError::generic_err("no lp token"))?;
+            .ok_or_else(|| StdError::generic_err("no lp token"))?;
         Ok(ISnip20::attach(core.humanize(link)?))
     }
     fn reward_token(core: &C) -> StdResult<ISnip20> {
         let link = core
             .get::<ContractLink<CanonicalAddr>>(Self::REWARD_TOKEN)?
-            .ok_or(StdError::generic_err("no reward token"))?;
+            .ok_or_else(|| StdError::generic_err("no reward token"))?;
         Ok(ISnip20::attach(core.humanize(link)?))
     }
     fn reward_vk(core: &C) -> StdResult<String> {
         Ok(core
             .get::<ViewingKey>(Self::REWARD_VK)?
-            .ok_or(StdError::generic_err("no reward viewing key"))?
+            .ok_or_else(|| StdError::generic_err("no reward viewing key"))?
             .0)
     }
     fn bonding(core: &C) -> StdResult<Duration> {
         Ok(core
             .get::<Duration>(Self::BONDING)?
-            .ok_or(StdError::generic_err("no bonding configured"))?)
+            .ok_or_else(|| StdError::generic_err("no bonding configured"))?)
     }
     fn timekeeper(core: &C) -> StdResult<HumanAddr> {
         Ok(core.humanize(
             core.get::<CanonicalAddr>(Self::TIMEKEEPER)?
-                .ok_or(StdError::generic_err("no timekeeper address"))?,
+                .ok_or_else(|| StdError::generic_err("no timekeeper address"))?,
         )?)
     }
     fn assert_closed(core: &C, env: &Env) -> StdResult<Duration> {

@@ -83,7 +83,7 @@ where
 
     fn get(core: &C, poll_id: u64) -> StdResult<Self> {
         core.get_ns::<Self>(Self::SELF, &poll_id.to_be_bytes())?
-            .ok_or(StdError::generic_err("failed to parse poll result"))
+            .ok_or_else(|| StdError::generic_err("failed to parse poll result"))
     }
     fn new(_: &C, poll_id: u64) -> Self {
         Self {

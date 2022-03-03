@@ -58,9 +58,7 @@ where
         let prefix = Self::build_prefix(poll_id)?;
         let key = core.canonize(address)?;
         core.get_ns::<Vote>(&prefix, key.as_slice())?
-            .ok_or(StdError::generic_err(
-                "Can't find vote for user on that poll",
-            ))
+            .ok_or_else(|| StdError::generic_err("Can't find vote for user on that poll"))
     }
 
     fn set(core: &mut C, address: &HumanAddr, poll_id: u64, vote: &Vote) -> StdResult<()> {
