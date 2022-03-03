@@ -18,11 +18,7 @@ impl PollResult {
             if amount > 0 {
                 *vote = Uint128((*vote).u128() + amount as u128);
             } else {
-                let new_vote = vote
-                    .u128()
-                    .checked_sub(amount.abs() as u128)
-                    .ok_or(StdError::generic_err("Not enough voting power available"))
-                    .unwrap();
+                let new_vote = vote.u128().checked_sub(amount.abs() as u128).unwrap();
                 *vote = Uint128(new_vote);
             }
         };

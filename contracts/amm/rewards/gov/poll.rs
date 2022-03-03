@@ -85,9 +85,7 @@ where
 {
     fn create_id(core: &mut C) -> StdResult<u64> {
         let total = Self::count(core)?;
-        let total = total
-            .checked_add(1)
-            .ok_or_else(|| StdError::generic_err("total integer overflow"))?;
+        let total = total.checked_add(1).unwrap();
 
         core.set(Self::TOTAL, total)?;
 
