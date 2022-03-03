@@ -35,8 +35,8 @@ pub trait Auth<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q> {
 
     fn init (&mut self, env: &Env, admin: &Option<HumanAddr>) -> StdResult<()> {
         let admin = admin.as_ref().unwrap_or(&env.message.sender);
-        self.save_admin(&admin)?;
-        self.save_next_admin(&admin)?;
+        self.save_admin(admin)?;
+        self.save_next_admin(admin)?;
         Ok(())
     }
 

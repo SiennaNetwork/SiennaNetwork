@@ -111,13 +111,13 @@ where
     fn get(core: &C, total: Total, address: &HumanAddr) -> StdResult<Self> {
         let id = core.canonize(address.clone())?;
         let get_time = |key, default: u64| -> StdResult<u64> {
-            Ok(core.get_ns(key, &id.as_slice())?.unwrap_or(default))
+            Ok(core.get_ns(key, id.as_slice())?.unwrap_or(default))
         };
         let get_amount = |key, default: Amount| -> StdResult<Amount> {
-            Ok(core.get_ns(key, &id.as_slice())?.unwrap_or(default))
+            Ok(core.get_ns(key, id.as_slice())?.unwrap_or(default))
         };
         let get_volume = |key, default: Volume| -> StdResult<Volume> {
-            Ok(core.get_ns(key, &id.as_slice())?.unwrap_or(default))
+            Ok(core.get_ns(key, id.as_slice())?.unwrap_or(default))
         };
         let mut account = Self::default();
         // 1. Timestamps
@@ -206,7 +206,7 @@ where
     }
     fn deposit(&mut self, core: &mut C, amount: Uint128) -> StdResult<HandleResponse> {
         if let Some((ref when, ref why)) = self.total.closed {
-            let when = when.clone();
+            let when = *when;
             let why = why.clone();
             return self.force_exit(core, when, why);
         } else {
