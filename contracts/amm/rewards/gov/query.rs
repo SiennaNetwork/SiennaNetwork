@@ -52,7 +52,7 @@ where
                 address,
             } => {
                 Auth::check_vk(core, &address, &key.into())?;
-                GovernanceResponse::vote_status(core, poll_id, address)
+                GovernanceResponse::vote_status(core, poll_id, &address)
             }
         }
     }

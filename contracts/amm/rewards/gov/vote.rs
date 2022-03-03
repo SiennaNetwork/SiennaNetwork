@@ -41,12 +41,12 @@ where
     C: Composable<S, A, Q>,
     Self: Sized,
 {
-    fn store(self, core: &mut C, address: HumanAddr, poll_id: u64) -> StdResult<Self>;
-    fn new(core: &C, variant: VoteType, voter: HumanAddr, vote_power: Uint128) -> StdResult<Self>;
-    fn get(core: &C, address: HumanAddr, poll_id: u64) -> StdResult<Self>;
-    fn set(core: &mut C, address: HumanAddr, poll_id: u64, vote: &Vote) -> StdResult<()>;
-    fn increase(core: &mut C, address: HumanAddr, poll_id: u64, amount: u128) -> StdResult<()>;
-    fn remove(core: &mut C, address: HumanAddr, poll_id: u64) -> StdResult<()>;
+    fn store(self, core: &mut C, address: &HumanAddr, poll_id: u64) -> StdResult<Self>;
+    fn new(core: &C, variant: VoteType, voter: &HumanAddr, vote_power: Uint128) -> StdResult<Self>;
+    fn get(core: &C, address: &HumanAddr, poll_id: u64) -> StdResult<Self>;
+    fn set(core: &mut C, address: &HumanAddr, poll_id: u64, vote: &Vote) -> StdResult<()>;
+    fn increase(core: &mut C, address: &HumanAddr, poll_id: u64, amount: u128) -> StdResult<()>;
+    fn remove(core: &mut C, address: &HumanAddr, poll_id: u64) -> StdResult<()>;
 }
 
 impl<S, A, Q, C> IVote<S, A, Q, C> for Vote
@@ -57,12 +57,12 @@ where
     C: Composable<S, A, Q>,
     Self: Sized,
 {
-    fn store(self, core: &mut C, address: HumanAddr, poll_id: u64) -> StdResult<Self> {
+    fn store(self, core: &mut C, address: &HumanAddr, poll_id: u64) -> StdResult<Self> {
         Vote::set(core, address, poll_id, &self)?;
         Ok(self)
     }
 
-    fn get(core: &C, address: HumanAddr, poll_id: u64) -> StdResult<Self> {
+    fn get(core: &C, address: &HumanAddr, poll_id: u64) -> StdResult<Self> {
         let prefix = Self::build_prefix(poll_id)?;
         let key = core.canonize(address)?;
         core.get_ns::<Vote>(&prefix, key.as_slice())?
@@ -71,21 +71,21 @@ where
             ))
     }
 
-    fn set(core: &mut C, address: HumanAddr, poll_id: u64, vote: &Vote) -> StdResult<()> {
+    fn set(core: &mut C, address: &HumanAddr, poll_id: u64, vote: &Vote) -> StdResult<()> {
         let prefix = Self::build_prefix(poll_id)?;
         let key = core.canonize(address)?;
         core.set_ns(&prefix, key.as_slice(), vote)?;
         Ok(())
     }
 
-    fn increase(core: &mut C, address: HumanAddr, poll_id: u64, amount: u128) -> StdResult<()> {
-        let mut vote = Self::get(core, address.clone(), poll_id)?;
+    fn increase(core: &mut C, address: &HumanAddr, poll_id: u64, amount: u128) -> StdResult<()> {
+        let mut vote = Self::get(core, address, poll_id)?;
         vote.power += Uint128(amount);
         Self::set(core, address, poll_id, &vote)?;
         Ok(())
     }
 
-    fn remove(core: &mut C, address: HumanAddr, poll_id: u64) -> StdResult<()> {
+    fn remove(core: &mut C, address: &HumanAddr, poll_id: u64) -> StdResult<()> {
         //again, better way to handle concat?
         let mut prefix = Self::build_prefix(poll_id)?;
         let key = core.canonize(address)?;
@@ -96,7 +96,7 @@ where
         Ok(())
     }
 
-    fn new(core: &C, choice: VoteType, voter: HumanAddr, vote_power: Uint128) -> StdResult<Self> {
+    fn new(core: &C, choice: VoteType, voter: &HumanAddr, vote_power: Uint128) -> StdResult<Self> {
         let voter = core.canonize(voter)?;
         Ok(Self {
             power: vote_power,

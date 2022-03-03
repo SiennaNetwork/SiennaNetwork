@@ -42,7 +42,7 @@ where
 {
     fn polls(core: &C, take: u64, page: u64, asc: bool, now: Moment) -> StdResult<Self>;
     fn poll(core: &C, id: u64, now: Moment) -> StdResult<Self>;
-    fn vote_status(core: &C, poll_id: u64, address: HumanAddr) -> StdResult<Self>;
+    fn vote_status(core: &C, poll_id: u64, address: &HumanAddr) -> StdResult<Self>;
     fn config(core: &C) -> StdResult<Self>;
 }
 impl<S, A, Q, C> IGovernanceResponse<S, A, Q, C> for GovernanceResponse
@@ -107,7 +107,7 @@ where
         Ok(GovernanceResponse::Config(config))
     }
 
-    fn vote_status(core: &C, poll_id: u64, address: HumanAddr) -> StdResult<Self> {
+    fn vote_status(core: &C, poll_id: u64, address: &HumanAddr) -> StdResult<Self> {
         let vote = Vote::get(core, address, poll_id)?;
         Ok(GovernanceResponse::VoteStatus {
             power: vote.power,

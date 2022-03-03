@@ -234,7 +234,7 @@ where
             // let polls = core.broadcast::<Moment, Vec<u64>>("get_active_polls", self.total.clock.now)?;
 
             // TODO probably must go into commit_withdrawal since other methods call it directly
-            let user = User::get(core, self.address.clone(), self.total.clock.now)?;
+            let user = User::get(core, &self.address, self.total.clock.now)?;
             let threshold = GovernanceConfig::threshold(core)?;
             if !user.can_unstake(self.staked.u128(), threshold.into(), amount.u128()) {
                 errors::unstake_disallowed()?
@@ -301,12 +301,12 @@ where
         Ok(())
     }
     fn commit_deposit(&mut self, core: &mut C, amount: Amount) -> StdResult<()> {
-        let user = User::get(core, self.address.clone(), self.total.clock.now)?;
+        let user = User::get(core, &self.address, self.total.clock.now)?;
         user.active_polls.into_iter().for_each(|poll_id| {
             User::increase_vote_power(
                 core,
                 poll_id,
-                self.address.clone(),
+                &self.address,
                 amount,
                 self.total.clock.now,
             )

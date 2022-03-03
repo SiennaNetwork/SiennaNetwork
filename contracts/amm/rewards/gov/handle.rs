@@ -1,3 +1,4 @@
+
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -63,10 +64,10 @@ where
                 let current_quorum = GovernanceConfig::quorum(core)?;
                 let current_time = env.block.time;
                 let expiration = Expiration::AtTime(current_time + deadline);
-                let creator = core.canonize(sender.clone())?;
+                let creator = core.canonize(&sender)?;
 
                 let poll = Poll::new(core, creator, expiration, meta, current_quorum)?;
-                User::create_poll(core, sender, &poll, current_time)?;
+                User::create_poll(core, &sender, &poll, current_time)?;
 
                 Ok(HandleResponse {
                     data: Some(to_binary(&poll)?),
@@ -87,7 +88,7 @@ where
                 let account = Account::from_env(core, &env)?;
                 let power = account.staked; // Uint128(200);
 
-                User::add_vote(core, poll_id, sender, choice, power, now)?;
+                User::add_vote(core, poll_id, &sender, choice, power, now)?;
                 Ok(HandleResponse::default())
             }
             GovernanceHandle::ChangeVoteChoice { choice, poll_id } => {
@@ -95,7 +96,7 @@ where
                 if expiration.is_expired(now) {
                     return poll_expired();
                 }
-                User::change_choice(core, poll_id, sender, choice, now)?;
+                User::change_choice(core, poll_id, &sender, choice, now)?;
                 Ok(HandleResponse::default())
             }
             GovernanceHandle::Unvote { poll_id } => {
@@ -103,7 +104,7 @@ where
                 if expiration.is_expired(now) {
                     return poll_expired();
                 }
-                User::remove_vote(core, poll_id, sender, now)?;
+                User::remove_vote(core, poll_id, &sender, now)?;
                 Ok(HandleResponse::default())
             }
 

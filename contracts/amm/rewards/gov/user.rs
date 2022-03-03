@@ -38,25 +38,25 @@ where
     C: Composable<S, A, Q>,
     Self: Sized,
 {
-    fn get(core: &C, address: HumanAddr, now: Moment) -> StdResult<User>;
-    fn store(&self, core: &mut C, address: HumanAddr) -> StdResult<()>;
+    fn get(core: &C, address: &HumanAddr, now: Moment) -> StdResult<User>;
+    fn store(&self, core: &mut C, address: &HumanAddr) -> StdResult<()>;
 
-    fn active_polls(core: &C, address: HumanAddr, now: Moment) -> StdResult<Vec<u64>>;
-    fn set_active_polls(core: &mut C, address: HumanAddr, polls: &Vec<u64>) -> StdResult<()>;
+    fn active_polls(core: &C, address: &HumanAddr, now: Moment) -> StdResult<Vec<u64>>;
+    fn set_active_polls(core: &mut C, address: &HumanAddr, polls: &Vec<u64>) -> StdResult<()>;
     fn remove_active_poll(
         core: &mut C,
-        address: HumanAddr,
+        address: &HumanAddr,
         poll_id: u64,
         timestamp: Moment,
     ) -> StdResult<()>;
 
-    fn create_poll(core: &mut C, sender: HumanAddr, poll: &Poll, now: Moment) -> StdResult<()>;
-    fn created_polls(core: &C, address: HumanAddr, now: Moment) -> StdResult<Vec<u64>>;
+    fn create_poll(core: &mut C, sender: &HumanAddr, poll: &Poll, now: Moment) -> StdResult<()>;
+    fn created_polls(core: &C, address: &HumanAddr, now: Moment) -> StdResult<Vec<u64>>;
 
     fn add_vote(
         core: &mut C,
         poll_id: u64,
-        sender: HumanAddr,
+        sender: &HumanAddr,
         choice: VoteType,
         power: Uint128,
         now: Moment,
@@ -64,18 +64,18 @@ where
     fn change_choice(
         core: &mut C,
         poll_id: u64,
-        sender: HumanAddr,
+        sender: &HumanAddr,
         choice: VoteType,
         now: Moment,
     ) -> StdResult<()>;
     fn increase_vote_power(
         core: &mut C,
         poll_id: u64,
-        sender: HumanAddr,
+        sender: &HumanAddr,
         power_diff: Uint128,
         now: Moment,
     ) -> StdResult<()>;
-    fn remove_vote(core: &mut C, poll_id: u64, sender: HumanAddr, now: Moment) -> StdResult<()>;
+    fn remove_vote(core: &mut C, poll_id: u64, sender: &HumanAddr, now: Moment) -> StdResult<()>;
 }
 
 impl<S, A, Q, C> IUser<S, A, Q, C> for User
@@ -85,8 +85,8 @@ where
     Q: Querier,
     C: Composable<S, A, Q>,
 {
-    fn get(core: &C, address: HumanAddr, now: Moment) -> StdResult<User> {
-        let active_polls = User::active_polls(core, address.clone(), now)?;
+    fn get(core: &C, address: &HumanAddr, now: Moment) -> StdResult<User> {
+        let active_polls = User::active_polls(core, address, now)?;
         let created_polls = User::created_polls(core, address, now)?;
         Ok(Self {
             active_polls,
@@ -94,7 +94,7 @@ where
         })
     }
 
-    fn active_polls(core: &C, address: HumanAddr, timestamp: Moment) -> StdResult<Vec<u64>> {
+    fn active_polls(core: &C, address: &HumanAddr, timestamp: Moment) -> StdResult<Vec<u64>> {
         let canonized_address = core.canonize(address)?;
         let polls = core
             .get_ns::<Vec<u64>>(Self::ACTIVE_POLLS, canonized_address.as_slice())?
@@ -102,8 +102,8 @@ where
         Ok(filter_active_polls(core, polls, timestamp))
     }
 
-    fn store(&self, core: &mut C, address: HumanAddr) -> StdResult<()> {
-        let canonized_address = core.canonize(address.clone())?;
+    fn store(&self, core: &mut C, address: &HumanAddr) -> StdResult<()> {
+        let canonized_address = core.canonize(address)?;
         core.set_ns(
             Self::CREATED_POLLS,
             canonized_address.as_slice(),
@@ -116,7 +116,7 @@ where
     /**
     Overwrites the saved active polls for given user
     */
-    fn set_active_polls(core: &mut C, address: HumanAddr, polls: &Vec<u64>) -> StdResult<()> {
+    fn set_active_polls(core: &mut C, address: &HumanAddr, polls: &Vec<u64>) -> StdResult<()> {
         let address = core.canonize(address)?;
         core.set_ns(Self::ACTIVE_POLLS, address.as_slice(), polls)?;
 
@@ -125,11 +125,11 @@ where
 
     fn remove_active_poll(
         core: &mut C,
-        address: HumanAddr,
+        address: &HumanAddr,
         poll_id: u64,
         timestamp: Moment,
     ) -> StdResult<()> {
-        let active_polls = Self::active_polls(core, address.clone(), timestamp)?;
+        let active_polls = Self::active_polls(core, address, timestamp)?;
         let active_polls = active_polls
             .into_iter()
             .filter(|id| *id != poll_id)
@@ -138,7 +138,7 @@ where
         Ok(())
     }
 
-    fn create_poll(core: &mut C, sender: HumanAddr, poll: &Poll, now: Moment) -> StdResult<()> {
+    fn create_poll(core: &mut C, sender: &HumanAddr, poll: &Poll, now: Moment) -> StdResult<()> {
         poll.store(core)?;
         PollResult::new(core, poll.id).store(core)?;
 
@@ -146,7 +146,7 @@ where
         Ok(())
     }
 
-    fn created_polls(core: &C, address: HumanAddr, timestamp: Moment) -> StdResult<Vec<u64>> {
+    fn created_polls(core: &C, address: &HumanAddr, timestamp: Moment) -> StdResult<Vec<u64>> {
         let canonized_adr = core.canonize(address)?;
         let polls = core
             .get_ns::<Vec<u64>>(User::CREATED_POLLS, canonized_adr.as_slice())?
@@ -157,19 +157,19 @@ where
     fn add_vote(
         core: &mut C,
         poll_id: u64,
-        sender: HumanAddr,
+        sender: &HumanAddr,
         choice: VoteType,
         power: Uint128,
         now: Moment,
     ) -> StdResult<()> {
-        if Vote::get(core, sender.clone(), poll_id).is_ok() {
+        if Vote::get(core, sender, poll_id).is_ok() {
             return Err(StdError::generic_err(
                 "Already voted. Can't cast a vote for a second time. ",
             ));
         }
-        Vote::new(core, choice, sender.clone(), power)?.store(
+        Vote::new(core, choice, sender, power)?.store(
             core,
-            sender.clone(),
+            sender,
             poll_id,
         )?;
 
@@ -189,11 +189,11 @@ where
     fn increase_vote_power(
         core: &mut C,
         poll_id: u64,
-        sender: HumanAddr,
+        sender: &HumanAddr,
         power_diff: Uint128,
         now: Moment,
     ) -> StdResult<()> {
-        Vote::increase(core, sender.clone(), poll_id, power_diff.u128())
+        Vote::increase(core, sender, poll_id, power_diff.u128())
             .expect("Failed to increase vote");
         let vote = Vote::get(core, sender, poll_id)?;
         Poll::update_result(
@@ -212,11 +212,11 @@ where
     fn change_choice(
         core: &mut C,
         poll_id: u64,
-        sender: HumanAddr,
+        sender: &HumanAddr,
         choice: VoteType,
         now: Moment,
     ) -> StdResult<()> {
-        let mut vote = Vote::get(core, sender.clone(), poll_id)?;
+        let mut vote = Vote::get(core, sender, poll_id)?;
 
         if vote.choice == choice {
             return Err(StdError::generic_err(
@@ -241,9 +241,9 @@ where
         Ok(())
     }
 
-    fn remove_vote(core: &mut C, poll_id: u64, sender: HumanAddr, now: Moment) -> StdResult<()> {
-        let vote = Vote::get(core, sender.clone(), poll_id)?;
-        Vote::remove(core, sender.clone(), poll_id)?;
+    fn remove_vote(core: &mut C, poll_id: u64, sender: &HumanAddr, now: Moment) -> StdResult<()> {
+        let vote = Vote::get(core, sender, poll_id)?;
+        Vote::remove(core, sender, poll_id)?;
         User::remove_active_poll(core, sender, poll_id, now)?;
         Poll::update_result(
             core,
@@ -278,7 +278,7 @@ where
 
 fn append_active_poll<S, A, Q, C>(
     core: &mut C,
-    address: HumanAddr,
+    address: &HumanAddr,
     poll_id: u64,
     now: Moment,
 ) -> StdResult<()>
@@ -288,7 +288,7 @@ where
     Q: Querier,
     C: Composable<S, A, Q>,
 {
-    let mut active_polls = User::active_polls(core, address.clone(), now)?;
+    let mut active_polls = User::active_polls(core, address, now)?;
     active_polls.push(poll_id);
     User::set_active_polls(core, address, &active_polls)?;
     Ok(())
@@ -296,7 +296,7 @@ where
 
 fn append_created_poll<S, A, Q, C>(
     core: &mut C,
-    address: HumanAddr,
+    address: &HumanAddr,
     poll_id: u64,
     now: Moment,
 ) -> StdResult<()>
