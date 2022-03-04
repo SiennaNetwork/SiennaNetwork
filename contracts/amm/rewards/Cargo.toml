@@ -15,6 +15,7 @@ schemars = "0.7"
 serde    = { version = "1.0.103", default-features = false, features = ["derive"] }
 
 fadroma-bind-js = { optional = true, path = "../../../deps/fadroma/crates/fadroma-bind-js" }
+amm-shared = { path = "../../../libraries/amm-shared" }
 wasm-bindgen    = { optional = true, version = "0.2" }
 js-sys          = { optional = true, version = "0.3.55" }
 

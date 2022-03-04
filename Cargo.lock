@@ -1950,6 +1950,7 @@ dependencies = [
 name = "sienna-rewards"
 version = "3.0.0"
 dependencies = [
+ "amm-shared",
  "backtrace",
  "color-backtrace",
  "fadroma 22.1.0",

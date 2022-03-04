@@ -1,3 +1,4 @@
+use amm_shared::Sender;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -65,6 +66,9 @@ where
                 let deadline = GovernanceConfig::deadline(core)?;
                 let current_quorum = GovernanceConfig::quorum(core)?;
                 let expiration = Expiration::AtTime(env.block.time + deadline);
+
+                //refactor codebase to use this sender
+                let sender = Sender::from_human(&env.message.sender, core.api())?;
 
                 let poll = Poll::new(core, &env.message.sender, expiration, meta, current_quorum)?;
                 User::create_poll(core, &env.message.sender, &poll, env.block.time)?;
