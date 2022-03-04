@@ -27,6 +27,7 @@ pub mod gov; // use crate::gov::*;
 pub mod handle;
 pub mod query;
 pub mod time_utils;
+pub mod permit;
 pub mod total;
 
 #[cfg(test)]
@@ -147,7 +148,7 @@ impl Init {
         Q: Querier,
         C: Contract<S, A, Q>,
     {
-        Auth::init(core, &env, &self.admin)?;
+        Auth::init(core, &env, &self.admin, &env.contract.address)?;
         Governance::init(core, &env, self.governance_config.unwrap_or_default())?;
         Ok(InitResponse {
             messages: Rewards::init(core, &env, self.config)?,

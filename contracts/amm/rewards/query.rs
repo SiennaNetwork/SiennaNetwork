@@ -1,12 +1,13 @@
 use crate::{
     account::{Account, IAccount},
-    auth::Auth,
-    config::{RewardsConfig, IRewardsConfig},
+    auth::{Auth, AuthMethod},
+    config::{IRewardsConfig, RewardsConfig},
+    permit::Permit,
     time_utils::Moment,
-    total::{Total, ITotal},
+    total::{ITotal, Total},
     Rewards,
 };
-use fadroma::*;
+use fadroma::{Api, HumanAddr, Querier, QueryDispatch, StdResult, Storage};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -21,9 +22,9 @@ pub enum RewardsQuery {
         address: HumanAddr,
         key: String,
     },
-    WithPermit{
+    WithPermit {
         query: QueryWithPermit,
-        permit: Permit<RewardsPermissions>
+        permit: Permit<RewardsPermissions>,
     },
 
     /// For a moment in time, report pool status, with embedded clock status
@@ -40,14 +41,26 @@ where
         match self {
             RewardsQuery::Config => RewardsResponse::config(core),
             RewardsQuery::UserInfo { at, address, key } => {
-                RewardsResponse::user_info_with_vk(core, at, &address, key)
+                let account = Auth::authenticate(
+                    core,
+                    AuthMethod::ViewingKey { address, key },
+                    RewardsPermissions::UserInfo,
+                )?;
+                RewardsResponse::user_info(core, at, &account)
             }
             RewardsQuery::PoolInfo { at } => RewardsResponse::pool_info(core, at),
-            RewardsQuery::WithPermit{query, permit} =>  {
+            RewardsQuery::WithPermit { query, permit } => {
+                let account = Auth::authenticate(
+                    core,
+                    AuthMethod::Permit(permit),
+                    RewardsPermissions::UserInfo,
+                )?;
+
                 match query {
-                    QueryWithPermit::UserInfo{ at} => RewardsResponse::user_info(core, at, &permit.address)
+                    QueryWithPermit::UserInfo { at } => {
+                        RewardsResponse::user_info(core, at, &account)
+                    }
                 }
-                
             }
         }
     }
@@ -67,7 +80,6 @@ where
     C: Rewards<S, A, Q>,
 {
     /// Populate a response with account + pool + epoch info
-    fn user_info_with_vk(core: &C, time: Moment, address: &HumanAddr, key: String) -> StdResult<Self>;
     fn user_info(core: &C, time: Moment, address: &HumanAddr) -> StdResult<Self>;
     /// Populate a response with pool + epoch info
     fn pool_info(core: &C, time: Moment) -> StdResult<Self>;
@@ -81,17 +93,12 @@ where
     Q: Querier,
     C: Rewards<S, A, Q>,
 {
-    fn user_info_with_vk(core: &C, time: Moment, address: &HumanAddr, key: String) -> StdResult<Self> {
-        Auth::check_vk(core, address, &key.into())?;
+    fn user_info(core: &C, time: Moment, address: &HumanAddr) -> StdResult<Self> {
         Ok(RewardsResponse::UserInfo(Account::from_addr(
             core, address, time,
         )?))
     }
-    fn user_info(core: &C, time: Moment, address: &HumanAddr) -> StdResult<Self> {
-        Ok(RewardsResponse::UserInfo(Account::from_addr(core, address, time)?))
-    }
 
-    
     fn pool_info(core: &C, time: Moment) -> StdResult<RewardsResponse> {
         Ok(RewardsResponse::PoolInfo(Total::from_time(core, time)?))
     }
@@ -103,11 +110,11 @@ where
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum QueryWithPermit {
-    UserInfo{ at: Moment},
+    UserInfo { at: Moment },
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum RewardsPermissions {
-    UserInfo
+    UserInfo,
 }
