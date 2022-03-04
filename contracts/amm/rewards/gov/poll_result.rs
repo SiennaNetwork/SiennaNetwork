@@ -1,4 +1,4 @@
-use fadroma::{Api, Composable, Querier, StdError, StdResult, Storage, Uint128};
+use fadroma::{Api, Composable, Querier, StdResult, Storage, Uint128};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -82,8 +82,9 @@ where
     }
 
     fn get(core: &C, poll_id: u64) -> StdResult<Self> {
-        core.get_ns::<Self>(Self::SELF, &poll_id.to_be_bytes())?
-            .ok_or_else(|| StdError::generic_err("failed to parse poll result"))
+        Ok(core
+            .get_ns::<Self>(Self::SELF, &poll_id.to_be_bytes())?
+            .unwrap())
     }
     fn new(_: &C, poll_id: u64) -> Self {
         Self {

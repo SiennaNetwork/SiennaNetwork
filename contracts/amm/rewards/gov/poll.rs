@@ -141,21 +141,24 @@ where
     }
 
     fn creator(core: &C, poll_id: u64) -> StdResult<CanonicalAddr> {
-        core.get_ns::<CanonicalAddr>(Self::CREATOR, &poll_id.to_be_bytes())?
-            .ok_or_else(|| StdError::generic_err("failed to parse poll creator"))
+        Ok(core
+            .get_ns::<CanonicalAddr>(Self::CREATOR, &poll_id.to_be_bytes())?
+            .unwrap())
     }
     fn metadata(core: &C, poll_id: u64) -> StdResult<PollMetadata> {
         PollMetadata::get(core, poll_id)
     }
 
     fn expiration(core: &C, poll_id: u64) -> StdResult<Expiration> {
-        core.get_ns::<Expiration>(Self::EXPIRATION, &poll_id.to_be_bytes())?
-            .ok_or_else(|| StdError::generic_err("failed to parse poll expiration"))
+        Ok(core
+            .get_ns::<Expiration>(Self::EXPIRATION, &poll_id.to_be_bytes())?
+            .unwrap())
     }
 
     fn status(core: &C, poll_id: u64) -> StdResult<PollStatus> {
-        core.get_ns::<PollStatus>(Self::STATUS, &poll_id.to_be_bytes())?
-            .ok_or_else(|| StdError::generic_err("failed to parse poll expiration"))
+        Ok(core
+            .get_ns::<PollStatus>(Self::STATUS, &poll_id.to_be_bytes())?
+            .unwrap())
     }
 
     fn commit_status(core: &mut C, poll_id: u64, status: PollStatus) -> StdResult<()> {
@@ -164,8 +167,9 @@ where
     }
 
     fn current_quorum(core: &C, poll_id: u64) -> StdResult<Decimal> {
-        core.get_ns::<Decimal>(Self::CURRENT_QUORUM, &poll_id.to_be_bytes())?
-            .ok_or_else(|| StdError::generic_err("failed to parse poll expiration"))
+        Ok(core
+            .get_ns::<Decimal>(Self::CURRENT_QUORUM, &poll_id.to_be_bytes())?
+            .unwrap())
     }
 
     fn new(

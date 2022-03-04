@@ -86,18 +86,15 @@ where
     }
 
     fn threshold(core: &C) -> StdResult<Uint128> {
-        core.get::<Uint128>(Self::THRESHOLD)?
-            .ok_or_else(|| StdError::generic_err("threshold not set"))
+        Ok(core.get::<Uint128>(Self::THRESHOLD)?.unwrap())
     }
 
     fn quorum(core: &C) -> StdResult<Decimal> {
-        core.get::<Decimal>(Self::QUORUM)?
-            .ok_or_else(|| StdError::generic_err("quorum not set"))
+        Ok(core.get::<Decimal>(Self::QUORUM)?.unwrap())
     }
 
     fn deadline(core: &C) -> StdResult<u64> {
-        core.get::<u64>(Self::DEADLINE)?
-            .ok_or_else(|| StdError::generic_err("deadline not set"))
+        Ok(core.get::<u64>(Self::DEADLINE)?.unwrap())
     }
 }
 
