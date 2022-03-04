@@ -129,11 +129,10 @@ where
         poll_id: u64,
         timestamp: Moment,
     ) -> StdResult<()> {
-        let active_polls = Self::active_polls(core, address, timestamp)?;
-        let active_polls = active_polls
-            .into_iter()
-            .filter(|id| *id != poll_id)
-            .collect();
+        let mut active_polls = Self::active_polls(core, address, timestamp)?;
+        let position = active_polls.iter().position(|id| *id == poll_id).unwrap();
+        active_polls.swap_remove(position);
+
         Self::set_active_polls(core, address, &active_polls)?;
         Ok(())
     }
@@ -262,8 +261,7 @@ where
     C: Composable<S, A, Q>,
 {
     polls
-        .iter()
-        .copied()
+        .into_iter()
         .filter(|id| {
             let expiration = Poll::expiration(core, *id).unwrap();
             !expiration.is_expired(timestamp)
