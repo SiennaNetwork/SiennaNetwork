@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 pub struct PollMetadata {
     pub title: String,
     pub description: String,
-    pub poll_type: PollType,
+    pub poll_type: String,
 }
 
 impl PollMetadata {
@@ -40,12 +40,4 @@ where
     fn get(core: &C, poll_id: u64) -> StdResult<Self> {
         Ok(core.get_ns(Self::SELF, &poll_id.to_be_bytes())?.unwrap())
     }
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
-#[serde(rename_all = "snake_case")]
-pub enum PollType {
-    SiennaRewards,
-    SiennaSwapParameters,
-    Other,
 }

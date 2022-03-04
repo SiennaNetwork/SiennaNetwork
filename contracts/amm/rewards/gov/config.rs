@@ -15,10 +15,12 @@ impl GovernanceConfig {
     //metadata configuration
     pub const MIN_TITLE_LENGTH: usize = 8;
     pub const MAX_TITLE_LENGTH: usize = 64;
-    pub const COMMITTEE_CAPACITY: usize = 3;
 
     pub const MIN_DESC_LENGTH: usize = 8;
     pub const MAX_DESC_LENGTH: usize = 1024;
+
+    pub const MIN_POLL_TYPE_LENGTH: usize = 8;
+    pub const MAX_POLL_TYPE_LENGTH: usize = 24;
 
     pub const DEFAULT_QUORUM_PERCENT: u64 = 33;
     pub const DEFAULT_TRESHOLD: Uint128 = Uint128(3500);

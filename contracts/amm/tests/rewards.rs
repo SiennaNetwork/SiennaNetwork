@@ -4,10 +4,8 @@ use sienna_rewards::{
     ensemble::MockEnv,
     gov::handle::GovernanceHandle,
     gov::{
-        poll_metadata::{PollMetadata, PollType},
-        query::GovernanceQuery,
-        response::GovernanceResponse::VoteStatus,
-        vote::VoteType,
+        poll_metadata::PollMetadata, query::GovernanceQuery,
+        response::GovernanceResponse::VoteStatus, vote::VoteType,
     },
     handle::RewardsHandle,
     query::RewardsQuery,
@@ -42,7 +40,7 @@ fn should_create_poll() {
     let meta = PollMetadata {
         description: "this is a description that longer than 8 characters.".to_string(),
         title: "This is a title, no really".to_string(),
-        poll_type: PollType::SiennaRewards,
+        poll_type: "Random type".to_string(),
     };
 
     let env = MockEnv::new(sender.clone(), amm.rewards.to_owned().try_into().unwrap());
@@ -68,7 +66,7 @@ fn should_paginate_polls() {
     let meta = PollMetadata {
         description: "this is a description that longer than 8 characters.".to_string(),
         title: "This is a title, no really".to_string(),
-        poll_type: PollType::SiennaRewards,
+        poll_type: "Random type".to_string(),
     };
 
     let env = MockEnv::new(sender.clone(), amm.rewards.to_owned().try_into().unwrap());
@@ -99,7 +97,7 @@ fn should_cast_vote() {
     let meta = PollMetadata {
         description: "this is a description that longer than 8 characters.".to_string(),
         title: "This is a title, no really".to_string(),
-        poll_type: PollType::SiennaRewards,
+        poll_type: "Random type".to_string(),
     };
 
     let env = MockEnv::new(sender.clone(), amm.rewards.to_owned().try_into().unwrap());
@@ -152,7 +150,7 @@ fn should_change_choice() {
     let meta = PollMetadata {
         description: "this is a description that is longer than 8 characters.".to_string(),
         title: "This is a title, no really".to_string(),
-        poll_type: PollType::SiennaRewards,
+        poll_type: "Random type".to_string(),
     };
 
     let env = MockEnv::new(sender.clone(), amm.rewards.to_owned().try_into().unwrap());
@@ -236,7 +234,7 @@ fn should_remove_vote() {
     let meta = PollMetadata {
         description: "this is a description that is longer than 8 characters.".to_string(),
         title: "This is a title, no really".to_string(),
-        poll_type: PollType::SiennaRewards,
+        poll_type: "Random type".to_string(),
     };
 
     let env = MockEnv::new(sender.clone(), amm.rewards.to_owned().try_into().unwrap());
@@ -289,7 +287,7 @@ fn should_update_after_deposit() {
     let meta = PollMetadata {
         description: "this is a description that is longer than 8 characters.".to_string(),
         title: "This is a title, no really".to_string(),
-        poll_type: PollType::SiennaRewards,
+        poll_type: "Random type".to_string(),
     };
 
     let env = MockEnv::new(sender.clone(), amm.rewards.to_owned().try_into().unwrap());
@@ -346,7 +344,7 @@ fn should_not_withdraw() {
     let meta = PollMetadata {
         description: "this is a description that is longer than 8 characters.".to_string(),
         title: "This is a title, no really".to_string(),
-        poll_type: PollType::SiennaRewards,
+        poll_type: "Random type".to_string(),
     };
 
     let env = MockEnv::new(sender.clone(), amm.rewards.to_owned().try_into().unwrap());
@@ -391,7 +389,7 @@ fn should_withdraw() {
     let meta = PollMetadata {
         description: "this is a description that is longer than 8 characters.".to_string(),
         title: "This is a title, no really".to_string(),
-        poll_type: PollType::SiennaRewards,
+        poll_type: "Random type".to_string(),
     };
 
     let env = MockEnv::new(sender.clone(), amm.rewards.to_owned().try_into().unwrap());

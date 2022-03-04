@@ -49,6 +49,12 @@ where
                     GovernanceConfig::MIN_DESC_LENGTH,
                     GovernanceConfig::MAX_DESC_LENGTH,
                 )?;
+                validator::validate_text_length(
+                    &meta.poll_type,
+                    "Poll type",
+                    GovernanceConfig::MIN_POLL_TYPE_LENGTH,
+                    GovernanceConfig::MAX_POLL_TYPE_LENGTH,
+                )?;
                 let account = Account::from_env(core, &env)?;
                 let threshold = GovernanceConfig::threshold(core)?;
 
