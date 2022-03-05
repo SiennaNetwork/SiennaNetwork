@@ -8,6 +8,7 @@ use crate::{
     time_utils::{Duration, Moment},
     total::{ITotal, Total},
 };
+use amm_shared::Sender;
 use fadroma::*;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -230,8 +231,8 @@ where
         } else if self.total.staked < amount {
             errors::withdraw_fatal(self.total.staked, amount)
         } else {
-            // TODO probably must go into commit_withdrawal since other methods call it directly
-            let user = User::get(core, &self.address, self.total.clock.now)?;
+            let sender = Sender::from_human( &self.address, core.api())?;
+            let user = User::get(core, &sender, self.total.clock.now)?;
             let threshold = GovernanceConfig::threshold(core)?;
             if !user.can_unstake(self.staked.u128(), threshold.into(), amount.u128()) {
                 errors::unstake_disallowed()?
@@ -298,9 +299,10 @@ where
         Ok(())
     }
     fn commit_deposit(&mut self, core: &mut C, amount: Amount) -> StdResult<()> {
-        let user = User::get(core, &self.address, self.total.clock.now)?;
+        let sender = Sender::from_human( &self.address, core.api())?;
+        let user = User::get(core, &sender, self.total.clock.now)?;
         user.active_polls.into_iter().for_each(|poll_id| {
-            User::increase_vote_power(core, poll_id, &self.address, amount, self.total.clock.now).unwrap()
+            User::increase_vote_power(core, poll_id, &sender, amount, self.total.clock.now).unwrap()
         });
 
         self.commit_elapsed(core)?;

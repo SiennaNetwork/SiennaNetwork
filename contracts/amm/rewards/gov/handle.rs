@@ -67,11 +67,10 @@ where
                 let current_quorum = GovernanceConfig::quorum(core)?;
                 let expiration = Expiration::AtTime(env.block.time + deadline);
 
-                //refactor codebase to use this sender
                 let sender = Sender::from_human(&env.message.sender, core.api())?;
 
-                let poll = Poll::new(core, &env.message.sender, expiration, meta, current_quorum)?;
-                User::create_poll(core, &env.message.sender, &poll, env.block.time)?;
+                let poll = Poll::new(core, &sender, expiration, meta, current_quorum)?;
+                User::create_poll(core, &sender, &poll, env.block.time)?;
 
                 Ok(HandleResponse {
                     data: Some(to_binary(&poll)?),
@@ -87,11 +86,11 @@ where
 
                 let account = Account::from_env(core, &env)?;
                 let power = account.staked;
-
+                let sender = Sender::from_human(&env.message.sender, core.api())?;
                 User::add_vote(
                     core,
                     poll_id,
-                    &env.message.sender,
+                    &sender,
                     choice,
                     power,
                     env.block.time,
@@ -103,7 +102,8 @@ where
                 if expiration.is_expired(env.block.time) {
                     return poll_expired();
                 }
-                User::change_choice(core, poll_id, &env.message.sender, choice, env.block.time)?;
+                let sender = Sender::from_human( &env.message.sender, core.api())?;
+                User::change_choice(core, poll_id, &sender, choice, env.block.time)?;
                 Ok(HandleResponse::default())
             }
             GovernanceHandle::Unvote { poll_id } => {
@@ -111,7 +111,8 @@ where
                 if expiration.is_expired(env.block.time) {
                     return poll_expired();
                 }
-                User::remove_vote(core, poll_id, &env.message.sender, env.block.time)?;
+                let sender = Sender::from_human(&env.message.sender, core.api())?;
+                User::remove_vote(core, poll_id, &sender, env.block.time)?;
                 Ok(HandleResponse::default())
             }
 

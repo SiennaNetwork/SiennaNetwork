@@ -1,3 +1,4 @@
+use amm_shared::Sender;
 use fadroma::*;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -51,7 +52,7 @@ where
 
     fn new(
         core: &mut C,
-        creator: &HumanAddr,
+        creator: &Sender,
         expiration: Expiration,
         metadata: PollMetadata,
         current_quorum: Decimal,
@@ -60,7 +61,7 @@ where
     fn store(&self, core: &mut C) -> StdResult<()>;
     fn get(core: &C, poll_id: u64, now: Moment) -> StdResult<Self>;
 
-    fn creator(core: &C, poll_id: u64) -> StdResult<CanonicalAddr>;
+    fn creator(core: &C, poll_id: u64) -> StdResult<Sender>;
     fn metadata(core: &C, poll_id: u64) -> StdResult<PollMetadata>;
     fn expiration(core: &C, poll_id: u64) -> StdResult<Expiration>;
     fn status(core: &C, poll_id: u64) -> StdResult<PollStatus>;
@@ -122,7 +123,7 @@ where
     }
 
     fn get(core: &C, poll_id: u64, now: Moment) -> StdResult<Self> {
-        let creator = Self::creator(core, poll_id)?.humanize(core.api())?;
+        let creator = Self::creator(core, poll_id)?.human;
         let expiration = Self::expiration(core, poll_id)?;
         let mut status = Self::status(core, poll_id)?;
         if !expiration.is_expired(now) {
@@ -140,10 +141,11 @@ where
         })
     }
 
-    fn creator(core: &C, poll_id: u64) -> StdResult<CanonicalAddr> {
-        Ok(core
+    fn creator(core: &C, poll_id: u64) -> StdResult<Sender> {
+        let canonical_addr = core
             .get_ns::<CanonicalAddr>(Self::CREATOR, &poll_id.to_be_bytes())?
-            .unwrap())
+            .unwrap();
+        Ok(Sender::from_canonical(&canonical_addr, core.api())?)
     }
     fn metadata(core: &C, poll_id: u64) -> StdResult<PollMetadata> {
         PollMetadata::get(core, poll_id)
@@ -174,14 +176,14 @@ where
 
     fn new(
         core: &mut C,
-        creator: &HumanAddr,
+        creator: &Sender,
         expiration: Expiration,
         metadata: PollMetadata,
         current_quorum: Decimal,
     ) -> StdResult<Self> {
         let id = Self::create_id(core)?;
         Ok(Self {
-            creator: creator.clone(),
+            creator: creator.human.clone(),
             id,
             current_quorum,
             expiration,

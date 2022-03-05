@@ -1,3 +1,4 @@
+use amm_shared::Sender;
 use fadroma::*;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -33,12 +34,12 @@ where
     C: Composable<S, A, Q>,
     Self: Sized,
 {
-    fn store(self, core: &mut C, address: &HumanAddr, poll_id: u64) -> StdResult<Self>;
-    fn new(core: &C, variant: VoteType, voter: &HumanAddr, vote_power: Uint128) -> StdResult<Self>;
-    fn get(core: &C, address: &HumanAddr, poll_id: u64) -> StdResult<Self>;
-    fn set(core: &mut C, address: &HumanAddr, poll_id: u64, vote: &Vote) -> StdResult<()>;
-    fn increase(core: &mut C, address: &HumanAddr, poll_id: u64, amount: u128) -> StdResult<()>;
-    fn remove(core: &mut C, address: &HumanAddr, poll_id: u64) -> StdResult<()>;
+    fn store(self, core: &mut C, sender: &Sender, poll_id: u64) -> StdResult<Self>;
+    fn new(_: &C, choice: VoteType, voter: &Sender, vote_power: Uint128) -> StdResult<Self>;
+    fn get(core: &C, sender: &Sender, poll_id: u64) -> StdResult<Self>;
+    fn set(core: &mut C, sender: &Sender, poll_id: u64, vote: &Vote) -> StdResult<()>;
+    fn increase(core: &mut C, sender: &Sender, poll_id: u64, amount: u128) -> StdResult<()>;
+    fn remove(core: &mut C, sender: &Sender, poll_id: u64) -> StdResult<()>;
 }
 
 impl<S, A, Q, C> IVote<S, A, Q, C> for Vote
@@ -49,50 +50,45 @@ where
     C: Composable<S, A, Q>,
     Self: Sized,
 {
-    fn store(self, core: &mut C, address: &HumanAddr, poll_id: u64) -> StdResult<Self> {
-        Vote::set(core, address, poll_id, &self)?;
+    fn store(self, core: &mut C, sender: &Sender, poll_id: u64) -> StdResult<Self> {
+        Vote::set(core, sender, poll_id, &self)?;
         Ok(self)
     }
 
-    fn get(core: &C, address: &HumanAddr, poll_id: u64) -> StdResult<Self> {
+    fn get(core: &C, sender: &Sender, poll_id: u64) -> StdResult<Self> {
         let prefix = Self::build_prefix(poll_id)?;
-        let key = core.canonize(address)?;
-        core.get_ns::<Vote>(&prefix, key.as_slice())?
+        core.get_ns::<Vote>(&prefix, sender.canonical.as_slice())?
             .ok_or_else(|| StdError::generic_err("Can't find vote for user on that poll"))
     }
 
-    fn set(core: &mut C, address: &HumanAddr, poll_id: u64, vote: &Vote) -> StdResult<()> {
+    fn set(core: &mut C,  sender: &Sender, poll_id: u64, vote: &Vote) -> StdResult<()> {
         let prefix = Self::build_prefix(poll_id)?;
-        let key = core.canonize(address)?;
-        core.set_ns(&prefix, key.as_slice(), vote)?;
+        core.set_ns(&prefix, sender.canonical.as_slice(), vote)?;
         Ok(())
     }
 
-    fn increase(core: &mut C, address: &HumanAddr, poll_id: u64, amount: u128) -> StdResult<()> {
-        let mut vote = Self::get(core, address, poll_id)?;
+    fn increase(core: &mut C, sender: &Sender, poll_id: u64, amount: u128) -> StdResult<()> {
+        let mut vote = Self::get(core, sender, poll_id)?;
         vote.power += Uint128(amount);
-        Self::set(core, address, poll_id, &vote)?;
+        Self::set(core, sender, poll_id, &vote)?;
         Ok(())
     }
 
-    fn remove(core: &mut C, address: &HumanAddr, poll_id: u64) -> StdResult<()> {
+    fn remove(core: &mut C, sender: &Sender, poll_id: u64) -> StdResult<()> {
         let key = [
             &Self::build_prefix(poll_id)?,
-            core.canonize(address)?.as_slice(),
+            sender.canonical.as_slice(),
         ]
         .concat();
-
         core.storage_mut().remove(&key);
-
         Ok(())
     }
 
-    fn new(core: &C, choice: VoteType, voter: &HumanAddr, vote_power: Uint128) -> StdResult<Self> {
-        let voter = core.canonize(voter)?;
+    fn new(_: &C, choice: VoteType, voter: &Sender, vote_power: Uint128) -> StdResult<Self> {
         Ok(Self {
             power: vote_power,
             choice,
-            voter,
+            voter: voter.canonical.clone(),
         })
     }
 }

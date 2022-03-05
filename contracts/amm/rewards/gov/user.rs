@@ -1,4 +1,5 @@
-use fadroma::{Api, Composable, HumanAddr, Querier, StdError, StdResult, Storage, Uint128};
+use amm_shared::Sender;
+use fadroma::{Api, Composable, Querier, StdError, StdResult, Storage, Uint128, UsuallyOk};
 use serde::{Deserialize, Serialize};
 
 use crate::time_utils::Moment;
@@ -38,44 +39,44 @@ where
     C: Composable<S, A, Q>,
     Self: Sized,
 {
-    fn get(core: &C, address: &HumanAddr, now: Moment) -> StdResult<User>;
-    fn store(&self, core: &mut C, address: &HumanAddr) -> StdResult<()>;
+    fn get(core: &C, sender: &Sender, now: Moment) -> StdResult<User>;
+    fn store(&self, core: &mut C, sender: &Sender) -> UsuallyOk;
 
-    fn active_polls(core: &C, address: &HumanAddr, now: Moment) -> StdResult<Vec<u64>>;
-    fn set_active_polls(core: &mut C, address: &HumanAddr, polls: &Vec<u64>) -> StdResult<()>;
+    fn active_polls(core: &C, sender: &Sender, now: Moment) -> StdResult<Vec<u64>>;
+    fn set_active_polls(core: &mut C, address: &Sender, polls: &Vec<u64>) -> UsuallyOk;
     fn remove_active_poll(
         core: &mut C,
-        address: &HumanAddr,
+        sender: &Sender,
         poll_id: u64,
         timestamp: Moment,
-    ) -> StdResult<()>;
+    ) -> UsuallyOk;
 
-    fn create_poll(core: &mut C, sender: &HumanAddr, poll: &Poll, now: Moment) -> StdResult<()>;
-    fn created_polls(core: &C, address: &HumanAddr, now: Moment) -> StdResult<Vec<u64>>;
+    fn create_poll(core: &mut C, sender: &Sender, poll: &Poll, now: Moment) -> UsuallyOk;
+    fn created_polls(core: &C, sender: &Sender, now: Moment) -> StdResult<Vec<u64>>;
 
     fn add_vote(
         core: &mut C,
         poll_id: u64,
-        sender: &HumanAddr,
+        sender: &Sender,
         choice: VoteType,
         power: Uint128,
         now: Moment,
-    ) -> StdResult<()>;
+    ) -> UsuallyOk;
     fn change_choice(
         core: &mut C,
         poll_id: u64,
-        sender: &HumanAddr,
+        sender: &Sender,
         choice: VoteType,
         now: Moment,
-    ) -> StdResult<()>;
+    ) -> UsuallyOk;
     fn increase_vote_power(
         core: &mut C,
         poll_id: u64,
-        sender: &HumanAddr,
+        sender: &Sender,
         power_diff: Uint128,
         now: Moment,
-    ) -> StdResult<()>;
-    fn remove_vote(core: &mut C, poll_id: u64, sender: &HumanAddr, now: Moment) -> StdResult<()>;
+    ) -> UsuallyOk;
+    fn remove_vote(core: &mut C, poll_id: u64, sender: &Sender, now: Moment) -> UsuallyOk;
 }
 
 impl<S, A, Q, C> IUser<S, A, Q, C> for User
@@ -85,70 +86,66 @@ where
     Q: Querier,
     C: Composable<S, A, Q>,
 {
-    fn get(core: &C, address: &HumanAddr, now: Moment) -> StdResult<User> {
-        let active_polls = User::active_polls(core, address, now)?;
-        let created_polls = User::created_polls(core, address, now)?;
+    fn get(core: &C, sender: &Sender, now: Moment) -> StdResult<User> {
+        // let sender = Sender::from_human(address, core.api())?;
+        let active_polls = User::active_polls(core, &sender, now)?;
+        let created_polls = User::created_polls(core, &sender, now)?;
         Ok(Self {
             active_polls,
             created_polls,
         })
     }
 
-    fn active_polls(core: &C, address: &HumanAddr, timestamp: Moment) -> StdResult<Vec<u64>> {
-        let canonized_address = core.canonize(address)?;
+    fn active_polls(core: &C, sender: &Sender, timestamp: Moment) -> StdResult<Vec<u64>> {
         let polls = core
-            .get_ns::<Vec<u64>>(Self::ACTIVE_POLLS, canonized_address.as_slice())?
+            .get_ns::<Vec<u64>>(Self::ACTIVE_POLLS, sender.canonical.as_slice())?
             .unwrap_or_default();
         Ok(filter_active_polls(core, polls, timestamp))
     }
 
-    fn store(&self, core: &mut C, address: &HumanAddr) -> StdResult<()> {
-        let canonized_address = core.canonize(address)?;
+    fn store(&self, core: &mut C, sender: &Sender) -> UsuallyOk {
         core.set_ns(
             Self::CREATED_POLLS,
-            canonized_address.as_slice(),
+            sender.canonical.as_slice(),
             &self.created_polls,
         )?;
-        User::set_active_polls(core, address, &self.active_polls)?;
+        User::set_active_polls(core, sender, &self.active_polls)?;
         Ok(())
     }
 
     /**
     Overwrites the saved active polls for given user
     */
-    fn set_active_polls(core: &mut C, address: &HumanAddr, polls: &Vec<u64>) -> StdResult<()> {
-        let address = core.canonize(address)?;
-        core.set_ns(Self::ACTIVE_POLLS, address.as_slice(), polls)?;
-
+    fn set_active_polls(core: &mut C, sender: &Sender, polls: &Vec<u64>) -> UsuallyOk {
+        core.set_ns(Self::ACTIVE_POLLS, sender.canonical.as_slice(), polls)?;
         Ok(())
     }
 
     fn remove_active_poll(
         core: &mut C,
-        address: &HumanAddr,
+        sender: &Sender,
         poll_id: u64,
         timestamp: Moment,
-    ) -> StdResult<()> {
-        let mut active_polls = Self::active_polls(core, address, timestamp)?;
+    ) -> UsuallyOk {
+        let mut active_polls = Self::active_polls(core, sender, timestamp)?;
         let position = active_polls.iter().position(|id| *id == poll_id).unwrap();
         active_polls.swap_remove(position);
 
-        Self::set_active_polls(core, address, &active_polls)?;
+        Self::set_active_polls(core, sender, &active_polls)?;
         Ok(())
     }
 
-    fn create_poll(core: &mut C, sender: &HumanAddr, poll: &Poll, now: Moment) -> StdResult<()> {
+    fn create_poll(core: &mut C, sender: &Sender, poll: &Poll, now: Moment) -> UsuallyOk {
         poll.store(core)?;
         PollResult::new(core, poll.id).store(core)?;
 
-        append_created_poll(core, sender, poll.id, now)?;
+        append_created_poll(core, &sender, poll.id, now)?;
         Ok(())
     }
 
-    fn created_polls(core: &C, address: &HumanAddr, timestamp: Moment) -> StdResult<Vec<u64>> {
-        let canonized_adr = core.canonize(address)?;
+    fn created_polls(core: &C, sender: &Sender, timestamp: Moment) -> StdResult<Vec<u64>> {
         let polls = core
-            .get_ns::<Vec<u64>>(User::CREATED_POLLS, canonized_adr.as_slice())?
+            .get_ns::<Vec<u64>>(User::CREATED_POLLS, sender.canonical.as_slice())?
             .unwrap_or_default();
         Ok(filter_active_polls(core, polls, timestamp))
     }
@@ -156,11 +153,11 @@ where
     fn add_vote(
         core: &mut C,
         poll_id: u64,
-        sender: &HumanAddr,
+        sender: &Sender,
         choice: VoteType,
         power: Uint128,
         now: Moment,
-    ) -> StdResult<()> {
+    ) -> UsuallyOk {
         if Vote::get(core, sender, poll_id).is_ok() {
             return Err(StdError::generic_err(
                 "Already voted. Can't cast a vote for a second time. ",
@@ -184,10 +181,10 @@ where
     fn increase_vote_power(
         core: &mut C,
         poll_id: u64,
-        sender: &HumanAddr,
+        sender: &Sender,
         power_diff: Uint128,
         now: Moment,
-    ) -> StdResult<()> {
+    ) -> UsuallyOk {
         Vote::increase(core, sender, poll_id, power_diff.u128()).unwrap();
         let vote = Vote::get(core, sender, poll_id)?;
         Poll::update_result(
@@ -206,10 +203,10 @@ where
     fn change_choice(
         core: &mut C,
         poll_id: u64,
-        sender: &HumanAddr,
+        sender: &Sender,
         choice: VoteType,
         now: Moment,
-    ) -> StdResult<()> {
+    ) -> UsuallyOk {
         let mut vote = Vote::get(core, sender, poll_id)?;
 
         if vote.choice == choice {
@@ -235,7 +232,7 @@ where
         Ok(())
     }
 
-    fn remove_vote(core: &mut C, poll_id: u64, sender: &HumanAddr, now: Moment) -> StdResult<()> {
+    fn remove_vote(core: &mut C, poll_id: u64, sender: &Sender, now: Moment) -> UsuallyOk {
         let vote = Vote::get(core, sender, poll_id)?;
         Vote::remove(core, sender, poll_id)?;
         User::remove_active_poll(core, sender, poll_id, now)?;
@@ -271,37 +268,36 @@ where
 
 fn append_active_poll<S, A, Q, C>(
     core: &mut C,
-    address: &HumanAddr,
+    sender: &Sender,
     poll_id: u64,
     now: Moment,
-) -> StdResult<()>
+) -> UsuallyOk
 where
     S: Storage,
     A: Api,
     Q: Querier,
     C: Composable<S, A, Q>,
 {
-    let mut active_polls = User::active_polls(core, address, now)?;
+    let mut active_polls = User::active_polls(core, sender, now)?;
     active_polls.push(poll_id);
-    User::set_active_polls(core, address, &active_polls)?;
+    User::set_active_polls(core, sender, &active_polls)?;
     Ok(())
 }
 
 fn append_created_poll<S, A, Q, C>(
     core: &mut C,
-    address: &HumanAddr,
+    sender: &Sender,
     poll_id: u64,
     now: Moment,
-) -> StdResult<()>
+) -> UsuallyOk
 where
     S: Storage,
     A: Api,
     Q: Querier,
     C: Composable<S, A, Q>,
 {
-    let canonized_address = core.canonize(address)?;
-    let mut polls = User::created_polls(core, address, now)?;
+    let mut polls = User::created_polls(core, sender, now)?;
     polls.push(poll_id);
-    core.set_ns(User::CREATED_POLLS, canonized_address.as_slice(), polls)?;
+    core.set_ns(User::CREATED_POLLS, sender.canonical.as_slice(), polls)?;
     Ok(())
 }

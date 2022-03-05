@@ -1,4 +1,5 @@
 
+use amm_shared::Sender;
 use fadroma::{HumanAddr, QueryDispatch, Storage, Api, Querier, StdResult};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -57,12 +58,14 @@ where
                 address,
             } => {
                 Auth::check_vk(core, &address, &key.into())?;
-                GovernanceResponse::vote_status(core, poll_id, &address)
+                let sender = Sender::from_human(&address, core.api())?;
+                GovernanceResponse::vote_status(core, poll_id, &sender)
             },
             GovernanceQuery::WithPermit {permit, query} => {
                 let addr = Auth::authenticate(core, AuthMethod::Permit(permit), GovernancePermissions::VoteStatus)?;
+                let sender = Sender::from_human(&addr, core.api())?;
                 match query {
-                    QueryWithPermit::VoteStatus{poll_id} => GovernanceResponse::vote_status(core, poll_id, &addr)
+                    QueryWithPermit::VoteStatus{poll_id} => GovernanceResponse::vote_status(core, poll_id, &sender)
                 }
             }
         }
