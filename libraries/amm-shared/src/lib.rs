@@ -32,6 +32,8 @@ pub struct Pagination {
 }
 
 pub struct Sender {
+    // intentional redundancy to avoid multiple conversions from/to CanonicalAddr
+    // which is expensive
     pub human: HumanAddr,
     pub canonical: CanonicalAddr,
 }
@@ -41,6 +43,14 @@ impl Sender {
         Ok(Self {
             human: human.clone(),
             canonical,
+        })
+    }
+
+    pub fn from_canonical(canonical: &CanonicalAddr, api: &impl Api) -> StdResult<Self> {
+        let human = api.human_address(canonical)?;
+        Ok(Self {
+            human,
+            canonical: canonical.clone(),
         })
     }
 }
