@@ -2,9 +2,10 @@ use crate::setup::Lend;
 use lend_shared::{
     core::{utilization_rate, Pagination},
     fadroma::{
-        cosmwasm_std::{to_binary, StdError, Uint128},
+        cosmwasm_std::{to_binary, StdError, Uint128, HumanAddr},
         ensemble::MockEnv,
         snip20_impl::msg as snip20,
+        permit::Permit,
         Decimal256, Uint256,
     },
     interfaces::{market, overseer},
@@ -148,6 +149,103 @@ fn borrow() {
 
     let id = lend.id(CHESTER, market_one.address);
     assert_eq!(chester.id, id);
+}
+
+#[test]
+fn cannot_increase_collateral_value_by_entering_the_same_market_multiple_times() {
+    let mut lend = Lend::default();
+
+    let token_1 = lend.new_underlying_token("ATOM", 9).unwrap();
+    let token_2 = lend.new_underlying_token("SSCRT", 6).unwrap();
+
+    let market_1 = lend.whitelist_market(
+        token_1,
+        Decimal256::percent(50),
+        None,
+        None
+    ).unwrap();
+
+    let market_2 = lend.whitelist_market(
+        token_2,
+        Decimal256::percent(50),
+        None,
+        None
+    ).unwrap();
+
+    let prefund_alice_atom = Uint128(1000);
+    let prefund_alice_scrt = Uint128(10000);
+    let prefund_bob_atom = Uint128(1000);
+    let borrow_bob_scrt = Uint256::from(2000);
+
+    lend.prefund_and_deposit(ALICE, prefund_alice_atom, market_1.contract.address.clone());
+    lend.prefund_and_deposit(BOB, prefund_bob_atom, market_1.contract.address.clone());
+    lend.prefund_and_deposit(ALICE, prefund_alice_scrt, market_2.contract.address.clone());
+
+    lend.ensemble.execute(
+        &overseer::HandleMsg::Enter {
+            markets: vec![market_1.contract.address.clone()],
+        },
+        MockEnv::new(ALICE, lend.overseer.clone())
+    ).unwrap();
+
+    lend.ensemble.execute(
+        &overseer::HandleMsg::Enter {
+            markets: vec![
+                market_1.contract.address.clone(),
+                market_1.contract.address.clone(),
+                market_2.contract.address.clone(),
+                market_1.contract.address.clone(),
+                market_1.contract.address.clone()
+            ],
+        },
+        MockEnv::new(BOB, lend.overseer.clone())
+    ).unwrap();
+
+    lend.ensemble.execute(
+        &overseer::HandleMsg::Enter {
+            markets: vec![
+                market_1.contract.address.clone(),
+                market_2.contract.address.clone()
+            ],
+        },
+        MockEnv::new(BOB, lend.overseer.clone())
+    ).unwrap();
+
+    let entered_markets: Vec<overseer::Market<HumanAddr>> = lend.ensemble.query(
+        lend.overseer.address.clone(),
+        overseer::QueryMsg::EnteredMarkets {
+            method: Permit::new(
+                BOB,
+                vec![overseer::OverseerPermissions::AccountInfo],
+                vec![lend.overseer.address.clone()],
+                "entered_markets",
+            )
+            .into()
+        }
+    ).unwrap();
+
+    assert_eq!(entered_markets.len(), 2);
+
+    let err = lend.ensemble.execute(
+        &market::HandleMsg::Borrow {
+            amount: borrow_bob_scrt,
+        },
+        MockEnv::new(BOB, market_2.contract.clone()),
+    )
+    .unwrap_err();
+
+    let liquidity = lend.get_liquidity(
+        BOB,
+        None,
+        Uint256::zero(),
+        Uint256::zero(),
+        None
+    ).unwrap();
+
+    assert_eq!(liquidity.liquidity, Uint256::from(500));
+    assert_eq!(liquidity.shortfall, Uint256::zero());
+
+    assert_eq!(err, StdError::generic_err(format!("Insufficient liquidity. Shortfall: {}", 1500)));
 }
 
 #[test]

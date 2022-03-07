@@ -243,7 +243,9 @@ impl Account {
         }
 
         for id in ids {
-            markets.push(id);
+            if !markets.contains(&id) {
+                markets.push(id);
+            }
         }
 
         self.save_markets(storage, &markets)
