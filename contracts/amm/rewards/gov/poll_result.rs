@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use super::vote::VoteType;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
+/// Book keeping data structure used for keeping up to date results of each poll. Handles the calculations internally
 pub struct PollResult {
     pub poll_id: u64,
     pub yes_votes: Uint128,

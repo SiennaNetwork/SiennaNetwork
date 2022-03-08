@@ -22,10 +22,18 @@ use super::{
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum GovernanceHandle {
+    /// Handles the creation of polls, metadata is the user input. The rest is determined automatically
     CreatePoll { meta: PollMetadata },
+    /// Handles adding votes to a poll
     Vote { choice: VoteType, poll_id: u64 },
+    /// Handles removing votes from a poll
     Unvote { poll_id: u64 },
+
+    /// Handles changing the choice for a poll
     ChangeVoteChoice { choice: VoteType, poll_id: u64 },
+
+    /// Updates the configuration, the fields are optional so configuration can be partially updated by only setting
+    /// the desired fields to update
     UpdateConfig { config: GovernanceConfig },
 }
 impl<S, A, Q, C> HandleDispatch<S, A, Q, C> for GovernanceHandle
@@ -35,6 +43,7 @@ where
     Q: Querier,
     C: Governance<S, A, Q>,
 {
+    /// Handles all of the governance transactions. For a detailed flow, check the governance documentation
     fn dispatch_handle(self, core: &mut C, env: Env) -> StdResult<HandleResponse> {
         match self {
             GovernanceHandle::CreatePoll { meta } => {
@@ -87,14 +96,7 @@ where
                 let account = Account::from_env(core, &env)?;
                 let power = account.staked;
                 let sender = Sender::from_human(&env.message.sender, core.api())?;
-                User::add_vote(
-                    core,
-                    poll_id,
-                    &sender,
-                    choice,
-                    power,
-                    env.block.time,
-                )?;
+                User::add_vote(core, poll_id, &sender, choice, power, env.block.time)?;
                 Ok(HandleResponse::default())
             }
             GovernanceHandle::ChangeVoteChoice { choice, poll_id } => {
@@ -102,7 +104,7 @@ where
                 if expiration.is_expired(env.block.time) {
                     return poll_expired();
                 }
-                let sender = Sender::from_human( &env.message.sender, core.api())?;
+                let sender = Sender::from_human(&env.message.sender, core.api())?;
                 User::change_choice(core, poll_id, &sender, choice, env.block.time)?;
                 Ok(HandleResponse::default())
             }

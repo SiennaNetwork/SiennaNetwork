@@ -18,21 +18,30 @@ use super::{
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct Poll {
+    /// Unique, auto increment id for the poll
     pub id: u64,
+    /// Creator of the poll, shown as HumanAddr but stored as CanonicalAddr
     pub creator: HumanAddr,
+    /// Meta information about the poll, set as user input
     pub metadata: PollMetadata,
+    /// When the poll expires.
+    /// Set as current_time + deadline
     pub expiration: Expiration,
+    /// Up to date status of the poll
     pub status: PollStatus,
+    /// The quroum upon time of creation
     pub current_quorum: Decimal,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
+/// Helper data structure used for returning the full information about a given poll
 pub struct PollInfo {
     pub instance: Poll,
     pub result: PollResult,
 }
 
 impl Poll {
+    /// Keys used for storing the data
     pub const TOTAL: &'static [u8] = b"/gov/polls/total";
     pub const CREATOR: &'static [u8] = b"/gov/poll/creator/";
     pub const EXPIRATION: &'static [u8] = b"/gov/poll/expiration";
@@ -84,6 +93,7 @@ where
     Q: Querier,
     C: Composable<S, A, Q>,
 {
+    /// Handles the auto increment ID
     fn create_id(core: &mut C) -> StdResult<u64> {
         let total = Self::count(core)?;
         let total = total.checked_add(1).unwrap();
@@ -92,10 +102,9 @@ where
 
         Ok(total)
     }
+    /// Returns the up to date auto increment ID. Can also stand for the total amount of polls created
     fn count(core: &C) -> StdResult<u64> {
-        Ok(core
-            .get::<u64>(Self::TOTAL)?
-            .ok_or_else(|| StdError::generic_err("can't find total id count"))?)
+        Ok(core.get::<u64>(Self::TOTAL)?.unwrap())
     }
 
     fn store(&self, core: &mut C) -> StdResult<()> {
@@ -191,6 +200,9 @@ where
             status: PollStatus::Failed,
         })
     }
+
+    /// Main entry point for any update on a poll.
+    /// Uses the update enum to define all possible updates on a poll
     fn update_result(
         core: &mut C,
         poll_id: u64,

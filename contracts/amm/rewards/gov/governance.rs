@@ -14,7 +14,7 @@ pub trait Governance<S: Storage, A: Api, Q: Querier>:
     + Auth<S, A, Q>     // to authenticate txs/queries
     + Sized             // to pass mutable self-reference to Total and Account
 {
-    /// Configure the rewards module
+    /// Configure the governance module
     fn init (&mut self, env: &Env, mut config: GovernanceConfig) -> StdResult<Vec<CosmosMsg>> {
         config.initialize(self, env)
     }

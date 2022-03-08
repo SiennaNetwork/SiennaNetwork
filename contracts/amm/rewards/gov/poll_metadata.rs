@@ -31,9 +31,9 @@ where
     Q: Querier,
     C: Composable<S, A, Q>,
 {
+    /// Handles saving the struct to storage. The entire struct is serialized as no field is ever read on its own
     fn store(&self, core: &mut C, poll_id: u64) -> StdResult<()> {
         core.set_ns(Self::SELF, &poll_id.to_be_bytes(), &self)?;
-
         Ok(())
     }
 
