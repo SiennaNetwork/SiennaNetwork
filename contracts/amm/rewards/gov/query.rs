@@ -1,6 +1,5 @@
-
 use amm_shared::Sender;
-use fadroma::{HumanAddr, QueryDispatch, Storage, Api, Querier, StdResult};
+use fadroma::{Api, HumanAddr, Querier, QueryDispatch, StdResult, Storage};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -8,8 +7,11 @@ use super::{
     governance::Governance,
     response::{GovernanceResponse, IGovernanceResponse},
 };
-use crate::{auth::{Auth, AuthMethod}, permit::Permit};
 use crate::time_utils::Moment;
+use crate::{
+    auth::{Auth, AuthMethod},
+    permit::Permit,
+};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
@@ -31,7 +33,7 @@ pub enum GovernanceQuery {
     },
     WithPermit {
         query: QueryWithPermit,
-        permit: Permit<GovernancePermissions>
+        permit: Permit<GovernancePermissions>,
     },
     Config {},
 }
@@ -57,30 +59,42 @@ where
                 key,
                 address,
             } => {
-                Auth::check_vk(core, &address, &key.into())?;
-                let sender = Sender::from_human(&address, core.api())?;
+                let sender = Auth::authenticate(
+                    core,
+                    AuthMethod::ViewingKey {
+                        address,
+                        key: key.into(),
+                    },
+                    GovernancePermissions::VoteStatus,
+                )?;
+                let sender = Sender::from_human(&sender, core.api())?;
                 GovernanceResponse::vote_status(core, poll_id, &sender)
-            },
-            GovernanceQuery::WithPermit {permit, query} => {
-                let addr = Auth::authenticate(core, AuthMethod::Permit(permit), GovernancePermissions::VoteStatus)?;
-                let sender = Sender::from_human(&addr, core.api())?;
+            }
+            GovernanceQuery::WithPermit { permit, query } => {
+                let sender = Auth::authenticate(
+                    core,
+                    AuthMethod::Permit(permit),
+                    GovernancePermissions::VoteStatus,
+                )?;
+                let sender = Sender::from_human(&sender, core.api())?;
                 match query {
-                    QueryWithPermit::VoteStatus{poll_id} => GovernanceResponse::vote_status(core, poll_id, &sender)
+                    QueryWithPermit::VoteStatus { poll_id } => {
+                        GovernanceResponse::vote_status(core, poll_id, &sender)
+                    }
                 }
             }
         }
     }
 }
 
-
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum QueryWithPermit {
-    VoteStatus { poll_id: u64},
+    VoteStatus { poll_id: u64 },
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum GovernancePermissions {
-    VoteStatus
+    VoteStatus,
 }
