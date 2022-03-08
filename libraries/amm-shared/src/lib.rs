@@ -1,4 +1,4 @@
-use fadroma::{Api, CanonicalAddr, Canonize, HumanAddr, StdResult};
+use fadroma::{Api, CanonicalAddr, HumanAddr, StdResult};
 // Modules re-export
 pub use fadroma;
 pub use fadroma_snip20_impl as snip20_impl;

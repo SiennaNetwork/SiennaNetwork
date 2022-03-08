@@ -20,11 +20,6 @@ pub struct Vote {
 
 impl Vote {
     pub const VOTE: &'static [u8] = b"/gov/vote/";
-
-    fn build_prefix(poll_id: u64) -> StdResult<Vec<u8>> {
-        let poll_id = poll_id.to_be_bytes().to_vec();
-        Ok(vec![Self::VOTE, poll_id.as_slice()].concat())
-    }
 }
 pub trait IVote<S, A, Q, C>
 where
@@ -56,14 +51,19 @@ where
     }
 
     fn get(core: &C, sender: &Sender, poll_id: u64) -> StdResult<Self> {
-        let prefix = Self::build_prefix(poll_id)?;
-        core.get_ns::<Vote>(&prefix, sender.canonical.as_slice())?
-            .ok_or_else(|| StdError::generic_err("Can't find vote for user on that poll"))
+        core.get_multi_ns::<Vote>(
+            &[Self::VOTE, poll_id.to_be_bytes().as_slice()],
+            sender.canonical.as_slice(),
+        )?
+        .ok_or_else(|| StdError::generic_err("Can't find vote for user on that poll"))
     }
 
-    fn set(core: &mut C,  sender: &Sender, poll_id: u64, vote: &Vote) -> StdResult<()> {
-        let prefix = Self::build_prefix(poll_id)?;
-        core.set_ns(&prefix, sender.canonical.as_slice(), vote)?;
+    fn set(core: &mut C, sender: &Sender, poll_id: u64, vote: &Vote) -> StdResult<()> {
+        core.set_multi_ns(
+            &[Self::VOTE, poll_id.to_be_bytes().as_slice()],
+            sender.canonical.as_slice(),
+            vote,
+        )?;
         Ok(())
     }
 
@@ -75,12 +75,10 @@ where
     }
 
     fn remove(core: &mut C, sender: &Sender, poll_id: u64) -> StdResult<()> {
-        let key = [
-            &Self::build_prefix(poll_id)?,
+        core.remove_multi_ns(
+            &[Self::VOTE, poll_id.to_be_bytes().as_slice()],
             sender.canonical.as_slice(),
-        ]
-        .concat();
-        core.storage_mut().remove(&key);
+        )?;
         Ok(())
     }
 
