@@ -86,7 +86,7 @@ kukumba!(
         let actual_invalid = {
             handle(&mut deps, mock_env(2, 2, &ADMIN), RPTHandle::Configure {
                 config: invalid_config.clone()
-            });
+            }).unwrap_err();
             status(&deps) }
         assert_eq!(expected_invalid, actual_invalid, "admin was able to set invalid config");
 
@@ -169,21 +169,15 @@ impl Querier for MockQuerier {
         match &request {
             QueryRequest::Wasm(msg) => {
                 match msg {
-                    WasmQuery::Smart { contract_addr, .. } => {
-                        let mgmt = HumanAddr::from("mgmt");
-                        match &contract_addr {
-                            mgmt => {
-                                let response = MGMTResponse::Progress {
-                                    time:     0u64,
-                                    launched: 0u64,
-                                    elapsed:  0u64,
-                                    unlocked: Uint128::from(2500u128),
-                                    claimed:  Uint128::zero(),
-                                };
-                                QuerierResult::Ok(to_binary(&response))
-                            },
-                            _ => unimplemented!()
-                        }
+                    WasmQuery::Smart { .. } => {
+                        let response = MGMTResponse::Progress {
+                            time:     0u64,
+                            launched: 0u64,
+                            elapsed:  0u64,
+                            unlocked: Uint128::from(2500u128),
+                            claimed:  Uint128::zero(),
+                        };
+                        QuerierResult::Ok(to_binary(&response))
                     },
                     _ => unimplemented!(),
                 }

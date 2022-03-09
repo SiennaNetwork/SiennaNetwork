@@ -23,7 +23,7 @@ kukumba! {
         harness!(deps; ADMIN, STRANGER);
         let s = Schedule { total: Uint128::from(0u128), pools: vec![] }
         tx!(deps; ADMIN, 0, 0; Configure { schedule: s.clone() } == ok!());
-        tx!(deps; ADMIN, 2, 2; Launch {} == ok!(launched: s.total)); }
+        tx!(deps; ADMIN, 2, 2; Launch { prefunded: false } == ok!(launched: s.total)); }
     when "a stranger tries to claim funds"
     then "they are denied" {
         let NOTHING = MGMTError!(NOTHING); 
@@ -47,7 +47,7 @@ kukumba! {
             tx!(deps; *user, 1, 1; Claim {} == err!(PRELAUNCH)); } }
     when "the contract is launched" {
         let t_launch = 2;
-        tx!(deps; ADMIN, 2, t_launch; Launch {} == ok!(launched: s.total)); }
+        tx!(deps; ADMIN, 2, t_launch; Launch { prefunded: false } == ok!(launched: s.total)); }
     and "the appropriate amounts will be unlocked at the appropriate times" {
         let zero = Uint128::zero();
         for P in s.pools.iter() {

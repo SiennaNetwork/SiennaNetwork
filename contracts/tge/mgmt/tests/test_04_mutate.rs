@@ -68,7 +68,7 @@ kukumba! {
         harness!(deps; ADMIN, STRANGER);
         let s = Schedule::new(&[Pool::partial("pool", 1000, &[])]);
         tx!(deps; ADMIN, 0, 0; Configure { schedule: s.clone() } == ok!());
-        tx!(deps; ADMIN, 1, 1; Launch {} == ok!(launched: 1000u128)); }
+        tx!(deps; ADMIN, 1, 1; Launch { prefunded: false } == ok!(launched: 1000u128)); }
     when "someone tries to add an account to an existing pool" {}
     then "that fails" {
         let a = Account::immediate("account", &HumanAddr::from("account"), 500);
@@ -81,7 +81,7 @@ kukumba! {
         harness!(deps; ADMIN, STRANGER);
         let original_schedule = Schedule::new(&[Pool::partial("pool", 1000, &[])]);
         tx!(deps; ADMIN, 0, 0; Configure { schedule: original_schedule.clone() } == ok!());
-        tx!(deps; ADMIN, 1, 1; Launch {} == ok!(launched: 1000u128)); }
+        tx!(deps; ADMIN, 1, 1; Launch { prefunded: false } == ok!(launched: 1000u128)); }
     when "the admin tries to add an account to a missing pool" {}
     then "the schedule is updated" {}
     and "the correct amounts claimable can be queried for the new account" {
@@ -100,7 +100,7 @@ kukumba! {
         harness!(deps; ADMIN, STRANGER);
         let s = Schedule::new(&[Pool::partial("pool", 1000, &[])]);
         tx!(deps; ADMIN, 0, 0; Configure { schedule: s.clone() } == ok!());
-        tx!(deps; ADMIN, 1, 1; Launch {} == ok!(launched: 1000u128)); }
+        tx!(deps; ADMIN, 1, 1; Launch { prefunded: false } == ok!(launched: 1000u128)); }
     when "the admin tries to add an account to a pool"
     and "the account's amount is more than what's left in the pool" {}
     then "that fails" {

@@ -16,6 +16,7 @@ kukumba! {
         use sienna_mgmt::{init, msg::Init};
         let s = Schedule::new(&[Pool::full("",&[])]);
         let _ = init(&mut deps, mock_env(0, 0, &ADMIN), Init {
+            admin: None,
             history:  None,
             schedule: s.clone(),
             token:    (cosmwasm_std::HumanAddr::from("token"), String::new()),
@@ -48,7 +49,7 @@ kukumba! {
     #[no_reconfigure_after_launch]
     given "a launched instance" {
         harness!(deps; ADMIN, RECIPIENT, STRANGER);
-        tx!(deps; ADMIN, 0, 0; Launch {} == ok!(launched: cosmwasm_std::Uint128::zero())); }
+        tx!(deps; ADMIN, 0, 0; Launch { prefunded: false} == ok!(launched: cosmwasm_std::Uint128::zero())); }
     then "the total configuration can't be changed anymore by anyone" {
         let s = sienna_schedule::Schedule::new(&[Pool::full("",&[])]);
         let UNDERWAY = MGMTError!(UNDERWAY);
@@ -61,7 +62,7 @@ kukumba! {
         harness!(deps; ADMIN, STRANGER); }
     when "a stranger tries to start the vesting"
     then "that fails" {
-        tx!(deps; STRANGER, 2, 2; Launch {} == err!(auth));
+        tx!(deps; STRANGER, 2, 2; Launch { prefunded: false } == err!(auth));
         q!(deps; Status == Status { launched: None }); }
 
     #[ok_launch]
@@ -73,7 +74,7 @@ kukumba! {
     and  "the current time is remembered as the launch date" {
         let s = sienna_schedule::Schedule::new(&[]);
         tx!(deps; ADMIN, 3, 3; Configure { schedule: s.clone() } == ok!());
-        tx!(deps; ADMIN, 4, 4; Launch {} == ok!(launched: s.total));
+        tx!(deps; ADMIN, 4, 4; Launch { prefunded: false } == ok!(launched: s.total));
         q!(deps; Status == Status { launched: Some(4) }); }
 
     #[no_relaunch]
@@ -81,12 +82,12 @@ kukumba! {
         harness!(deps; ADMIN);
         let s = sienna_schedule::Schedule::new(&[]);
         tx!(deps; ADMIN, 3, 3; Configure { schedule: s.clone() } == ok!());
-        tx!(deps; ADMIN, 4, 4; Launch {} == ok!(launched: s.total)); }
+        tx!(deps; ADMIN, 4, 4; Launch { prefunded: false } == ok!(launched: s.total)); }
     when "the admin tries to start the vesting again"
     then "the instance says it's already launched"
     and "it does not update its launch date" {
         let UNDERWAY = MGMTError!(UNDERWAY);
-        tx!(deps; ADMIN, 5, 5; Launch {} == err!(UNDERWAY));
+        tx!(deps; ADMIN, 5, 5; Launch { prefunded: false } == err!(UNDERWAY));
         q!(deps; Status == Status { launched: Some(4) }); }
 
 }

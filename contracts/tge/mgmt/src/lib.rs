@@ -2,6 +2,7 @@
 
 // TODO(fadroma): remove need for these to be public
 pub use secret_toolkit::snip20::handle::{mint_msg, transfer_msg, set_minters_msg, change_admin_msg};
+use secret_toolkit::snip20::query::balance_query;
 pub use sienna_migration::{ContractStatus, ContractStatusLevel, is_operational, can_set_status};
 pub use sienna_schedule::{
     Seconds, Schedule, Pool, Account,
@@ -33,6 +34,7 @@ pub const BLOCK_SIZE: usize = 256;
     (PRELAUNCH)   => { "The vesting has not yet begun.".to_string() };
     (NOT_FOUND)   => { "Can't find account or pool by name".to_string() };
     (ADD_ACCOUNT) => { "Can't add account - pool full".to_string() };
+    (PREFUND, $balance:expr, $required:expr) => { format!("Required prefund balance: {}, actual balance: {}", $balance, $required) };
 }
 
 contract!(
@@ -55,12 +57,15 @@ contract!(
     }
 
     [Init] (deps, env, msg: {
+        admin: Option<HumanAddr>,
         schedule: Schedule<HumanAddr>,
         history:  Option<History<HumanAddr>>,
         token:    ContractLink<HumanAddr>
     }) {
+        let admin = admin.unwrap_or(env.message.sender);
+
         State {
-            admin:    deps.api.canonical_address(&env.message.sender)?,
+            admin:    deps.api.canonical_address(&admin)?,
             history:  history.unwrap_or_default().canonize(&deps.api)?,
             launched: None,
             schedule: schedule.canonize(&deps.api)?,
@@ -183,13 +188,43 @@ contract!(
         /// Launching the instance mints the total tokens as specified by
         /// the schedule, and prevents any more tokens from ever being minted
         /// by the underlying contract.
-        Launch () {
+        Launch (prefunded: bool) {
             is_admin(&deps.api, &state, &env)?;
             is_not_launched(&state)?;
             is_operational(&state.status)?;
 
             state.launched = Some(env.block.time);
-            let messages = mint_and_clear_minters(&deps.api, &state, &env)?;
+
+            let (addr_canon, hash) = state.token.clone();
+            let addr_human = deps.api.human_address(&addr_canon)?;
+
+            let messages = if prefunded {
+                let balance = balance_query(
+                    &deps.querier,
+                    env.contract.address,
+                    todo!(),
+                    BLOCK_SIZE,
+                    hash,
+                    addr_human
+                )?.amount;
+
+                if balance != state.schedule.total {
+                    return Err(StdError::generic_err(MGMTError!(PREFUND, balance, state.schedule.total)));
+                }
+
+                vec![]
+            } else {
+                vec![
+                    mint_msg(
+                        env.contract.address.clone(), state.schedule.total,
+                        None, BLOCK_SIZE, hash.clone(), addr_human.clone()
+                    )?,
+                    set_minters_msg(
+                        vec![],
+                        None, BLOCK_SIZE, hash, addr_human
+                    )?,
+                ]
+            };
 
             save_state!();
             Ok(HandleResponse { messages, data: None, log: vec![
@@ -266,21 +301,6 @@ fn portion (state: &State, address: &CanonicalAddr, elapsed: Seconds) -> (u128, 
         }
     }
     return (unlocked, 0)
-}
-
-fn mint_and_clear_minters <A:Api> (api: &A, state: &State, env: &Env) -> StdResult<Vec<CosmosMsg>> {
-    let (addr_canon, hash) = state.token.clone();
-    let addr_human = api.human_address(&addr_canon)?;
-    Ok(vec![
-        mint_msg(
-            env.contract.address.clone(), state.schedule.total,
-            None, BLOCK_SIZE, hash.clone(), addr_human.clone()
-        )?,
-        set_minters_msg(
-            vec![],
-            None, BLOCK_SIZE, hash.clone(), addr_human.clone()
-        )?,
-    ])
 }
 
 fn transfer <A:Api> (
