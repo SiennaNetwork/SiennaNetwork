@@ -119,13 +119,14 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
 
     // Execute the HandleMsg::RegisterIdo method of
     // the factory contract in order to register this address
+    /*
     messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
         contract_addr: msg.callback.contract.address,
         callback_code_hash: msg.callback.contract.code_hash,
         msg: msg.callback.msg,
         send: vec![],
     }));
-
+    */
     let mut taken_seats = msg.info.whitelist.len() as u32;
 
     for address in msg.info.whitelist {
@@ -343,13 +344,7 @@ mod tests {
             prng_seed: to_binary(&"whatever").unwrap(),
             entropy: to_binary(&"whatever").unwrap(),
             admin: admin.clone(),
-            callback: Callback {
-                msg: Binary::from(&[]),
-                contract: ContractLink {
-                    address: HumanAddr::from("callback-address"),
-                    code_hash: "code-hash-of-callback-contract".to_string(),
-                },
-            },
+            callback: None
         }
     }
 
@@ -828,6 +823,55 @@ mod tests {
             Err(StdError::generic_err(
                 "Cannot fill more seats then left (0)"
             ))
+        );
+    }
+
+    #[test]
+    fn check_eligibility() {
+        let (deps, _) = init_contract(None, None);
+        let contract_addr = HumanAddr::from("buyer-1");
+        let resp = query(
+            &deps,
+            QueryMsg::EligibilityInfo {
+                address: contract_addr
+            },
+        )
+        .unwrap();
+        let res: QueryResponse = from_binary(&resp).unwrap();
+
+        match res {
+            QueryResponse::Eligibility {
+                can_participate
+            } => {
+                assert_eq!(can_participate, true);
+            }
+            _ => panic!("Expected QueryResponse::Eligibility"),
+        };
+    }
+
+    #[test]
+    fn not_admin_adds_new_address_to_whitelist_error() {
+        let mut deps = internal_mock_deps(123, &[]);
+        let env = mock_env("admin", &[]);
+
+        let msg = get_init(None, &env.message.sender);
+        init(&mut deps, env.clone(), msg).unwrap();
+        let buyer_env = mock_env("buyer-5", &[Coin::new(250_000_000_u128, "uscrt")]);
+
+        let env2 = mock_env("user", &[]);
+
+
+        let res = handle(
+            &mut deps,
+            env2,
+            HandleMsg::AdminAddAddresses {
+                addresses: vec![buyer_env.message.sender.clone()],
+            },
+        );
+
+        assert_eq!(
+            res,
+            Err(StdError::Unauthorized{backtrace: None})
         );
     }
 }

@@ -103,13 +103,14 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
 
     // Execute the HandleMsg::RegisterLaunchpad method of
     // the factory contract in order to register this address
+    /*
     messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
         contract_addr: msg.callback.contract.address,
         callback_code_hash: msg.callback.contract.code_hash,
         msg: msg.callback.msg,
         send: vec![],
     }));
-
+    */
     Ok(InitResponse {
         messages,
         log: vec![],

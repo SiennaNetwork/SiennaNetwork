@@ -45,7 +45,8 @@ fn mock_deps() -> Extern<MockStorage, MockApi, MockQuerier> {
     }
 }
 
-fn get_deps_after_init(tokens: Vec<TokenSettings>) -> Extern<MockStorage, MockApi, MockQuerier> {
+fn 
+get_deps_after_init(tokens: Vec<TokenSettings>) -> Extern<MockStorage, MockApi, MockQuerier> {
     let mut deps = mock_deps();
     let env = mock_env("admin", &[]);
 
@@ -57,13 +58,7 @@ fn get_deps_after_init(tokens: Vec<TokenSettings>) -> Extern<MockStorage, MockAp
             admin: env.message.sender,
             prng_seed: to_binary(&"whatever").unwrap(),
             entropy: to_binary(&"whatever").unwrap(),
-            callback: Callback {
-                msg: Binary::from(&[]),
-                contract: ContractLink {
-                    address: HumanAddr::from("callback-address"),
-                    code_hash: "code-hash-of-callback-contract".to_string(),
-                },
-            },
+            callback: None
         },
     )
     .unwrap();

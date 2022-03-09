@@ -1,7 +1,8 @@
 [package]
-name = "tests"
+name = "launchpad-tests"
 version = "0.1.0"
 edition = "2021"
+authors = ["A"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -9,9 +10,10 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 path = "lib.rs"
 
-[workspace]
+
 
 [dependencies]
+serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 ido = { path = "../ido" }
 launchpad = { path = "../launchpad" }
 amm-shared = { path = "../../../libraries/amm-shared" }

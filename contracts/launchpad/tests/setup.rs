@@ -1,15 +1,22 @@
+use super::*;
+
+
 use amm_shared::{
     fadroma::{
         ContractLink,
-        Callback,
         cosmwasm_std::{
-            StdResult, Env, Binary, InitResponse,
-            HandleResponse, HumanAddr, Uint128,
-            from_binary
+            StdResult,InitResponse,
+            HandleResponse,
         },
         ensemble::{
             ContractEnsemble, MockEnv,
             ContractHarness, MockDeps, 
+        },
+        {
+        platform::{
+            from_binary, Binary, Coin, Env, Extern, HumanAddr, Uint128, ContractInstantiationInfo, Callback,
+            testing::{mock_env, MockApi, MockStorage},
+        }    
         },
         auth::Permit,
         snip20_impl::{
@@ -25,6 +32,10 @@ use amm_shared::{
             snip20_init, snip20_handle, snip20_query, SymbolValidation, Snip20
         },
     },
+    msg::ido::{
+        HandleMsg, InitMsg, QueryMsg, QueryResponse, ReceiverCallbackMsg, TokenSaleConfig,
+    },
+    querier::{MockContractInstance, MockQuerier},
     TokenPair, TokenType, Pagination,
     ExchangeSettings, Fee, Exchange,
     msg
@@ -33,8 +44,10 @@ use amm_shared::{
 
 pub struct Ido;
 pub struct Launchpad;
+pub struct Token;
 use ido::contract as ido;
 use launchpad::contract as launchpad;
+
 
 pub const ADMIN: &str = "admin";
 const BLOCK_TIME: u64 = 1_571_797_419;
@@ -42,9 +55,41 @@ const RATE: Uint128 = Uint128(1_u128);
 const MIN_ALLOCATION: Uint128 = Uint128(100_u128);
 const MAX_ALLOCATION: Uint128 = Uint128(500_u128);
 
+pub const USERS: &[&str] = &[ "user_a", "user_b", "user_c" ];
+pub const BURNER: &str = "burner_acc";
+pub const INITIAL_BALANCE: Uint128 = Uint128(1000_000_000_000_000_000_000);
+pub const NATIVE_DENOM: &str = "uscrt";
 
-pub struct Token;
 
+fn internal_mock_deps(
+    len: usize,
+    balance: &[Coin],
+) -> Extern<MockStorage, MockApi, MockQuerier> {
+    let contract_addr = HumanAddr::from("mock-address");
+    Extern {
+        storage: MockStorage::default(),
+        api: MockApi::new(len),
+        querier: MockQuerier::new(
+            &[(&contract_addr, balance)],
+            vec![MockContractInstance {
+                instance: ContractLink {
+                    address: HumanAddr::from("sold-token"),
+                    code_hash: "".to_string(),
+                },
+                token_decimals: 18,
+                token_supply: Uint128::from(2500_u128),
+            },
+            MockContractInstance {
+                instance: ContractLink {
+                    address: HumanAddr::from("callback-address"),
+                    code_hash: "".to_string(),
+                },
+                token_decimals: 18,
+                token_supply: Uint128::from(2500_u128),
+            }],
+        ),
+    }
+}
 
 
 impl Snip20 for Token {
@@ -144,7 +189,9 @@ impl ContractHarness for Launchpad {
 }
 
 pub struct LaunchpadIdo {
-    pub ensemble: ContractEnsemble
+    pub ensemble: ContractEnsemble,
+    pub ido: ContractLink<HumanAddr>,
+    pub launchpad: ContractLink<HumanAddr>
 }
 
 impl LaunchpadIdo {
@@ -153,14 +200,66 @@ impl LaunchpadIdo {
         let mut ensemble = ContractEnsemble::new(200);
     
         let ido = ensemble.register(Box::new(Ido));
-        let snip20 = ensemble.register(Box::new(Token));
         let launchpad = ensemble.register(Box::new(Launchpad));
+        let token = ensemble.register(Box::new(Token));
 
+        
+
+        let token = ensemble.instantiate(
+            token.id,
+            &Snip20InitMsg {
+                name: "sold-token".to_string(),
+                admin: None,
+                symbol: format!("TKN{}", 1),
+                decimals: 18,
+                initial_balances: Some(USERS
+                    .iter()
+                    .map(|x| InitialBalance {
+                        address: (*x).into(),
+                        amount: INITIAL_BALANCE
+                    })
+                    .collect()
+                ),
+                initial_allowances: None,
+                prng_seed: Binary::from(b"whatever"),
+                config: Some(InitConfig::builder()
+                    .public_total_supply()
+                    .enable_mint()
+                    .build()
+                ),
+                callback: None
+            },
+            MockEnv::new(ADMIN, ContractLink {
+                address: "sold_token".into(),
+                code_hash: token.code_hash.clone()
+            })
+        ).unwrap();
+
+    
+        
+
+        let launchpad = ensemble.instantiate(
+            launchpad.id,
+            &msg::launchpad::InitMsg {
+
+                admin: HumanAddr::from("admin"),
+                prng_seed: Binary::from(b"whatever"),
+                entropy: Binary::from(b"whatever"),
+                tokens: vec![],
+                callback: None
+            },
+            MockEnv::new(ADMIN, ContractLink {
+                address: "launchpad".into(),
+                code_hash: launchpad.code_hash.clone()
+            })
+        ).unwrap();
+        
+        
         let ido = ensemble.instantiate(
             ido.id,
             &msg::ido::InitMsg {
 
-                admin: HumanAddr::from("sold-token"),
+                admin: HumanAddr::from("admin"),
                 prng_seed: Binary::from(b"whatever"),
                 entropy: Binary::from(b"whatever"),
                 launchpad: None,
@@ -169,8 +268,8 @@ impl LaunchpadIdo {
                         denom: "uscrt".to_string(),
                     },
                     rate: RATE,
-                    sold_token: ContractLink {
-                        address: HumanAddr::from("sold-token"),
+                    sold_token: ContractLink::<HumanAddr> {
+                        address: HumanAddr::from("sold_token"),
                         code_hash: "".to_string(),
                     },
                     whitelist: vec![
@@ -184,45 +283,19 @@ impl LaunchpadIdo {
                     min_allocation: MIN_ALLOCATION,
                     sale_type: None,
                 },
-                callback: Callback {
-                    msg: Binary::from(&[]),
-                    contract: ContractLink {
-                        address: HumanAddr::from("callback-address"),
-                        code_hash: "code-hash-of-callback-contract".to_string(),
-                    },
-                },
+                callback: None
             },
             MockEnv::new(ADMIN, ContractLink {
                 address: "ido".into(),
                 code_hash: ido.code_hash.clone()
             })
         ).unwrap();
-       
-        let launchpad = ensemble.instantiate(
-            launchpad.id,
-            &msg::launchpad::InitMsg {
 
-                admin: HumanAddr::from("sold-token"),
-                prng_seed: Binary::from(b"whatever"),
-                entropy: Binary::from(b"whatever"),
-                tokens: vec![],
-                callback: Callback {
-                    msg: Binary::from(&[]),
-                    contract: ContractLink {
-                        address: HumanAddr::from("callback-address"),
-                        code_hash: "code-hash-of-callback-contract".to_string(),
-                    },
-                },
-            },
-            MockEnv::new(ADMIN, ContractLink {
-                address: "launchpad".into(),
-                code_hash: launchpad.code_hash.clone()
-            })
-        ).unwrap();
-       
 
         LaunchpadIdo {
-            ensemble
+            ensemble,
+            ido,
+            launchpad
         }
     }
 }
