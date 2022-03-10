@@ -105,3 +105,9 @@ pub fn unstake_disallowed<T>() -> StdResult<T> {
         "Unstaking not allowed. Make sure you have no active or created polls. "
     )))
 }
+pub fn governance_closed<T>(time: Moment, reason: String) -> StdResult<T> {
+    Err(StdError::generic_err(format!(
+        "The governance has been closed. Closed at: {}, reason: {}",
+        time, reason
+    )))
+}

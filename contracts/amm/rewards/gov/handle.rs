@@ -4,9 +4,9 @@ use serde::{Deserialize, Serialize};
 
 use fadroma::*;
 
-use crate::account::{Account, IAccount};
+use crate::account::{Account, CloseSeal, IAccount};
 use crate::auth::Auth;
-use crate::errors::poll_expired;
+use crate::errors::{self, poll_expired};
 
 use super::user::{IUser, User};
 use super::validator;
@@ -23,18 +23,33 @@ use super::{
 #[serde(rename_all = "snake_case")]
 pub enum GovernanceHandle {
     /// Handles the creation of polls, metadata is the user input. The rest is determined automatically
-    CreatePoll { meta: PollMetadata },
+    CreatePoll {
+        meta: PollMetadata,
+    },
     /// Handles adding votes to a poll
-    Vote { choice: VoteType, poll_id: u64 },
+    Vote {
+        choice: VoteType,
+        poll_id: u64,
+    },
     /// Handles removing votes from a poll
-    Unvote { poll_id: u64 },
+    Unvote {
+        poll_id: u64,
+    },
 
     /// Handles changing the choice for a poll
-    ChangeVoteChoice { choice: VoteType, poll_id: u64 },
+    ChangeVoteChoice {
+        choice: VoteType,
+        poll_id: u64,
+    },
 
     /// Updates the configuration, the fields are optional so configuration can be partially updated by only setting
     /// the desired fields to update
-    UpdateConfig { config: GovernanceConfig },
+    UpdateConfig {
+        config: GovernanceConfig,
+    },
+    Close {
+        reason: String,
+    },
 }
 impl<S, A, Q, C> HandleDispatch<S, A, Q, C> for GovernanceHandle
 where
@@ -45,6 +60,11 @@ where
 {
     /// Handles all of the governance transactions. For a detailed flow, check the governance documentation
     fn dispatch_handle(self, core: &mut C, env: Env) -> StdResult<HandleResponse> {
+        // dissallow any further transactions after the governance is closed.
+        if let Some((time, reason)) = core.get::<CloseSeal>(GovernanceConfig::CLOSED)? {
+            return errors::governance_closed(time, reason);
+        }
+
         match self {
             GovernanceHandle::CreatePoll { meta } => {
                 validator::validate_text_length(
@@ -126,6 +146,11 @@ where
                         log: vec![],
                         data: None,
                     }),
+                    GovernanceHandle::Close { reason } => {
+                        let seal: CloseSeal = (env.block.time, reason);
+                        core.set(GovernanceConfig::CLOSED, seal)?;
+                        Ok(HandleResponse::default())
+                    }
                     _ => unreachable!(),
                 }
             }

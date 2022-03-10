@@ -2,7 +2,7 @@ use fadroma::*;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::time_utils::Duration;
+use crate::time_utils::{Duration, Moment};
 
 use super::poll::Poll;
 
@@ -42,6 +42,8 @@ impl GovernanceConfig {
     pub const THRESHOLD: &'static [u8] = b"/gov/threshold";
     pub const QUORUM: &'static [u8] = b"/gov/quorum";
     pub const DEADLINE: &'static [u8] = b"/gov/deadline";
+
+    pub const CLOSED: &'static [u8] = b"/gov/closed";
 }
 pub trait IGovernanceConfig<S, A, Q, C>
 where
@@ -118,3 +120,5 @@ impl Default for GovernanceConfig {
         }
     }
 }
+
+pub type CloseSeal = (Moment, String);
