@@ -416,3 +416,50 @@ fn should_withdraw() {
         )
         .unwrap();
 }
+#[test]
+fn should_be_closed() {
+    let mut amm = Amm::new();
+    let sender = HumanAddr::from("user_b");
+    let meta = PollMetadata {
+        description: "this is a description that is longer than 8 characters.".to_string(),
+        title: "This is a title, no really".to_string(),
+        poll_type: "Random type".to_string(),
+    };
+
+    let env = MockEnv::new(sender.clone(), amm.rewards.to_owned().try_into().unwrap());
+
+    //deposit some funds
+    amm.deposit_lp_into_rewards(sender.clone(), Uint128(3800));
+
+    amm.set_rewards_viewing_key(sender.clone(), "whatever".into());
+
+    //create poll
+    amm.ensemble
+        .execute(
+            &Handle::Governance(GovernanceHandle::CreatePoll { meta: meta.clone() }),
+            env.clone(),
+        )
+        .unwrap();
+
+    let env = MockEnv::new("admin", amm.rewards.to_owned().try_into().unwrap());
+    //close the pool
+    amm.ensemble
+        .execute(
+            &Handle::Governance(GovernanceHandle::Close {
+                reason: "Testing closing".into(),
+            }),
+            env.clone(),
+        )
+        .unwrap();
+
+    let env = env.time(99999999);
+
+    //deposit some funds
+    //this should now fail
+    amm.ensemble
+        .execute(
+            &Handle::Governance(GovernanceHandle::CreatePoll { meta }),
+            env,
+        )
+        .unwrap_err();
+}
