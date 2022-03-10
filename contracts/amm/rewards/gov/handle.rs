@@ -60,13 +60,12 @@ where
 {
     /// Handles all of the governance transactions. For a detailed flow, check the governance documentation
     fn dispatch_handle(self, core: &mut C, env: Env) -> StdResult<HandleResponse> {
-        // dissallow any further transactions after the governance is closed.
-        if let Some((time, reason)) = core.get::<CloseSeal>(GovernanceConfig::CLOSED)? {
-            return errors::governance_closed(time, reason);
-        }
-
         match self {
             GovernanceHandle::CreatePoll { meta } => {
+                if let Some((time, reason)) = core.get::<CloseSeal>(GovernanceConfig::CLOSED)? {
+                    return errors::governance_closed(time, reason);
+                }
+
                 validator::validate_text_length(
                     &meta.title,
                     "Title",

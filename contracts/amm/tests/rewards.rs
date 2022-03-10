@@ -442,7 +442,7 @@ fn should_be_closed() {
         .unwrap();
 
     let env = MockEnv::new("admin", amm.rewards.to_owned().try_into().unwrap());
-    //close the pool
+    //close the poll
     amm.ensemble
         .execute(
             &Handle::Governance(GovernanceHandle::Close {
