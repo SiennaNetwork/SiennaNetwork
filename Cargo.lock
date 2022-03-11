@@ -1032,8 +1032,7 @@ dependencies = [
 name = "linear-map"
 version = "1.0.0-rc1"
 dependencies = [
- "cosmwasm-std 0.10.0 (git+https://github.com/hackbg/SecretNetwork?tag=v1.0.0)",
- "schemars",
+ "fadroma 22.1.0",
  "serde",
 ]
 
@@ -1553,23 +1552,15 @@ dependencies = [
 [[package]]
 name = "secret-toolkit"
 version = "0.1.0"
-source = "git+https://github.com/hackbg/secret-toolkit?rev=legacy-mgmt#714d302a0df28b0318bc977f515c9a8cdecccb7e"
+source = "git+https://github.com/enigmampc/secret-toolkit#6036e729400ddcc38c3918644c4828b722fb8d6e"
 dependencies = [
- "secret-toolkit-crypto 0.1.0 (git+https://github.com/hackbg/secret-toolkit?rev=legacy-mgmt)",
- "secret-toolkit-serialization 0.1.0 (git+https://github.com/hackbg/secret-toolkit?rev=legacy-mgmt)",
- "secret-toolkit-snip20 0.1.0 (git+https://github.com/hackbg/secret-toolkit?rev=legacy-mgmt)",
- "secret-toolkit-snip721 0.1.0 (git+https://github.com/hackbg/secret-toolkit?rev=legacy-mgmt)",
- "secret-toolkit-storage 0.1.0 (git+https://github.com/hackbg/secret-toolkit?rev=legacy-mgmt)",
- "secret-toolkit-utils 0.1.0 (git+https://github.com/hackbg/secret-toolkit?rev=legacy-mgmt)",
-]
-
-[[package]]
-name = "secret-toolkit"
-version = "0.1.0"
-source = "git+https://github.com/hackbg/secret-toolkit?rev=legacy-snip20#ce4b2b0ba512d401989bac8f6e8e86ff1966661d"
-dependencies = [
- "secret-toolkit-serialization 0.1.0 (git+https://github.com/hackbg/secret-toolkit?rev=legacy-snip20)",
- "secret-toolkit-storage 0.1.0 (git+https://github.com/hackbg/secret-toolkit?rev=legacy-snip20)",
+ "secret-toolkit-crypto",
+ "secret-toolkit-incubator",
+ "secret-toolkit-serialization 0.1.0 (git+https://github.com/enigmampc/secret-toolkit)",
+ "secret-toolkit-snip20 0.1.0",
+ "secret-toolkit-snip721 0.1.0",
+ "secret-toolkit-storage 0.1.0 (git+https://github.com/enigmampc/secret-toolkit)",
+ "secret-toolkit-utils 0.1.0",
 ]
 
 [[package]]
@@ -1588,19 +1579,7 @@ dependencies = [
 [[package]]
 name = "secret-toolkit-crypto"
 version = "0.1.0"
-source = "git+https://github.com/hackbg/secret-toolkit?tag=legacy-mgmt#714d302a0df28b0318bc977f515c9a8cdecccb7e"
-dependencies = [
- "cosmwasm-std 0.10.0 (git+https://github.com/hackbg/SecretNetwork?tag=v1.0.0)",
- "libsecp256k1",
- "rand_chacha 0.2.2",
- "rand_core 0.5.1",
- "sha2 0.9.8",
-]
-
-[[package]]
-name = "secret-toolkit-crypto"
-version = "0.1.0"
-source = "git+https://github.com/hackbg/secret-toolkit?rev=legacy-mgmt#714d302a0df28b0318bc977f515c9a8cdecccb7e"
+source = "git+https://github.com/enigmampc/secret-toolkit#6036e729400ddcc38c3918644c4828b722fb8d6e"
 dependencies = [
  "cosmwasm-std 0.10.0 (git+https://github.com/hackbg/SecretNetwork?tag=v1.0.0)",
  "libsecp256k1",
@@ -1622,17 +1601,7 @@ dependencies = [
 [[package]]
 name = "secret-toolkit-serialization"
 version = "0.1.0"
-source = "git+https://github.com/hackbg/secret-toolkit?rev=legacy-mgmt#714d302a0df28b0318bc977f515c9a8cdecccb7e"
-dependencies = [
- "bincode2",
- "cosmwasm-std 0.10.0 (git+https://github.com/hackbg/SecretNetwork?tag=v1.0.0)",
- "serde",
-]
-
-[[package]]
-name = "secret-toolkit-serialization"
-version = "0.1.0"
-source = "git+https://github.com/hackbg/secret-toolkit?rev=legacy-snip20#ce4b2b0ba512d401989bac8f6e8e86ff1966661d"
+source = "git+https://github.com/enigmampc/secret-toolkit#6036e729400ddcc38c3918644c4828b722fb8d6e"
 dependencies = [
  "bincode2",
  "cosmwasm-std 0.10.0 (git+https://github.com/hackbg/SecretNetwork?tag=v1.0.0)",
@@ -1654,22 +1623,11 @@ dependencies = [
 [[package]]
 name = "secret-toolkit-snip20"
 version = "0.1.0"
-source = "git+https://github.com/hackbg/secret-toolkit?tag=legacy-mgmt#714d302a0df28b0318bc977f515c9a8cdecccb7e"
+source = "git+https://github.com/enigmampc/secret-toolkit#6036e729400ddcc38c3918644c4828b722fb8d6e"
 dependencies = [
  "cosmwasm-std 0.10.0 (git+https://github.com/hackbg/SecretNetwork?tag=v1.0.0)",
  "schemars",
- "secret-toolkit-utils 0.1.0 (git+https://github.com/hackbg/secret-toolkit?tag=legacy-mgmt)",
- "serde",
-]
-
-[[package]]
-name = "secret-toolkit-snip20"
-version = "0.1.0"
-source = "git+https://github.com/hackbg/secret-toolkit?rev=legacy-mgmt#714d302a0df28b0318bc977f515c9a8cdecccb7e"
-dependencies = [
- "cosmwasm-std 0.10.0 (git+https://github.com/hackbg/SecretNetwork?tag=v1.0.0)",
- "schemars",
- "secret-toolkit-utils 0.1.0 (git+https://github.com/hackbg/secret-toolkit?rev=legacy-mgmt)",
+ "secret-toolkit-utils 0.1.0",
  "serde",
 ]
 
@@ -1688,22 +1646,11 @@ dependencies = [
 [[package]]
 name = "secret-toolkit-snip721"
 version = "0.1.0"
-source = "git+https://github.com/hackbg/secret-toolkit?tag=legacy-mgmt#714d302a0df28b0318bc977f515c9a8cdecccb7e"
+source = "git+https://github.com/enigmampc/secret-toolkit#6036e729400ddcc38c3918644c4828b722fb8d6e"
 dependencies = [
  "cosmwasm-std 0.10.0 (git+https://github.com/hackbg/SecretNetwork?tag=v1.0.0)",
  "schemars",
- "secret-toolkit-utils 0.1.0 (git+https://github.com/hackbg/secret-toolkit?tag=legacy-mgmt)",
- "serde",
-]
-
-[[package]]
-name = "secret-toolkit-snip721"
-version = "0.1.0"
-source = "git+https://github.com/hackbg/secret-toolkit?rev=legacy-mgmt#714d302a0df28b0318bc977f515c9a8cdecccb7e"
-dependencies = [
- "cosmwasm-std 0.10.0 (git+https://github.com/hackbg/SecretNetwork?tag=v1.0.0)",
- "schemars",
- "secret-toolkit-utils 0.1.0 (git+https://github.com/hackbg/secret-toolkit?rev=legacy-mgmt)",
+ "secret-toolkit-utils 0.1.0",
  "serde",
 ]
 
@@ -1733,18 +1680,7 @@ dependencies = [
 [[package]]
 name = "secret-toolkit-storage"
 version = "0.1.0"
-source = "git+https://github.com/hackbg/secret-toolkit?rev=legacy-mgmt#714d302a0df28b0318bc977f515c9a8cdecccb7e"
-dependencies = [
- "cosmwasm-std 0.10.0 (git+https://github.com/hackbg/SecretNetwork?tag=v1.0.0)",
- "cosmwasm-storage 0.10.0 (git+https://github.com/hackbg/SecretNetwork?tag=v1.0.0)",
- "secret-toolkit-serialization 0.1.0 (git+https://github.com/hackbg/secret-toolkit?rev=legacy-mgmt)",
- "serde",
-]
-
-[[package]]
-name = "secret-toolkit-storage"
-version = "0.1.0"
-source = "git+https://github.com/hackbg/secret-toolkit?rev=legacy-snip20#ce4b2b0ba512d401989bac8f6e8e86ff1966661d"
+source = "git+https://github.com/enigmampc/secret-toolkit#6036e729400ddcc38c3918644c4828b722fb8d6e"
 dependencies = [
  "cosmwasm-std 0.10.0 (git+https://github.com/hackbg/SecretNetwork?tag=v1.0.0)",
  "cosmwasm-storage 0.10.0 (git+https://github.com/hackbg/SecretNetwork?tag=v1.0.0)",
@@ -1767,17 +1703,7 @@ dependencies = [
 [[package]]
 name = "secret-toolkit-utils"
 version = "0.1.0"
-source = "git+https://github.com/hackbg/secret-toolkit?tag=legacy-mgmt#714d302a0df28b0318bc977f515c9a8cdecccb7e"
-dependencies = [
- "cosmwasm-std 0.10.0 (git+https://github.com/hackbg/SecretNetwork?tag=v1.0.0)",
- "schemars",
- "serde",
-]
-
-[[package]]
-name = "secret-toolkit-utils"
-version = "0.1.0"
-source = "git+https://github.com/hackbg/secret-toolkit?rev=legacy-mgmt#714d302a0df28b0318bc977f515c9a8cdecccb7e"
+source = "git+https://github.com/enigmampc/secret-toolkit#6036e729400ddcc38c3918644c4828b722fb8d6e"
 dependencies = [
  "cosmwasm-std 0.10.0 (git+https://github.com/hackbg/SecretNetwork?tag=v1.0.0)",
  "schemars",
@@ -1907,19 +1833,13 @@ dependencies = [
 name = "sienna-mgmt"
 version = "2.0.0"
 dependencies = [
- "cosmwasm-schema 0.10.0",
- "cosmwasm-std 0.10.0 (git+https://github.com/hackbg/SecretNetwork?tag=v1.0.0)",
- "cosmwasm-storage 0.10.0 (git+https://github.com/hackbg/SecretNetwork?tag=v1.0.0)",
- "fadroma 3.0.0-rc1",
+ "fadroma 22.1.0",
  "fadroma-bind-js",
  "js-sys",
  "kukumba 1.0.1 (git+https://github.com/hackbg/kukumba?branch=21.04)",
  "linear-map",
- "schemars",
- "secret-toolkit 0.1.0 (git+https://github.com/hackbg/secret-toolkit?rev=legacy-mgmt)",
  "serde",
  "serde_json",
- "sienna-migrate",
  "sienna-schedule",
  "wasm-bindgen",
 ]
@@ -1928,8 +1848,7 @@ dependencies = [
 name = "sienna-migrate"
 version = "0.1.0"
 dependencies = [
- "cosmwasm-std 0.10.0 (git+https://github.com/hackbg/SecretNetwork?tag=v1.0.0)",
- "schemars",
+ "fadroma 22.1.0",
  "serde",
 ]
 
@@ -1986,8 +1905,7 @@ version = "2.0.0-rc1"
 dependencies = [
  "clap 3.0.0-rc.4",
  "color-rs 0.5.0",
- "cosmwasm-std 0.10.0 (git+https://github.com/hackbg/SecretNetwork?tag=v1.0.0)",
- "schemars",
+ "fadroma 22.1.0",
  "serde",
  "serde-json-wasm",
  "spreadsheet-ods",
