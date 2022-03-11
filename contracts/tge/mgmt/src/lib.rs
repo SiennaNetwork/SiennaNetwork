@@ -62,13 +62,18 @@ pub trait Mgmt {
         Config::set_is_prefunded(&mut deps.storage, prefund)?;
 
         let mut response = admin::Admin::new(&admin::DefaultImpl, admin, deps, env)?;
-        response.messages.push(snip20::set_viewing_key_msg(
-            VIEWING_KEY.into(),
-            None,
-            BLOCK_SIZE,
-            token.code_hash,
-            token.address
-        )?);
+
+        // We only need this key to check the balance during launch in the case
+        // where the contract will be transfered the required amount before launch.
+        if prefund {
+            response.messages.push(snip20::set_viewing_key_msg(
+                VIEWING_KEY.into(),
+                None,
+                BLOCK_SIZE,
+                token.code_hash,
+                token.address
+            )?);
+        }
 
         Ok(response)
     }
