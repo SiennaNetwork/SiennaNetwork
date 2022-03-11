@@ -3,7 +3,7 @@ import { Permit } from "../permit";
 
 /**
  * Supports any number of additions, saved as a string in the contract. 
- * Defaults:
+ * Limits:
  *     min length: 5
  *     max length: 20
  */
