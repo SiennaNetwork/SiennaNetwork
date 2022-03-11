@@ -14,7 +14,7 @@ use fadroma::platform::{
     from_binary,
     testing::{mock_env, MockApi, MockStorage},
     to_binary, Binary, Coin, Extern, HumanAddr, StdError, Uint128,
-    Callback, ContractLink
+    ContractLink
 };
 
 fn mock_deps() -> Extern<MockStorage, MockApi, MockQuerier> {
@@ -45,8 +45,7 @@ fn mock_deps() -> Extern<MockStorage, MockApi, MockQuerier> {
     }
 }
 
-fn 
-get_deps_after_init(tokens: Vec<TokenSettings>) -> Extern<MockStorage, MockApi, MockQuerier> {
+fn get_deps_after_init(tokens: Vec<TokenSettings>) -> Extern<MockStorage, MockApi, MockQuerier> {
     let mut deps = mock_deps();
     let env = mock_env("admin", &[]);
 
@@ -57,8 +56,7 @@ get_deps_after_init(tokens: Vec<TokenSettings>) -> Extern<MockStorage, MockApi, 
             tokens,
             admin: env.message.sender,
             prng_seed: to_binary(&"whatever").unwrap(),
-            entropy: to_binary(&"whatever").unwrap(),
-            callback: None
+            entropy: to_binary(&"whatever").unwrap()
         },
     )
     .unwrap();

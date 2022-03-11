@@ -203,8 +203,6 @@ impl LaunchpadIdo {
         let launchpad = ensemble.register(Box::new(Launchpad));
         let token = ensemble.register(Box::new(Token));
 
-        
-
         let token = ensemble.instantiate(
             token.id,
             &Snip20InitMsg {
@@ -235,9 +233,6 @@ impl LaunchpadIdo {
             })
         ).unwrap();
 
-    
-        
-
         let launchpad = ensemble.instantiate(
             launchpad.id,
             &msg::launchpad::InitMsg {
@@ -245,15 +240,13 @@ impl LaunchpadIdo {
                 admin: HumanAddr::from("admin"),
                 prng_seed: Binary::from(b"whatever"),
                 entropy: Binary::from(b"whatever"),
-                tokens: vec![],
-                callback: None
+                tokens: vec![]
             },
             MockEnv::new(ADMIN, ContractLink {
                 address: "launchpad".into(),
                 code_hash: launchpad.code_hash.clone()
             })
         ).unwrap();
-        
         
         let ido = ensemble.instantiate(
             ido.id,
@@ -282,15 +275,13 @@ impl LaunchpadIdo {
                     max_allocation: MAX_ALLOCATION,
                     min_allocation: MIN_ALLOCATION,
                     sale_type: None,
-                },
-                callback: None
+                }
             },
             MockEnv::new(ADMIN, ContractLink {
                 address: "ido".into(),
                 code_hash: ido.code_hash.clone()
             })
         ).unwrap();
-
 
         LaunchpadIdo {
             ensemble,

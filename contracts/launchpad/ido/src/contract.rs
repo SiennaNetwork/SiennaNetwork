@@ -117,16 +117,6 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
         TokenType::NativeToken { .. } => 6,
     };
 
-    // Execute the HandleMsg::RegisterIdo method of
-    // the factory contract in order to register this address
-    /*
-    messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
-        contract_addr: msg.callback.contract.address,
-        callback_code_hash: msg.callback.contract.code_hash,
-        msg: msg.callback.msg,
-        send: vec![],
-    }));
-    */
     let mut taken_seats = msg.info.whitelist.len() as u32;
 
     for address in msg.info.whitelist {
@@ -276,7 +266,7 @@ mod tests {
     use super::*;
 
     use amm_shared::fadroma::platform::{
-        from_binary, Binary, Coin, Env, Extern, HumanAddr, Uint128, Callback,
+        from_binary, Binary, Coin, Env, Extern, HumanAddr, Uint128,
         testing::{mock_env, MockApi, MockStorage},
     };
 
@@ -343,8 +333,7 @@ mod tests {
             launchpad: None,
             prng_seed: to_binary(&"whatever").unwrap(),
             entropy: to_binary(&"whatever").unwrap(),
-            admin: admin.clone(),
-            callback: None
+            admin: admin.clone()
         }
     }
 

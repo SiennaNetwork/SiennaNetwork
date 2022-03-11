@@ -228,8 +228,6 @@ pub mod launchpad {
         /// Seed for creating viewkey
         pub prng_seed: Binary,
         pub entropy: Binary,
-        /// Used by the Launchpad to register itself with the factory.
-        pub callback: Option<Callback<HumanAddr>>,
     }
 
     /// Configuration for single token that can be locked into the launchpad
@@ -361,8 +359,6 @@ pub mod ido {
         pub info: TokenSaleConfig,
         /// Should be the address of the original sender, since this is initiated by the factory.
         pub admin: HumanAddr,
-        /// Used by the IDO to register itself with the factory.
-        pub callback: Option<Callback<HumanAddr>>,
         /// Used by the IDO to fill the whitelist spots with random pics
         pub launchpad: Option<WhitelistRequest>,
         /// Seed for creating viewkey
