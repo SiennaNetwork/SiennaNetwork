@@ -21,7 +21,7 @@ checksum = "f26201604c87b1e01bd3d98f8d5d9a8fcbb815e8cedb41ffccbeb4bf593a35fe"
 name = "amm-shared"
 version = "0.1.0"
 dependencies = [
- "fadroma 22.1.0",
+ "fadroma",
  "fadroma-snip20-impl",
  "schemars",
  "serde",
@@ -158,32 +158,11 @@ dependencies = [
 
 [[package]]
 name = "block-buffer"
-version = "0.7.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c0940dc441f31689269e10ac70eb1002a3a1d3ad1390e030043662eb7fe4688b"
-dependencies = [
- "block-padding",
- "byte-tools",
- "byteorder",
- "generic-array 0.12.4",
-]
-
-[[package]]
-name = "block-buffer"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4152116fd6e9dadb291ae18fc1ec3575ed6d84c29642d97890f4b4a3417297e4"
 dependencies = [
- "generic-array 0.14.4",
-]
-
-[[package]]
-name = "block-padding"
-version = "0.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fa79dedbb091f449f1f39e53edf88d5dbe95f895dae6135a8d7b881fb5af73f5"
-dependencies = [
- "byte-tools",
+ "generic-array",
 ]
 
 [[package]]
@@ -203,12 +182,6 @@ name = "bumpalo"
 version = "3.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8f1e260c3a9040a7c19a12468758f4c16f31a81a1fe087482be9570ec864bb6c"
-
-[[package]]
-name = "byte-tools"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e3b5ca7a04898ad4bcd41c90c5285445ff5b791899bb1b0abdd2a2aa791211d7"
 
 [[package]]
 name = "byteorder"
@@ -347,15 +320,6 @@ dependencies = [
 
 [[package]]
 name = "cosmwasm-schema"
-version = "0.10.0"
-source = "git+https://github.com/hackbg/SecretNetwork?tag=v1.0.0#490fba9243e6cb291462e9d3c1bcbd1975c0df1e"
-dependencies = [
- "schemars",
- "serde_json",
-]
-
-[[package]]
-name = "cosmwasm-schema"
 version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2196586ea197eaa21129d09c84a19e2eb80bdce239eec8e6a4f108cb644c295f"
@@ -382,7 +346,7 @@ dependencies = [
  "serde_json",
  "sgx_types",
  "sgx_urts",
- "sha2 0.9.8",
+ "sha2",
  "snafu",
 ]
 
@@ -463,16 +427,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7a81dae078cea95a014a339291cec439d2f232ebe854a9d672b796c6afafa9b7"
 
 [[package]]
-name = "crypto-mac"
-version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4434400df11d95d556bac068ddfedd482915eb18fe8bea89bc80b6e4b1c179e5"
-dependencies = [
- "generic-array 0.12.4",
- "subtle 1.0.0",
-]
-
-[[package]]
 name = "csv"
 version = "1.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -509,20 +463,11 @@ dependencies = [
 
 [[package]]
 name = "digest"
-version = "0.8.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f3d0c8c8752312f9713efd397ff63acb9f85585afbf179282e720e7704954dd5"
-dependencies = [
- "generic-array 0.12.4",
-]
-
-[[package]]
-name = "digest"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d3dd60d1080a57a05ab032377049e0591415d2b31afd7028356dbf3cc6dcb066"
 dependencies = [
- "generic-array 0.14.4",
+ "generic-array",
 ]
 
 [[package]]
@@ -580,11 +525,6 @@ dependencies = [
 
 [[package]]
 name = "fadroma"
-version = "3.0.0-rc1"
-source = "git+https://github.com/hackbg/fadroma?branch=21.05.2#ea6d8aaab91e3c97dbf86c5f999198e66f7505e5"
-
-[[package]]
-name = "fadroma"
 version = "22.1.0"
 dependencies = [
  "fadroma-auth",
@@ -615,7 +555,7 @@ dependencies = [
  "ripemd160",
  "secp256k1",
  "serde",
- "sha2 0.9.8",
+ "sha2",
 ]
 
 [[package]]
@@ -691,8 +631,8 @@ dependencies = [
  "rand_chacha 0.2.2",
  "rand_core 0.5.1",
  "serde",
- "sha2 0.9.8",
- "subtle 2.4.1",
+ "sha2",
+ "subtle",
 ]
 
 [[package]]
@@ -740,12 +680,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "fake-simd"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e88a8acf291dafb59c2d96e8f59828f3838bb1a70398823ade51a84de6a6deed"
-
-[[package]]
 name = "fixed-hash"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -764,15 +698,6 @@ dependencies = [
  "crc32fast",
  "libc",
  "miniz_oxide",
-]
-
-[[package]]
-name = "generic-array"
-version = "0.12.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ffdf9f34f1447443d37393cc6c2b8313aebddcd96906caf34e54c68d8e57d7bd"
-dependencies = [
- "typenum",
 ]
 
 [[package]]
@@ -841,27 +766,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 
 [[package]]
-name = "hmac"
-version = "0.7.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5dcb5e64cda4c23119ab41ba960d1e170a774c8e4b9d9e6a9bc18aabf5e59695"
-dependencies = [
- "crypto-mac",
- "digest 0.8.1",
-]
-
-[[package]]
-name = "hmac-drbg"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c6e570451493f10f6581b48cdd530413b63ea9e780f544bfd3bdcaa0d89d1a7b"
-dependencies = [
- "digest 0.8.1",
- "generic-array 0.12.4",
- "hmac",
-]
-
-[[package]]
 name = "ido"
 version = "0.1.0"
 dependencies = [
@@ -928,7 +832,7 @@ name = "launchpad"
 version = "0.1.0"
 dependencies = [
  "amm-shared",
- "rand 0.8.4",
+ "rand",
  "schemars",
  "serde",
  "serde_json",
@@ -989,7 +893,7 @@ dependencies = [
 name = "lend-shared"
 version = "0.1.0"
 dependencies = [
- "fadroma 22.1.0",
+ "fadroma",
  "primitive-types",
  "serde",
 ]
@@ -1013,26 +917,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1b03d17f364a3a042d5e5d46b053bbbf82c92c9430c592dd4c064dc6ee997125"
 
 [[package]]
-name = "libsecp256k1"
-version = "0.3.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1fc1e2c808481a63dc6da2074752fdd4336a3c8fcc68b83db6f1fd5224ae7962"
-dependencies = [
- "arrayref",
- "crunchy",
- "digest 0.8.1",
- "hmac-drbg",
- "rand 0.7.3",
- "sha2 0.8.2",
- "subtle 2.4.1",
- "typenum",
-]
-
-[[package]]
 name = "linear-map"
 version = "1.0.0-rc1"
 dependencies = [
- "fadroma 22.1.0",
+ "fadroma",
  "serde",
 ]
 
@@ -1138,12 +1026,6 @@ checksum = "67ac1d3f9a1d3616fd9a60c8d74296f22406a238b6a72f5cc1e6f314df4ffbf9"
 dependencies = [
  "memchr",
 ]
-
-[[package]]
-name = "opaque-debug"
-version = "0.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2839e79665f131bdb5782e51f2c6c9599c133c6098982a54c794358bf432529c"
 
 [[package]]
 name = "opaque-debug"
@@ -1265,17 +1147,6 @@ dependencies = [
 
 [[package]]
 name = "rand"
-version = "0.7.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6a6b1679d49b24bbfe0c803429aa1874472f50d9b363131f0e89fc356b544d03"
-dependencies = [
- "rand_chacha 0.2.2",
- "rand_core 0.5.1",
- "rand_hc 0.2.0",
-]
-
-[[package]]
-name = "rand"
 version = "0.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2e7573632e6454cf6b99d7aac4ccca54be06da05aca2ef7423d22d27d4d4bcd8"
@@ -1283,7 +1154,7 @@ dependencies = [
  "libc",
  "rand_chacha 0.3.1",
  "rand_core 0.6.3",
- "rand_hc 0.3.1",
+ "rand_hc",
 ]
 
 [[package]]
@@ -1319,15 +1190,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d34f1408f55294453790c48b2f1ebbb1c5b4b7563eb1f418bcfcfdbb06ebb4e7"
 dependencies = [
  "getrandom 0.2.3",
-]
-
-[[package]]
-name = "rand_hc"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ca3129af7b92a17112d59ad498c6f81eaf463253766b90396d39ea7a39d6613c"
-dependencies = [
- "rand_core 0.5.1",
 ]
 
 [[package]]
@@ -1397,9 +1259,9 @@ version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2eca4ecc81b7f313189bf73ce724400a07da2a6dac19588b03c8bd76a2dcc251"
 dependencies = [
- "block-buffer 0.9.0",
- "digest 0.9.0",
- "opaque-debug 0.3.0",
+ "block-buffer",
+ "digest",
+ "opaque-debug",
 ]
 
 [[package]]
@@ -1541,26 +1403,8 @@ name = "secret-toolkit"
 version = "0.1.0"
 source = "git+https://github.com/hackbg/secret-toolkit?tag=legacy-mgmt#714d302a0df28b0318bc977f515c9a8cdecccb7e"
 dependencies = [
- "secret-toolkit-crypto 0.1.0 (git+https://github.com/hackbg/secret-toolkit?tag=legacy-mgmt)",
- "secret-toolkit-serialization 0.1.0 (git+https://github.com/hackbg/secret-toolkit?tag=legacy-mgmt)",
- "secret-toolkit-snip20 0.1.0 (git+https://github.com/hackbg/secret-toolkit?tag=legacy-mgmt)",
- "secret-toolkit-snip721 0.1.0 (git+https://github.com/hackbg/secret-toolkit?tag=legacy-mgmt)",
- "secret-toolkit-storage 0.1.0 (git+https://github.com/hackbg/secret-toolkit?tag=legacy-mgmt)",
- "secret-toolkit-utils 0.1.0 (git+https://github.com/hackbg/secret-toolkit?tag=legacy-mgmt)",
-]
-
-[[package]]
-name = "secret-toolkit"
-version = "0.1.0"
-source = "git+https://github.com/enigmampc/secret-toolkit#6036e729400ddcc38c3918644c4828b722fb8d6e"
-dependencies = [
- "secret-toolkit-crypto",
- "secret-toolkit-incubator",
- "secret-toolkit-serialization 0.1.0 (git+https://github.com/enigmampc/secret-toolkit)",
- "secret-toolkit-snip20 0.1.0",
- "secret-toolkit-snip721 0.1.0",
- "secret-toolkit-storage 0.1.0 (git+https://github.com/enigmampc/secret-toolkit)",
- "secret-toolkit-utils 0.1.0",
+ "secret-toolkit-serialization 0.1.0",
+ "secret-toolkit-storage 0.1.0",
 ]
 
 [[package]]
@@ -1570,38 +1414,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ea907911beefdfa8357c39d20116d15c5f745f62087193677f7b5323851f8dc"
 dependencies = [
  "secret-toolkit-serialization 0.2.0",
- "secret-toolkit-snip20 0.2.0",
- "secret-toolkit-snip721 0.2.0",
+ "secret-toolkit-snip20",
+ "secret-toolkit-snip721",
  "secret-toolkit-storage 0.2.0",
- "secret-toolkit-utils 0.2.0",
-]
-
-[[package]]
-name = "secret-toolkit-crypto"
-version = "0.1.0"
-source = "git+https://github.com/enigmampc/secret-toolkit#6036e729400ddcc38c3918644c4828b722fb8d6e"
-dependencies = [
- "cosmwasm-std 0.10.0 (git+https://github.com/hackbg/SecretNetwork?tag=v1.0.0)",
- "libsecp256k1",
- "rand_chacha 0.2.2",
- "rand_core 0.5.1",
- "sha2 0.9.8",
+ "secret-toolkit-utils",
 ]
 
 [[package]]
 name = "secret-toolkit-serialization"
 version = "0.1.0"
 source = "git+https://github.com/hackbg/secret-toolkit?tag=legacy-mgmt#714d302a0df28b0318bc977f515c9a8cdecccb7e"
-dependencies = [
- "bincode2",
- "cosmwasm-std 0.10.0 (git+https://github.com/hackbg/SecretNetwork?tag=v1.0.0)",
- "serde",
-]
-
-[[package]]
-name = "secret-toolkit-serialization"
-version = "0.1.0"
-source = "git+https://github.com/enigmampc/secret-toolkit#6036e729400ddcc38c3918644c4828b722fb8d6e"
 dependencies = [
  "bincode2",
  "cosmwasm-std 0.10.0 (git+https://github.com/hackbg/SecretNetwork?tag=v1.0.0)",
@@ -1622,35 +1444,13 @@ dependencies = [
 
 [[package]]
 name = "secret-toolkit-snip20"
-version = "0.1.0"
-source = "git+https://github.com/enigmampc/secret-toolkit#6036e729400ddcc38c3918644c4828b722fb8d6e"
-dependencies = [
- "cosmwasm-std 0.10.0 (git+https://github.com/hackbg/SecretNetwork?tag=v1.0.0)",
- "schemars",
- "secret-toolkit-utils 0.1.0",
- "serde",
-]
-
-[[package]]
-name = "secret-toolkit-snip20"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2c111abe86e9ca5e0826ecf34a8a3941c0f55fa784b925604db0525627f75353"
 dependencies = [
  "schemars",
  "secret-cosmwasm-std",
- "secret-toolkit-utils 0.2.0",
- "serde",
-]
-
-[[package]]
-name = "secret-toolkit-snip721"
-version = "0.1.0"
-source = "git+https://github.com/enigmampc/secret-toolkit#6036e729400ddcc38c3918644c4828b722fb8d6e"
-dependencies = [
- "cosmwasm-std 0.10.0 (git+https://github.com/hackbg/SecretNetwork?tag=v1.0.0)",
- "schemars",
- "secret-toolkit-utils 0.1.0",
+ "secret-toolkit-utils",
  "serde",
 ]
 
@@ -1662,7 +1462,7 @@ checksum = "8193e1576aa8c95a165ff2cd8bee50220beddd01800ea97ee701b25fb88e6213"
 dependencies = [
  "schemars",
  "secret-cosmwasm-std",
- "secret-toolkit-utils 0.2.0",
+ "secret-toolkit-utils",
  "serde",
 ]
 
@@ -1671,20 +1471,9 @@ name = "secret-toolkit-storage"
 version = "0.1.0"
 source = "git+https://github.com/hackbg/secret-toolkit?tag=legacy-mgmt#714d302a0df28b0318bc977f515c9a8cdecccb7e"
 dependencies = [
- "cosmwasm-std 0.10.0 (git+https://github.com/hackbg/SecretNetwork?tag=v1.0.0)",
- "cosmwasm-storage 0.10.0 (git+https://github.com/hackbg/SecretNetwork?tag=v1.0.0)",
- "secret-toolkit-serialization 0.1.0 (git+https://github.com/hackbg/secret-toolkit?tag=legacy-mgmt)",
- "serde",
-]
-
-[[package]]
-name = "secret-toolkit-storage"
-version = "0.1.0"
-source = "git+https://github.com/enigmampc/secret-toolkit#6036e729400ddcc38c3918644c4828b722fb8d6e"
-dependencies = [
- "cosmwasm-std 0.10.0 (git+https://github.com/hackbg/SecretNetwork?tag=v1.0.0)",
- "cosmwasm-storage 0.10.0 (git+https://github.com/hackbg/SecretNetwork?tag=v1.0.0)",
- "secret-toolkit-serialization 0.1.0 (git+https://github.com/hackbg/secret-toolkit?rev=legacy-snip20)",
+ "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.0)",
+ "cosmwasm-storage 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.0)",
+ "secret-toolkit-serialization 0.1.0",
  "serde",
 ]
 
@@ -1697,16 +1486,6 @@ dependencies = [
  "secret-cosmwasm-std",
  "secret-cosmwasm-storage",
  "secret-toolkit-serialization 0.2.0",
- "serde",
-]
-
-[[package]]
-name = "secret-toolkit-utils"
-version = "0.1.0"
-source = "git+https://github.com/enigmampc/secret-toolkit#6036e729400ddcc38c3918644c4828b722fb8d6e"
-dependencies = [
- "cosmwasm-std 0.10.0 (git+https://github.com/hackbg/SecretNetwork?tag=v1.0.0)",
- "schemars",
  "serde",
 ]
 
@@ -1806,34 +1585,22 @@ dependencies = [
 
 [[package]]
 name = "sha2"
-version = "0.8.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a256f46ea78a0c0d9ff00077504903ac881a1dafdc20da66545699e7776b3e69"
-dependencies = [
- "block-buffer 0.7.3",
- "digest 0.8.1",
- "fake-simd",
- "opaque-debug 0.2.3",
-]
-
-[[package]]
-name = "sha2"
 version = "0.9.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b69f9a4c9740d74c5baa3fd2e547f9525fa8088a8a958e0ca2409a514e33f5fa"
 dependencies = [
- "block-buffer 0.9.0",
+ "block-buffer",
  "cfg-if",
  "cpufeatures",
- "digest 0.9.0",
- "opaque-debug 0.3.0",
+ "digest",
+ "opaque-debug",
 ]
 
 [[package]]
 name = "sienna-mgmt"
 version = "2.0.0"
 dependencies = [
- "fadroma 22.1.0",
+ "fadroma",
  "fadroma-bind-js",
  "js-sys",
  "kukumba 1.0.1 (git+https://github.com/hackbg/kukumba?branch=21.04)",
@@ -1848,7 +1615,7 @@ dependencies = [
 name = "sienna-migrate"
 version = "0.1.0"
 dependencies = [
- "fadroma 22.1.0",
+ "fadroma",
  "serde",
 ]
 
@@ -1859,14 +1626,12 @@ dependencies = [
  "amm-shared",
  "backtrace",
  "color-backtrace",
- "fadroma 22.1.0",
+ "fadroma",
  "fadroma-bind-js",
  "js-sys",
  "kukumba 1.0.1",
  "prettytable-rs",
- "rand 0.8.4",
- "remain",
- "ripemd160",
+ "rand",
  "schemars",
  "secp256k1",
  "serde",
@@ -1882,16 +1647,11 @@ dependencies = [
 name = "sienna-rpt"
 version = "1.0.0"
 dependencies = [
- "cosmwasm-schema 0.10.0",
- "cosmwasm-std 0.10.0 (git+https://github.com/hackbg/SecretNetwork?tag=v1.0.0)",
- "cosmwasm-storage 0.10.0 (git+https://github.com/hackbg/SecretNetwork?tag=v1.0.0)",
- "fadroma 3.0.0-rc1",
+ "fadroma",
  "fadroma-bind-js",
  "js-sys",
  "kukumba 1.0.1 (git+https://github.com/hackbg/kukumba?branch=21.04)",
  "linear-map",
- "schemars",
- "secret-toolkit 0.1.0 (git+https://github.com/hackbg/secret-toolkit?tag=legacy-mgmt)",
  "serde",
  "sienna-mgmt",
  "sienna-migrate",
@@ -1905,7 +1665,7 @@ version = "2.0.0-rc1"
 dependencies = [
  "clap 3.0.0-rc.4",
  "color-rs 0.5.0",
- "fadroma 22.1.0",
+ "fadroma",
  "serde",
  "serde-json-wasm",
  "spreadsheet-ods",
@@ -1962,11 +1722,11 @@ dependencies = [
  "rand_chacha 0.2.2",
  "rand_core 0.5.1",
  "schemars",
- "secret-toolkit 0.1.0 (git+https://github.com/hackbg/secret-toolkit?rev=legacy-snip20)",
+ "secret-toolkit 0.1.0",
  "serde",
- "sha2 0.9.8",
+ "sha2",
  "snafu",
- "subtle 2.4.1",
+ "subtle",
  "wasm-bindgen",
 ]
 
@@ -2021,12 +1781,6 @@ checksum = "73473c0e59e6d5812c5dfe2a064a6444949f089e20eec9a2e5506596494e4623"
 
 [[package]]
 name = "subtle"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2d67a5a62ba6e01cb2192ff309324cb4875d0c451d55fe2319433abe7a05a8ee"
-
-[[package]]
-name = "subtle"
 version = "2.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
@@ -2065,7 +1819,7 @@ checksum = "dac1c663cfc93810f88aed9b8941d48cabf856a1b111c29a40439018d870eb22"
 dependencies = [
  "cfg-if",
  "libc",
- "rand 0.8.4",
+ "rand",
  "redox_syscall 0.2.10",
  "remove_dir_all",
  "winapi",

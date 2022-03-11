@@ -1,11 +1,11 @@
-#[macro_use] extern crate fadroma;
-
-// TODO(fadroma): we don't really need these to be public (see note in `mgmt`)
-pub use secret_toolkit::{snip20::handle::transfer_msg, utils::space_pad};
-pub use sienna_mgmt::msg::{Query as MGMTQuery, Response as MGMTResponse, Handle as MGMTHandle};
+use fadroma::{
+    declare_contract::*,
+    secret_toolkit::{snip20, utils::space_pad},
+    cosmwasm_std::{QueryRequest, WasmQuery, Uint128}
+};
+pub use sienna_mgmt::{QueryMsg as MGMTQuery, HandleMsg as MGMTHandle, ProgressResponse};
 pub use sienna_migration::{ContractStatus, ContractStatusLevel, is_operational, can_set_status};
 pub use linear_map::LinearMap;
-pub use cosmwasm_std::{QueryRequest, WasmQuery};
 
 /// Default value for Secret Network block size (used for padding)
 pub const BLOCK_SIZE: usize = 256;
@@ -165,18 +165,15 @@ fn query_claimable <S:Storage,A:Api,Q:Querier> (
     let msg = MGMTQuery::Progress { address: env.contract.address.clone(), time: env.block.time };
     let mut msg = to_binary(&msg)?;
     space_pad(&mut msg.0, BLOCK_SIZE);
-    let response = deps.querier.query::<MGMTResponse>(
+    let response = deps.querier.query::<ProgressResponse>(
         &QueryRequest::Wasm(WasmQuery::Smart {
             contract_addr:      deps.api.human_address(&mgmt.0)?,
             callback_code_hash: mgmt.1.clone(),
             msg,
         })
-    );
-    if let MGMTResponse::Progress { unlocked, claimed, .. } = response? {
-        Ok((unlocked - claimed)?)
-    } else {
-        Err(StdError::GenericErr { msg: RPTError!(MGMT).to_string(), backtrace: None })
-    }
+    )?;
+
+    Ok(response.unlocked - response.claimed)
 }
 
 fn validate <T> (portion: Uint128, config: &Config<T>) -> StdResult<()> {
@@ -210,7 +207,7 @@ fn transfer <A:Api> (
     let (token_addr, token_hash) = &state.token;
     let token_addr = api.human_address(&token_addr)?;
     let recipient  = api.human_address(&recipient)?;
-    transfer_msg(recipient, amount, None, BLOCK_SIZE, token_hash.clone(), token_addr)
+    snip20::transfer_msg(recipient, amount, None, None, BLOCK_SIZE, token_hash.clone(), token_addr)
 }
 
 #[cfg(all(feature="browser",target_arch="wasm32"))]

@@ -9,14 +9,9 @@ crate-type = ["cdylib", "rlib"]
 doctest = false
 
 [dependencies]
-cosmwasm-schema  = { git = "https://github.com/hackbg/SecretNetwork", tag = "v1.0.0" }
-cosmwasm-std     = { git = "https://github.com/hackbg/SecretNetwork", tag = "v1.0.0" }
-cosmwasm-storage = { git = "https://github.com/hackbg/SecretNetwork", tag = "v1.0.0" }
-fadroma          = { git = "https://github.com/hackbg/fadroma", branch = "21.05.2" }
+fadroma = { path = "../../../deps/fadroma/crates/fadroma", features = ["derive"] }
+serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 linear-map       = { path = "../../../libraries/linear-map" }
-schemars         = "0.7"
-secret-toolkit   = { git = "https://github.com/hackbg/secret-toolkit", tag = "legacy-mgmt" }
-serde            = { version = "1.0.103", default-features = false, features = ["derive"] }
 sienna-mgmt      = { path = "../mgmt" }
 sienna-migrate   = { path = "../../../libraries/migrate" }
 
