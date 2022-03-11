@@ -28,9 +28,11 @@ impl Killswitch for MgmtKillswitch {
             vec![]
         } else {
             match level {
-                // upon entering migration mode,
+                // Upon entering migration mode,
                 // token admin is changed from "MGMT" to "MGMT's admin"
-                // so that the token can be administrated manually
+                // so that the token can be administrated manually.
+                // This is only required if instantiated with `prefund`
+                // parameter set to `false`.
                 ContractStatusLevel::Migrating => {
                     let token = Config::load_token(deps)?;
                     let admin = load_admin(deps)?;

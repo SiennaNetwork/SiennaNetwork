@@ -27,6 +27,7 @@ use sienna_schedule::{
     Seconds, Schedule, Account
 };
 
+/// This doesn't need to be private because the schedule and claim history are public by design.
 const VIEWING_KEY: &str = "SiennaMGMT";
 
 /// Error messages
@@ -50,6 +51,8 @@ pub trait Mgmt {
         admin: Option<HumanAddr>,
         schedule: Schedule<HumanAddr>,
         token: ContractLink<HumanAddr>,
+        // If false, the contract will be transfered ownership of the token and it will mint the required amount of tokens itself.
+        // If true, it will expect and verify that it has the required balance upon launch.
         prefund: bool
     ) -> StdResult<InitResponse> {
         schedule.validate()?;
@@ -116,9 +119,13 @@ pub trait Mgmt {
     }
 
     /// An instance can be launched only once.
-    /// Launching the instance mints the total tokens as specified by
+    /// Launching:
+    ///  - When not prefunding: the instance mints the total tokens as specified by
     /// the schedule, and prevents any more tokens from ever being minted
     /// by the underlying contract.
+    /// 
+    ///  - When prefunding: the instance simply checks if its token balance is equal to the
+    /// amount specified by the schedule.
     #[handle]
     #[require_admin]
     fn launch() -> StdResult<HandleResponse> {
