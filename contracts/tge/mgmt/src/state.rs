@@ -3,7 +3,7 @@ use fadroma::{
     cosmwasm_std::{
         StdResult, StdError, Extern, Storage, Api, Querier, HumanAddr, CanonicalAddr, Uint128, BlockInfo
     },
-    storage::{IterableStorage, load, save},
+    storage::{IterableStorage, load, save, ns_load, ns_save},
     ContractLink, Humanize, Canonize
 };
 use sienna_schedule::{Seconds, Schedule};
@@ -107,9 +107,11 @@ impl Participant {
         deps: &Extern<S,A,Q>,
         address: &HumanAddr
     ) -> StdResult<Self> {
+        let address = address.canonize(&deps.api)?;
+
         Ok(Self { 
-            address: address.canonize(&deps.api)?,
-            claimed: load(&deps.storage, Self::KEY)?.unwrap_or_default()
+            claimed: ns_load(&deps.storage, Self::KEY, address.as_slice())?.unwrap_or_default(),
+            address
         })
     }
 
@@ -125,7 +127,7 @@ impl Participant {
     ) -> StdResult<()> {
         self.claimed = amount;
 
-        save(storage, Self::KEY, &self.claimed)
+        ns_save(storage, Self::KEY, self.address.as_slice(), &self.claimed)
     }
 }
 
