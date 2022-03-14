@@ -14,7 +14,7 @@ use fadroma::platform::{
     from_binary,
     testing::{mock_env, MockApi, MockStorage},
     to_binary, Binary, Coin, Extern, HumanAddr, StdError, Uint128,
-    Callback, ContractLink
+    ContractLink
 };
 
 fn mock_deps() -> Extern<MockStorage, MockApi, MockQuerier> {
@@ -56,14 +56,7 @@ fn get_deps_after_init(tokens: Vec<TokenSettings>) -> Extern<MockStorage, MockAp
             tokens,
             admin: env.message.sender,
             prng_seed: to_binary(&"whatever").unwrap(),
-            entropy: to_binary(&"whatever").unwrap(),
-            callback: Callback {
-                msg: Binary::from(&[]),
-                contract: ContractLink {
-                    address: HumanAddr::from("callback-address"),
-                    code_hash: "code-hash-of-callback-contract".to_string(),
-                },
-            },
+            entropy: to_binary(&"whatever").unwrap()
         },
     )
     .unwrap();
