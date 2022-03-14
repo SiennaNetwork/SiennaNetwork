@@ -388,7 +388,7 @@ pub trait Market {
         }
 
         if let Some(reserve_factor) = reserve_factor {
-            config.reserve_factor = reserve_factor;
+            config.set_reserve_factor(reserve_factor)?;
             Constants::save_config(&mut deps.storage, &config)?;
         }
 

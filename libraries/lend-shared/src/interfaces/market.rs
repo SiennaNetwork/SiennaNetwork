@@ -1,28 +1,16 @@
 use fadroma::{
-    admin,
-    killswitch,
-    cosmwasm_std,
-    derive_contract::*,
-    snip20_impl::msg::QueryAnswer as Snip20Response,
-    schemars,
-    schemars::JsonSchema,
-    ContractLink, Decimal256, HandleResponse, HumanAddr, InitResponse,
-    StdResult, Uint128, Uint256, Binary, QueryRequest, WasmQuery,
-    Querier, Callback, to_binary
+    admin, cosmwasm_std, derive_contract::*, killswitch, schemars, schemars::JsonSchema,
+    snip20_impl::msg::QueryAnswer as Snip20Response, to_binary, Binary, Callback, ContractLink,
+    Decimal256, HandleResponse, HumanAddr, InitResponse, Querier, QueryRequest, StdError,
+    StdResult, Uint128, Uint256, WasmQuery,
 };
 
 use serde::{Deserialize, Serialize};
 
-use crate::interfaces::overseer::{
-    AccountLiquidity,
-    Market as EnteredMarket
-};
-use crate::core::{MasterKey, AuthMethod};
+use crate::core::{AuthMethod, MasterKey};
+use crate::interfaces::overseer::{AccountLiquidity, Market as EnteredMarket};
 
-#[interface(
-    component(path = "admin"),
-    component(path = "killswitch")
-)]
+#[interface(component(path = "admin"), component(path = "killswitch"))]
 pub trait Market {
     #[init]
     fn new(
@@ -35,7 +23,7 @@ pub trait Market {
         // Interest model contract address
         interest_model_contract: ContractLink<HumanAddr>,
         config: Config,
-        callback: Callback<HumanAddr>
+        callback: Callback<HumanAddr>,
     ) -> StdResult<InitResponse>;
 
     /// Snip20 receiver interface
@@ -44,7 +32,7 @@ pub trait Market {
         sender: HumanAddr,
         from: HumanAddr,
         msg: Option<Binary>,
-        amount: Uint128
+        amount: Uint128,
     ) -> StdResult<HandleResponse>;
 
     #[handle]
@@ -57,10 +45,7 @@ pub trait Market {
     fn borrow(amount: Uint256) -> StdResult<HandleResponse>;
 
     #[handle]
-    fn transfer(
-        recipient: HumanAddr,
-        amount: Uint256
-    ) -> StdResult<HandleResponse>;
+    fn transfer(recipient: HumanAddr, amount: Uint256) -> StdResult<HandleResponse>;
 
     #[handle]
     fn accrue_interest() -> StdResult<HandleResponse>;
@@ -69,48 +54,33 @@ pub trait Market {
     fn seize(
         liquidator: HumanAddr,
         borrower: HumanAddr,
-        amount: Uint256
+        amount: Uint256,
     ) -> StdResult<HandleResponse>;
 
     #[handle]
     fn update_config(
         interest_model: Option<ContractLink<HumanAddr>>,
         reserve_factor: Option<Decimal256>,
-        borrow_cap: Option<Uint256>
+        borrow_cap: Option<Uint256>,
     ) -> StdResult<HandleResponse>;
 
     #[handle]
-    fn reduce_reserves(
-        amount: Uint128,
-        to: Option<HumanAddr>
-    ) -> StdResult<HandleResponse>;
+    fn reduce_reserves(amount: Uint128, to: Option<HumanAddr>) -> StdResult<HandleResponse>;
 
     #[handle]
-    fn create_viewing_key(
-        entropy: String,
-        padding: Option<String>
-    ) -> StdResult<HandleResponse>;
+    fn create_viewing_key(entropy: String, padding: Option<String>) -> StdResult<HandleResponse>;
 
     #[handle]
-    fn set_viewing_key(
-        key: String,
-        padding: Option<String>
-    ) -> StdResult<HandleResponse>;
+    fn set_viewing_key(key: String, padding: Option<String>) -> StdResult<HandleResponse>;
 
     #[query]
     fn token_info() -> StdResult<Snip20Response>;
 
     #[query]
-    fn balance(
-        address: HumanAddr,
-        key: String
-    ) -> StdResult<Uint128>;
+    fn balance(address: HumanAddr, key: String) -> StdResult<Uint128>;
 
     #[query]
-    fn balance_underlying(
-        method: MarketAuth,
-        block: Option<u64>
-    ) -> StdResult<Uint128>;
+    fn balance_underlying(method: MarketAuth, block: Option<u64>) -> StdResult<Uint128>;
 
     #[query]
     fn state(block: Option<u64>) -> StdResult<State>;
@@ -128,10 +98,7 @@ pub trait Market {
     fn exchange_rate(block: Option<u64>) -> StdResult<Decimal256>;
 
     #[query]
-    fn account(
-        method: MarketAuth,
-        block: Option<u64>
-    ) -> StdResult<AccountInfo>;
+    fn account(method: MarketAuth, block: Option<u64>) -> StdResult<AccountInfo>;
 
     #[query]
     fn id(method: MarketAuth) -> StdResult<Binary>;
@@ -140,7 +107,7 @@ pub trait Market {
     fn borrowers(
         block: u64,
         start_after: Option<u64>,
-        limit: Option<u8>
+        limit: Option<u8>,
     ) -> StdResult<Vec<Borrower>>;
 }
 
@@ -151,7 +118,7 @@ pub type MarketAuth = AuthMethod<MarketPermissions>;
 pub enum MarketPermissions {
     AccountInfo,
     Balance,
-    Id
+    Id,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -170,7 +137,7 @@ pub struct State {
     /// The amount of the underlying token that the market has.
     pub underlying_balance: Uint128,
     /// Values in the contract that rarely change.
-    pub config: Config
+    pub config: Config,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -181,7 +148,23 @@ pub struct Config {
     /// Fraction of interest currently set aside for reserves
     pub reserve_factor: Decimal256,
     /// Share of seized collateral that is added to reserves
-    pub seize_factor: Decimal256
+    pub seize_factor: Decimal256,
+}
+
+impl Config {
+    pub fn set_reserve_factor(&mut self, new: Decimal256) -> StdResult<()> {
+        Self::validate_reserve_factor(&new)?;
+        self.reserve_factor = new;
+        Ok(())
+    }
+
+    pub fn validate_reserve_factor(reserve_factor: &Decimal256) -> StdResult<()> {
+        if *reserve_factor > Decimal256::one() {
+            return Err(StdError::generic_err("Reserve factor must be lower than 1"));
+        } else {
+            Ok(())
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -191,7 +174,7 @@ pub struct Borrower {
     pub principal_balance: Uint256,
     pub actual_balance: Uint256,
     pub liquidity: AccountLiquidity,
-    pub markets: Vec<EnteredMarket<HumanAddr>>
+    pub markets: Vec<EnteredMarket<HumanAddr>>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default, JsonSchema)]
@@ -220,18 +203,18 @@ pub enum ReceiverCallbackMsg {
     Deposit,
     Repay {
         /// Repay someone else's debt.
-        borrower: Option<Binary>
+        borrower: Option<Binary>,
     },
     Liquidate {
         borrower: Binary,
-        collateral: HumanAddr
-    }
+        collateral: HumanAddr,
+    },
 }
 
 pub fn query_exchange_rate(
     querier: &impl Querier,
     market: ContractLink<HumanAddr>,
-    block: Option<u64>
+    block: Option<u64>,
 ) -> StdResult<Decimal256> {
     querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
         contract_addr: market.address,
@@ -244,14 +227,11 @@ pub fn query_account(
     querier: &impl Querier,
     market: ContractLink<HumanAddr>,
     method: MarketAuth,
-    block: Option<u64>
+    block: Option<u64>,
 ) -> StdResult<AccountInfo> {
     querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
         contract_addr: market.address,
         callback_code_hash: market.code_hash,
-        msg: to_binary(&QueryMsg::Account {
-            method,
-            block
-        })?
+        msg: to_binary(&QueryMsg::Account { method, block })?,
     }))
 }
