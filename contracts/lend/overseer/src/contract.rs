@@ -104,7 +104,7 @@ pub trait Overseer {
         Ok(HandleResponse {
             messages: vec![],
             log: vec![
-                log("action", "register_interest_token"),
+                log("action", "register_oracle"),
                 log("oracle_address", oracle.address),
             ],
             data: None,
