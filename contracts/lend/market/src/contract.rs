@@ -84,6 +84,7 @@ pub trait Market {
             code_hash: env.contract_code_hash.clone(),
         };
 
+        Config::validate(&config)?;
         Constants::save_config(&mut deps.storage, &config)?;
         BorrowerId::set_prng_seed(&mut deps.storage, &prng_seed)?;
         

@@ -160,10 +160,25 @@ impl Config {
 
     pub fn validate_reserve_factor(reserve_factor: &Decimal256) -> StdResult<()> {
         if *reserve_factor > Decimal256::one() {
-            return Err(StdError::generic_err("Reserve factor must be lower than 1"));
+            return Err(StdError::generic_err("Reserve factor must be lower than or equal to 1"));
         } else {
             Ok(())
         }
+    }
+
+    pub fn validate_initial_exchange_rate(rate: &Decimal256) -> StdResult<()> {
+        if *rate == Decimal256::zero() {
+            return Err(StdError::generic_err("Initial exchange rate must be greater than 0"));
+        } else {
+            Ok(())
+        }
+    }
+
+    pub fn validate(config: &Self) -> StdResult<()> {
+        Config::validate_initial_exchange_rate(&config.initial_exchange_rate)?;
+        Config::validate_reserve_factor(&config.reserve_factor)?;
+
+        Ok(())
     }
 }
 
