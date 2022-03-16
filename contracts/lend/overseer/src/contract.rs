@@ -525,6 +525,10 @@ fn calc_liquidity<S: Storage, A: Api, Q: Querier>(
 
         let conversion_factor = ((market.ltv_ratio * snapshot.exchange_rate)? * price.rate)?;
 
+        if !market.ltv_ratio.is_zero() && conversion_factor.is_zero() {
+            return Err(StdError::generic_err("Invalid price"))
+        }
+
         total_collateral = (Uint256::from(snapshot.sl_token_balance)
             .decimal_mul(conversion_factor)?
             + total_collateral)?;

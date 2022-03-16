@@ -59,13 +59,13 @@ export async function testLend({
   await agent.execute(deployedMockOracle, {
     set_price: {
       symbol: "SLATOM",
-      price: "1",
+      price: "1000000000000000000",
     },
   });
   await agent.execute(deployedMockOracle, {
     set_price: {
       symbol: "SLSCRT",
-      price: "1",
+      price: "1000000000000000000",
     },
   });
   const token1 = await deployment.get(TOKEN1.name, "SLATOM");
@@ -77,7 +77,7 @@ export async function testLend({
     mint: { recipient: BOB.address, amount: "100" },
   });
   await withGasReport(agent, token1, {
-    mint: { recipient: MALLORY.address, amount: "100" },
+    mint: { recipient: MALLORY.address, amount: "300" },
   });
   await withGasReport(agent, token2, {
     mint: { recipient: ALICE.address, amount: "300" },
@@ -155,6 +155,15 @@ export async function testLend({
     },
   });
 
+  await withGasReport(MALLORY, token2, {
+    send: {
+      recipient: market2.contract.address,
+      recipient_code_hash: market2.contract.code_hash,
+      amount: "300",
+      msg: b64encode(JSON.stringify("deposit")),
+    },
+  });
+
   console.info("entering markets...");
   await withGasReport(BOB, deployedOverseer, {
     enter: {
@@ -177,7 +186,13 @@ export async function testLend({
   console.info("borrowing...");
   await withGasReport(BOB, market2.contract, {
     borrow: {
-      amount: "100",
+      amount: "70",
+    },
+  });
+
+  await withGasReport(ALICE, market2.contract, {
+    borrow: {
+      amount: "40",
     },
   });
 
@@ -192,7 +207,7 @@ export async function testLend({
     send: {
       recipient: market2.contract.address,
       recipient_code_hash: market2.contract.code_hash,
-      amount: "100",
+      amount: "70",
       msg: b64encode(JSON.stringify({ repay: { borrower: null } })),
     },
   });

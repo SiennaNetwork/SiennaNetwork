@@ -640,3 +640,51 @@ fn calculate_amount_seize() {
         assert_eq!(res, *result);
     }
 }
+
+#[test]
+pub fn liquidity_oracle_low_price() {
+    let mut lend = Lend::default();
+    let underlying = lend.new_underlying_token("ONE", 6).unwrap();
+
+    let market = lend
+        .whitelist_market(underlying.clone(), Decimal256::percent(50), None, None)
+        .unwrap();
+
+    lend.set_oracle_price(market.symbol.as_bytes(), Uint128(1u128))
+        .unwrap();
+
+    lend.prefund_user(BORROWER, Uint128(5 * one_token(6)), underlying.clone());
+
+    lend.ensemble
+        .execute(
+            &HandleMsg::Enter {
+                markets: vec![market.contract.address.clone()],
+            },
+            MockEnv::new(BORROWER, lend.overseer.clone()),
+        )
+        .unwrap();
+
+    let _res = lend
+        .ensemble
+        .execute(
+            &Snip20HandleMsg::Send {
+                recipient: market.contract.address.clone(),
+                recipient_code_hash: None,
+                amount: Uint128(1_000_000),
+                memo: None,
+                padding: None,
+                msg: Some(to_binary(&market::ReceiverCallbackMsg::Deposit {}).unwrap()),
+            },
+            MockEnv::new(BORROWER, underlying.clone()),
+        )
+        .unwrap();
+
+    lend.get_liquidity(
+        BORROWER,
+        Some(market.contract.address),
+        Uint256::from(0u128),
+        Uint256::from(0u128),
+        None,
+    )
+    .unwrap_err();
+}
