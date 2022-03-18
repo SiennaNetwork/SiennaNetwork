@@ -1,5 +1,6 @@
 use crate::impl_contract_harness_default;
 use fadroma::ensemble::{ContractEnsemble, ContractHarness, MockDeps, MockEnv};
+use fadroma::snip20_impl::msg::InitConfig;
 use fadroma::Uint128;
 use fadroma::{
     from_binary, snip20_impl, snip20_impl::msg::InitMsg as Snip20InitMsg, Binary, ContractLink,
@@ -63,17 +64,37 @@ impl TGE {
                 token.id,
                 &Snip20InitMsg {
                     name: "REWARD".into(),
-                    admin: None,
+                    admin: Some("MGMT_CONTRACT".into()),
                     symbol: "TKN".into(),
                     decimals: 18,
                     initial_balances: None,
                     initial_allowances: None,
                     prng_seed: Binary::from(b"whatever"),
-                    config: None,
+                    config: Some(
+                        InitConfig::builder()
+                            .public_total_supply()
+                            .enable_mint()
+                            .build(),
+                    ),
                     callback: None,
                 },
                 MockEnv::new(
                     ADMIN,
+                    ContractLink {
+                        address: "REWARD".into(),
+                        code_hash: token.code_hash.clone(),
+                    },
+                ),
+            )
+            .unwrap();
+        ensemble
+            .execute(
+                &snip20_sienna::msg::HandleMsg::AddMinters {
+                    minters: vec!["admin".into(), "MGMT_CONTRACT".into()],
+                    padding: None,
+                },
+                MockEnv::new(
+                    "MGMT_CONTRACT",
                     ContractLink {
                         address: "REWARD".into(),
                         code_hash: token.code_hash.clone(),
@@ -94,8 +115,8 @@ impl TGE {
                 MockEnv::new(
                     ADMIN,
                     ContractLink {
-                        address: "mgmt_contract".into(),
-                        code_hash: mgmt_model.code_hash,
+                        address: "MGMT_CONTRACT".into(),
+                        code_hash: mgmt_model.code_hash.clone(),
                     },
                 ),
             )
@@ -107,7 +128,7 @@ impl TGE {
             .instantiate(
                 rpt_model.id,
                 &sienna_rpt::InitMsg {
-                    admin: None,
+                    admin: Some(ADMIN.into()),
                     mgmt: mgmt.clone(),
                     distribution,
                     token: ContractLink {
