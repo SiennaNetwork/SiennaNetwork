@@ -6,7 +6,7 @@ use fadroma::{
     Env, HandleResponse, HumanAddr, InitResponse, StdResult,
 };
 use sienna_mgmt;
-use sienna_rpt;
+use sienna_rpt::{self, LinearMap};
 use sienna_schedule::{Pool, Schedule};
 
 pub struct MGMT;
@@ -101,12 +101,15 @@ impl TGE {
             )
             .unwrap();
 
+        let distribution = LinearMap(vec![(HumanAddr::from(ADMIN), Uint128(2500))]);
+
         let rpt = ensemble
             .instantiate(
                 rpt_model.id,
                 &sienna_rpt::InitMsg {
                     admin: None,
                     mgmt: mgmt.clone(),
+                    distribution,
                     token: ContractLink {
                         address: "REWARD".into(),
                         code_hash: token.code_hash.clone(),

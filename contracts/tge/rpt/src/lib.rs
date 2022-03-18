@@ -5,7 +5,8 @@ use fadroma::{
     admin::assert_admin,
     cosmwasm_std::{self, HandleResponse, InitResponse, StdResult, Uint128},
     derive_contract::{contract, init},
-    require_admin, schemars,
+    require_admin,
+    schemars::{self, JsonSchema},
     secret_toolkit::snip20,
     space_pad, to_binary, Api, Binary, ContractLink, CosmosMsg, Env, Extern, HumanAddr,
     LogAttribute, Querier, StdError, Storage, WasmMsg, WasmQuery, BLOCK_SIZE,
@@ -13,6 +14,7 @@ use fadroma::{
 pub mod state;
 use fadroma::{derive_contract::*, killswitch};
 pub use linear_map::LinearMap;
+use serde::{Deserialize, Serialize};
 pub use sienna_mgmt::{HandleMsg as MGMTHandle, ProgressResponse, QueryMsg as MGMTQuery};
 use state::{Portion, State};
 
@@ -43,10 +45,13 @@ pub trait RPT {
     #[init]
     fn new(
         admin: Option<HumanAddr>,
+        distribution: Distribution<HumanAddr>,
         portion: Portion,
         token: ContractLink<HumanAddr>,
         mgmt: ContractLink<HumanAddr>,
     ) -> StdResult<InitResponse> {
+        validate(portion, &distribution)?;
+        State::save_distribution(deps, distribution)?;
         State::save_portion(deps, portion)?;
         State::save_token(deps, token)?;
         State::save_mgmt(deps, mgmt)?;
@@ -55,6 +60,16 @@ pub trait RPT {
 
         Ok(response)
     }
+    #[query]
+    fn configuration() -> StdResult<ConfigResponse> {
+        Ok(ConfigResponse {
+            distribution: State::load_distribution(deps)?,
+            mgmt: State::load_mgmt(deps)?,
+            portion: State::load_portion(deps)?,
+            token: State::load_token(deps)?,
+        })
+    }
+
     #[handle_guard]
     fn guard(_msg: &HandleMsg) -> StdResult<()> {
         killswitch::is_operational(deps)
@@ -167,6 +182,15 @@ fn sum_config<T>(map: &LinearMap<T, Uint128>) -> Uint128 {
         total += *amount;
     }
     total
+}
+
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ConfigResponse {
+    pub portion: Uint128,
+    pub distribution: Distribution<HumanAddr>,
+    pub token: ContractLink<HumanAddr>,
+    pub mgmt: ContractLink<HumanAddr>,
 }
 
 #[cfg(all(feature = "browser", target_arch = "wasm32"))]
