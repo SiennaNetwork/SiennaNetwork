@@ -14,7 +14,6 @@ pub mod state;
 use fadroma::{derive_contract::*, killswitch};
 pub use linear_map::LinearMap;
 pub use sienna_mgmt::{HandleMsg as MGMTHandle, ProgressResponse, QueryMsg as MGMTQuery};
-pub use sienna_migration::{can_set_status, is_operational, ContractStatus, ContractStatusLevel};
 use state::{Portion, State};
 
 /// Default value for Secret Network block size (used for padding)

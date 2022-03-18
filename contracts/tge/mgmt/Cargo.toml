@@ -12,6 +12,7 @@ exclude = [
 
 [lib]
 crate-type = ["cdylib", "rlib"]
+path = "src/lib.rs"
 doctest = false
 
 [dependencies]

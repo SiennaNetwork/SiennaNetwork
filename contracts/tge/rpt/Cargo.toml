@@ -6,17 +6,20 @@ edition = "2018"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
+path = "src/lib.rs"
 doctest = false
 
 [dependencies]
-fadroma = { path = "../../../deps/fadroma/crates/fadroma", features = ["derive"] }
+fadroma = { path = "../../../deps/fadroma/crates/fadroma", features = [
+  "derive",
+] }
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
-linear-map       = { path = "../../../libraries/linear-map" }
-sienna-mgmt      = { path = "../mgmt" }
+linear-map = { path = "../../../libraries/linear-map" }
+sienna-mgmt = { path = "../mgmt" }
 
 fadroma-bind-js = { optional = true, path = "../../../deps/fadroma/crates/fadroma-bind-js" }
-wasm-bindgen    = { optional = true, version = "0.2" }
-js-sys          = { optional = true, version = "0.3.55" }
+wasm-bindgen = { optional = true, version = "0.2" }
+js-sys = { optional = true, version = "0.3.55" }
 
 [dev-dependencies]
 kukumba = { git = "https://github.com/hackbg/kukumba", branch = "21.04" }
@@ -28,6 +31,9 @@ default = []
 # that is hosted in a browser. allows dashboard and fast integration tests
 browser = [
   "fadroma-bind-js",
-  "wasm-bindgen", "wasm-bindgen/serde-serialize", "js-sys",
-  "sienna-mgmt/browser", "sienna-mgmt/apionly"
+  "wasm-bindgen",
+  "wasm-bindgen/serde-serialize",
+  "js-sys",
+  "sienna-mgmt/browser",
+  "sienna-mgmt/apionly",
 ]

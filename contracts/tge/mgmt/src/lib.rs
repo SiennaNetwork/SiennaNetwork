@@ -267,7 +267,7 @@ pub trait Mgmt {
     }
 }
 
-#[derive(Serialize, Deserialize, schemars::JsonSchema)]
+#[derive(Serialize, Deserialize, schemars::JsonSchema, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct ConfigResponse {
     launched: Option<Seconds>,
