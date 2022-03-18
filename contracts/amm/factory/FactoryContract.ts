@@ -1,4 +1,6 @@
-import { Console, bold, colors, timestamp, randomHex, Template, ScrtBundle } from '@hackbg/fadroma'
+import {
+  Console, bold, colors, timestamp, randomHex, Template, ScrtBundle, Contract
+} from '@hackbg/fadroma'
 
 const console = Console('@sienna/amm/Factory')
 
@@ -27,28 +29,139 @@ export abstract class AMMFactoryContract extends Scrt_1_2.Contract<AMMFactoryCli
 
   /** Subclass. Sienna AMM Factory v1 */
   static v1 = class AMMFactoryContract_v1 extends AMMFactoryContract {
+
     version = 'v1' as AMMVersion
     name    = `AMM[${this.version}].Factory`
     source  = { workspace, crate: 'factory', ref: '2f75175212'/*'a99d8273b4'???*/ }
     Client  = AMMFactoryClient[this.version]
-    static deploy = function deployAMMFactory_v1 (input) {
+
+    static deploy = function deployAMM_v1 (input) {
       return deployAMM({ ...input, ammVersion: 'v1'})
     }
+
     static upgrade = {
-      v2: function upgradeAMMFactory_v1_to_v2 (input) {
-        return upgradeAMM({...input, oldVersion: 'v1', newVersion: 'v2'})
+
+      v2: function upgradeAMM_v1_to_v2 ({
+        run
+      }) {
+        return run(upgradeAMM, {oldVersion: 'v1', newVersion: 'v2'})
+      },
+
+      v2_factory: async function upgradeAMMFactory_v1_to_v2 ({
+        run, deployment, prefix, suffix,
+        uploadAgent,
+        clientAgent,
+        deployAgent
+      }) {
+        const v1: Record<string, any> = {}
+        v1.name      = `AMM[v1].Factory`
+        v1.factory   = new AMMFactoryClient.v1({ ...deployment.get(v1.name), agent: clientAgent })
+        //v1.templates = await v1.factory.getContracts()
+        const v2: Record<string, any> = {}
+        v2.contract  = new AMMFactoryContract.v2({ prefix, suffix })
+        v2.template  = (await uploadAgent.buildAndUpload([v2.contract]))[0]
+        v2.contract  = await run(deployAMMFactory, {
+          agent:     deployAgent,
+          version:   'v2',
+          template:  v2.template,
+          //templates: v1.templates,
+          suffix
+        })
+        return { v1, v2 }
+      },
+
+      v2_exchanges: async function cloneAMMExchanges_v1_to_v2 ({
+        run, deployment,
+        clientAgent,
+        deployAgent
+      }) {
+        const v1: Record<string, any> = {}
+        v1.name    = `AMM[v1].Factory`
+        v1.factory = new AMMFactoryClient.v1({ ...deployment.get(v1.name), agent: clientAgent })
+        v1.pairs   = await v1.factory.listExchanges()
+        console.info(bold(`AMM v1:`), v1.pairs.length, 'pairs')
+        const v2: Record<string, any> = {}
+        v2.name      = `AMM[v2].Factory`
+        v2.readFactory  = new AMMFactoryClient.v2({ ...deployment.get(v2.name), agent: clientAgent })
+        v2.writeFactory = new AMMFactoryClient.v2({ ...deployment.get(v2.name), agent: deployAgent })
+        v2.templates = await v2.readFactory.getContracts()
+        v2.existing  = await v2.readFactory.listExchanges()
+        const existingV1PairsJSON = v1.pairs.map(x=>JSON.stringify(x.pair))
+        const existingV2PairsJSON = v2.existing.map(x=>JSON.stringify(x.pair))
+        const v2PairsToCreate = []
+        for (const v1pairJSON of existingV1PairsJSON) {
+          if (existingV2PairsJSON.includes(v1pairJSON)) {
+            console.warn(bold(`Pair exists, not creating:`), v1pairJSON)
+          } else {
+            console.info(bold(`Will create pair:`), v1pairJSON)
+            v2PairsToCreate.push({ pair: JSON.parse(v1pairJSON) })
+          }
+        }
+        v2.pairs = await v2.writeFactory.createExchanges({
+          templates: v2.templates,
+          pairs:     v2PairsToCreate
+        })
+        v2.exchanges = await saveExchangeReceipts(deployment, 'v2', v2.readFactory, v2.pairs)
+        return { v1, v2 }
       }
+
     }
+
   }
 
   /** Subclass. Sienna AMM Factory v2 */
   static v2 = class AMMFactoryContract_v2 extends AMMFactoryContract {
     version = 'v2' as AMMVersion
     name    = `AMM[${this.version}].Factory`
-    source  = { workspace, crate: 'factory', ref: 'HEAD' }
+    source  = { workspace, crate: 'factory', ref: '39e87e4' }
     Client  = AMMFactoryClient[this.version]
-    static deploy = async function deployAMMFactory_v2 (input) {
+    static deploy = async function deployAMM_v2 (input) {
       return deployAMM({ ...input, ammVersion: 'v2'})
+    }
+    static status = async function ammFactoryStatus_v2 ({
+      deployment,
+      agent,
+      factory = new AMMFactoryClient.v2({
+        ...deployment.get(['AMM[v2].Factory']),
+        agent
+      })
+    }) {
+      console.info(bold(`Status of AMMv2 Factory at ${factory.address}`))
+      console.log()
+      const table = []
+      for (const exchange of await factory.listExchangesFull()) {
+        table.push([exchange.name, exchange.EXCHANGE.address])
+      }
+      console.table(table)
+      console.log()
+    }
+    static importReceipts = async function ammFactoryImportReceipts_v2 ({
+      agent, deployment,
+      factory = new AMMFactoryClient.v2({
+        ...deployment.get(['AMM[v2].Factory']),
+        agent
+      })
+    }) {
+      const {
+        pair_contract: { id: ammId, code_hash: ammHash },
+        lp_token_contract: { id: lpId }
+      } = await factory.getContracts()
+      const exchanges = await factory.listExchangesFull()
+      for (const {name, raw} of exchanges) {
+        deployment
+          .add(`AMM[v2].${name}`, {
+            ...raw,
+            codeId:   ammId,
+            codeHash: ammHash,
+            address:  raw.exchange.address,
+          })
+          .add(`AMM[v2].${name}.LP`, {
+            ...raw,
+            codeId:   lpId,
+            codeHash: raw.lp_token.code_hash,
+            address:  raw.lp_token.address
+          })
+      }
     }
   }
 
@@ -140,20 +253,13 @@ async function upgradeAMM (context: MigrationContext & {
 
   let newExchanges
   if (!generateMigration) {
-    // turn the list of pairs to create
-    // into a list of created exchange instances
-    newExchanges = await Promise.all(newPairs.map(
-      ({TOKEN_0, TOKEN_1})=>newFactory.getExchange(
-        TOKEN_0.asCustomToken,
-        TOKEN_1.asCustomToken
-      )
-    ))
-    const inventory  = await newFactory.getContracts()
-    const ammVersion = newVersion
-    // save the newly created contracts to the deployment
-    newExchanges.forEach((exchange)=>AMMExchangeContract.save({
-      deployment, ammVersion, inventory, exchange
-    }))
+    console.log(newPairs.sort())
+    newExchanges = await saveExchangeReceipts(
+      deployment,
+      newVersion,
+      newFactory,
+      newPairs
+    )
   }
 
   return generateMigration ? bundle : {
@@ -162,6 +268,27 @@ async function upgradeAMM (context: MigrationContext & {
     // The AMM exchanges that were created as a result of the upgrade.
     EXCHANGES: newExchanges
   }
+}
+
+export async function saveExchangeReceipts (
+  deployment,
+  ammVersion: AMMVersion,
+  factory:    AMMFactoryClient,
+  pairs:      any[]
+) {
+  // turn the list of pairs to create
+  // into a list of created exchange instances
+  const exchanges = await Promise.all(pairs.map(
+    ({token_0, token_1, TOKEN_0, TOKEN_1})=>factory.getExchange(
+      token_0||TOKEN_0.asCustomToken,
+      token_1||TOKEN_1.asCustomToken
+    )
+  ))
+  const inventory = await factory.getContracts()
+  // save the newly created contracts to the deployment
+  exchanges.forEach((exchange)=>AMMExchangeContract.save({
+    deployment, ammVersion, inventory, exchange
+  }))
 }
 
 /** Deploy the Factory contract which is the hub of the AMM.
@@ -200,24 +327,37 @@ export async function deployAMMFactory (context: MigrationContext & {
   return factory.client(agent)
 }
 
-async function buildTemplates (agent: Agent, version: 'v1'|'v2') {
-  const AMMTOKEN  = new AMMSNIP20Contract()
-  const LPTOKEN   = new LPTokenContract()
-  const EXCHANGE  = new AMMExchangeContract[version]()
-  const LAUNCHPAD = new LaunchpadContract() // special cased because versions
-  const IDO       = new IDOContract()
-  for (const contract of [AMMTOKEN, LPTOKEN, EXCHANGE, LAUNCHPAD, IDO]) {
+async function buildTemplates (agent: Agent, version: 'v1'|'v2'):
+  Promise<Record<string, {id:number,code_hash:string}>>
+{
+  const contracts: Record<string, Contract<any>> = {
+    LPTOKEN:  new LPTokenContract[version](),
+    EXCHANGE: new AMMExchangeContract[version]()
+  }
+  if (version === 'v1') {
+    Object.assign(contracts, {
+      AMMTOKEN:  new AMMSNIP20Contract(),
+      LAUNCHPAD: new LaunchpadContract(),
+      IDO:       new IDOContract()
+    })
+  }
+  for (const contract of Object.values(contracts)) {
     await agent.buildAndUpload([contract]) // TODO parallel
   }
   const template = contract => ({
     id:        Number(contract.template.codeId),
     code_hash: contract.template.codeHash
   })
-  return {
-    snip20_contract:    template(AMMTOKEN),
-    pair_contract:      template(EXCHANGE),
-    lp_token_contract:  template(LPTOKEN),
-    ido_contract:       template(IDO),
-    launchpad_contract: template(LAUNCHPAD),
+  const templates = {
+    pair_contract:      template(contracts.EXCHANGE),
+    lp_token_contract:  template(contracts.LPTOKEN),
   }
+  if (version === 'v1') {
+    Object.assign(templates, {
+      snip20_contract:    template(contracts.AMMTOKEN),
+      ido_contract:       template(contracts.IDO),
+      launchpad_contract: template(contracts.LAUNCHPAD),
+    })
+  }
+  return templates
 }

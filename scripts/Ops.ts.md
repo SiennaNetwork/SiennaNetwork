@@ -2,21 +2,13 @@
 
 ```typescript
 import Fadroma, { bold, timestamp, Console } from '@hackbg/fadroma'
+import * as API from '@sienna/api'
 const console = new Console('@sienna/scripts/Ops')
 ```
 
 ## How commands work
 
-TODO: Literate doc in Fadroma instead the following haphazard explanation:
-
-Fadroma commands are a match between of a series of keywords
-(represented by a space-separated string)
-and a series of [stages](https://github.com/hackbg/fadroma/blob/22.01/packages/ops/index.ts)
-(represented by async functions)
-that are executed in sequence with a common state object -
-the [`MigrationContext`](https://github.com/hackbg/fadroma/blob/22.01/packages/ops/index.ts),
-into which the values returned by each procedure can also be added
-(for example, see [`Deployments.activate`](#needsdeployment)).
+> See: [Fadroma CLI Documentation](https://github.com/hackbg/fadroma/blob/22.01/packages/cli/README.md)
 
 ## Chains
 
@@ -33,6 +25,33 @@ Results of uploads and inits are stored in `receipts/*/{deployments,uploads}`.
 These are used to keep track of deployed contracts.
 See [`../receipts`](../receipts).
 
+#### Import exchange receipts from factory
+
+Contract receipts are normally saved only when the contracts
+are created via Fadroma's `Deployment` class. In comparison,
+AMM exchanges are created by executing a transaction on the
+AMM Factory contract, which does not emit receipts. Therefore,
+in to keep track of exchanges, the following command is used
+to query the current list of exchanges from the factory, and
+generate the corresponding exchange contract receipts.
+
+```typescript
+Fadroma.command('import receipts amm v2',
+  Deployments.activate,
+  AMMFactoryContract.v2.importReceipts
+)
+```
+
+#### Import rewards receipts from bundle response
+
+```typescript
+Fadroma.command('import receipts rewards v3',
+  Deployments.activate,
+  API.RewardsContract.v3.importReceipts,
+  Deployments.status,
+)
+```
+
 ### Reset localnet
 
 Commands that spawn localnets (such as benchmarks and integration tests)
@@ -41,12 +60,27 @@ reset the localnet manually, the `pnpm -w ops reset` command will stop the
 currently running localnet container, and will delete the localnet data under `/receipts`.
 
 ```typescript
-Fadroma.command('reset', async ({ chain }) => {
-  if (chain.node) {
-    await chain.node.terminate()
-  } else {
-    console.warn(bold(process.env.FADROMA_CHAIN), 'not a localnet')
-  }
+import { ChainNode } from '@hackbg/fadroma'
+Fadroma.command('reset', ChainNode.reset)
+```
+
+## Uploads
+
+### AMMv2 + Rewardsv3 contracts to mainnet
+
+```typescript
+Fadroma.command('upload amm-v2-rewards-v3', async ({ agent })=>{
+  const [
+    newAMMFactoryTemplate,
+    newAMMExchangeTemplate,
+    newAMMLPTokenTemplate,
+    newRewardsTemplate
+  ] = await agent.buildAndUpload([
+    new API.AMMFactoryContract.v2()
+    new API.AMMExchangeContract.v2()
+    new API.LPTokenContract.v2()
+    new API.RewardsContract.v3()
+  ])
 })
 ```
 
@@ -63,12 +97,19 @@ Fadroma.command('status',
   Deployments.activate,
   SiennaSnip20Contract.status,
   MGMTContract.status,
-  RPTContract.status)
+  RPTContract.status,
+  AMMFactoryContract.v2.status,
+)
 Fadroma.command('fund-testers',
   Deployments.activate,
-  SiennaSnip20Contract.fundTesters)
-Fadroma.command('select', Deployments.select)
-Fadroma.command('deploy new', Deployments.new)
+  SiennaSnip20Contract.fundTesters
+)
+Fadroma.command('select',
+  Deployments.select
+)
+Fadroma.command('deploy new',
+  Deployments.new
+)
 ```
 
 ### Deployments.activate
@@ -90,16 +131,20 @@ This is how you start from a clean slate.
 ```typescript
 import { deployTGE } from '@sienna/tge'
 import { AMMFactoryContract, RewardsContract } from '@sienna/amm'
+
 Fadroma.command('deploy legacy',
   Deployments.new,
   deployTGE,
   Deployments.status,
-  AMMFactoryContract['v1'].deploy,
+  AMMFactoryContract.v1.deploy,
   Deployments.status,
-  RewardsContract['v2'].deploy,
-  Deployments.status)
+  RewardsContract.v2.deploy,
+  Deployments.status
+)
+
 Fadroma.command('test legacy',
-  Deployments.activate)
+  Deployments.activate
+)
 ```
 
 ### Upgrading legacy to latest
@@ -107,27 +152,64 @@ Fadroma.command('test legacy',
 #### Locally:
 
 ```typescript
-Fadroma.command('upgrade amm v1_to_v2',
+Fadroma.command('upgrade amm v1_to_v2 all',
   Deployments.activate,
-  AMMFactoryContract['v1'].upgrade['v2'])
+  AMMFactoryContract.v1.upgrade.v2
+)
+
+Fadroma.command('upgrade amm v1_to_v2 factory',
+  Deployments.activate,
+  AMMFactoryContract.v1.upgrade.v2_factory
+)
+
+Fadroma.command('upgrade amm v1_to_v2 exchanges',
+  Deployments.activate,
+  AMMFactoryContract.v1.upgrade.v2_exchanges
+)
 
 Fadroma.command('upgrade rewards v2_to_v3',
   Deployments.activate,
-  RewardsContract['v2'].upgrade['v3'])
+  RewardsContract.v2.upgrade.v3
+)
 ```
 
 #### On mainnet:
 
 ```typescript
 import { ScrtAgentTX, Scrt_1_2 } from '@hackbg/fadroma'
-import * as API from '@sienna/api'
+
+Fadroma.command('generate amm-pause-v1-init-v2',
+  Deployments.activate,
+  forMainnet,
+  async ({agent, txAgent, deployment, run, cmdArgs})=>{
+
+    const [ newAddress = null ] = cmdArgs
+
+    await txAgent.bundle().wrap(async deployAgent=>{
+
+      const factory_v1 = new API.AMMFactoryClient.v1({
+        ...deployment.get('AMM[v1].Factory'),
+        agent: deployAgent
+      })
+
+      await factory_v1.setStatus(
+        "Paused",
+        null,
+        "Migration to AMMv2 has begun."
+      )
+
+      await run(API.AMMFactoryContract.v1.upgrade.v2_factory, { deployAgent })
+
+    })
+
+  }
+)
 
 Fadroma.command('generate amm-v1-pause',
   Deployments.activate,
   forMainnet,
-  async ({agent, deployment, run, cmdArgs})=>{
+  async ({agent, txAgent, deployment, run, cmdArgs})=>{
     const [ newAddress = null ] = cmdArgs
-    const txAgent = new ScrtAgentTX(agent)
     await txAgent.bundle().wrap(async bundle=>{
       const factory = new API.AMMFactoryClient.v1({
         ...deployment.get('AMM[v1].Factory'),
@@ -139,19 +221,35 @@ Fadroma.command('generate amm-v1-pause',
         "Migration to AMMv2 has begun."
       )
     })
-  })
+  }
+)
 
-Fadroma.command('generate amm-v2-from-v1',
+Fadroma.command('generate amm-v2-factory',
   Deployments.activate,
   forMainnet,
-  async ({agent, deployment, run}) => {
-    await run(API.AMMFactoryContract.v1.upgrade.v2, { deployAgent: new ScrtAgentTX(agent) })
-  })
+  async ({agent, txAgent, deployment, run}) => {
+    await txAgent.bundle().wrap(async deployAgent=>{
+      await run(API.AMMFactoryContract.v1.upgrade.v2_factory, { deployAgent })
+    })
+  }
+)
+
+/** WARNING: This didn't run as a bundle
+  * (probably because of changes to forMainnet) */
+Fadroma.command('generate amm-v2-exchanges-from-v1',
+  Deployments.activate,
+  forMainnet,
+  async ({agent, txAgent, deployment, run}) => {
+    await txAgent.bundle().wrap(async deployAgent=>{
+      await run(API.AMMFactoryContract.v1.upgrade.v2_exchanges, { deployAgent })
+    })
+  }
+)
 
 Fadroma.command('generate amm-v1-terminate',
   Deployments.activate,
   forMainnet,
-  async ({agent, deployment, run, cmdArgs})=>{
+  async ({agent, txAgent, deployment, run, cmdArgs})=>{
     const [ newAddress = null ] = cmdArgs
     const factory = new API.AMMFactoryClient.v1({
       ...deployment.get('AMM[v1].Factory'),
@@ -162,14 +260,72 @@ Fadroma.command('generate amm-v1-terminate',
       newAddress,
       `This contract is terminated. Please migrate to AMM v2 at: ${newAddress}`
     )
-  })
+  }
+)
 
 Fadroma.command('generate rewards-deploy-v3',
   forMainnet,
   Deployments.activate,
-  async ({agent, deployment, run}) => {
-    await run(API.RewardsContract.v2.upgrade.v3, { deployAgent: new ScrtAgentTX(agent) })
+  ({agent, txAgent, deployment, run}) => txAgent.bundle().wrap(deployAgent=>
+    run(API.RewardsContract.v2.upgrade.v3, {
+      deployAgent,
+      template: agent.chain.uploads.load('sienna-rewards@39e87e4.wasm')
+    })
+  )
+)
+
+Fadroma.command('generate rewards-v3-fix-lp-tokens',
+  forMainnet,
+  Deployments.activate,
+  async ({agent, txAgent, deployment, run}) => txAgent.bundle().wrap(async deployAgent=>{
+
+    const newLPTokenNames =
+      Object.keys(deployment.receipts)
+        .filter(name=>name.startsWith('AMM[v2].')&&name.endsWith('.LP'))
+
+    console.log({
+      newLPTokenNames
+    })
+
+    for (const lpTokenName of newLPTokenNames) {
+      console.log('checking', lpTokenName)
+      const lpTokenReceipt = deployment.receipts[lpTokenName]
+      if (!lpTokenReceipt) {
+        console.warn('No receipt for', lpTokenName, ' - wtf?!?!?')
+        continue
+      }
+      const rewardPoolName = `${lpTokenName}.Rewards[v3]`
+      const rewardPoolReceipt = deployment.receipts[rewardPoolName]
+      if (!rewardPoolReceipt) {
+        console.info(`No rewards for`, lpTokenName, ' - skipping...')
+        continue
+      }
+      //console.log(123)
+      //process.exit(222)
+      console.log(
+        `Setting staked token for`, rewardPoolName//, 'to', lpTokenReceipt
+      )
+      //console.log(456)
+      delete rewardPoolReceipt.label
+      await new API.RewardsClient.v3({...rewardPoolReceipt, agent: deployAgent}).setStakedToken(
+        lpTokenReceipt.address,
+        lpTokenReceipt.codeHash
+      )
+    }
+
   })
+)
+
+Fadroma.command('deploy rewards-v3-mainnet',
+  forMainnet,
+  Deployments.activate,
+  ({agent, deployment, run}) => agent.bundle().wrap(deployAgent=>
+    run(API.RewardsContract.v2.upgrade.v3, {
+      deployAgent,
+      template: agent.chain.uploads.load('sienna-rewards@39e87e4.wasm')
+    })
+  )
+)
 
 Fadroma.command('generate rpt-rewards-v2-to-v3',
   forMainnet,
@@ -186,18 +342,16 @@ Fadroma.command('generate rewards-v2-close-all',
   async ({agent, deployment, run})=>{
   })
 
-async function forMainnet ({ chain }) {
-  if (!chain.isMainnet) {
-    console.error('This command is for mainnet only.')
-    process.exit(1)
+async function forMainnet ({ chain, agent }) {
+  if (chain.isMainnet && !!process.env.FADROMA_USE_MULTISIG) {
+    const address = process.env.MAINNET_MULTISIG
+    if (!address) {
+      console.error('Set MAINNET_MULTISIG env var to continue.')
+      process.exit(1)
+    }
+    console.info(bold('Switching to mainnet multisig address:'), address)
+    agent = new chain.Agent({ name: 'MAINNET_ADMIN', address, chain })
   }
-  const address = process.env.MAINNET_MULTISIG
-  if (!address) {
-    console.error('Set MAINNET_MULTISIG env var to continue.')
-    process.exit(1)
-  }
-  console.info(bold('Switching to mainnet multisig address:'), address)
-  const agent = new chain.Agent({ chain, address, name: 'MAINNET_ADMIN' })
   const txAgent = new ScrtAgentTX(agent)
   return { agent, txAgent }
 }
@@ -226,12 +380,14 @@ temporal dependencies in contracts.
 Fadroma.command('deploy all',
   Deployments.new,
   deployTGE,
-  AMMFactoryContract['v1'].deploy,
-  RewardsContract['v2'].deploy,
+  AMMFactoryContract.v1.deploy,
+  RewardsContract.v2.deploy,
   Deployments.status,
-  AMMFactoryContract['v1'].upgrade['v2'],
-  RewardsContract['v2'].upgrade['v3'],
-  Deployments.status)
+  AMMFactoryContract.v1.upgrade.v2_factory,
+  AMMFactoryContract.v1.upgrade.v2_exchanges,
+  RewardsContract.v2.upgrade.v3,
+  Deployments.status
+)
 ```
 
 ### Everything but the TGE
@@ -241,12 +397,14 @@ Used to shave off ~20s off the test of the Factory+Rewards migration:
 ```typescript
 Fadroma.command('deploy sans-tge',
   Deployments.activate,
-  AMMFactoryContract['v1'].deploy,
-  RewardsContract['v2'].deploy,
+  AMMFactoryContract.v1.deploy,
+  RewardsContract.v2.deploy,
   Deployments.status,
-  AMMFactoryContract['v1'].upgrade['v2'],
-  RewardsContract['v2'].upgrade['v3'],
-  Deployments.status)
+  AMMFactoryContract.v1.upgrade.v2_factory,
+  AMMFactoryContract.v1.upgrade.v2_exchanges,
+  RewardsContract.v2.upgrade.v3,
+  Deployments.status
+)
 ```
 
 ### Deploy just the TGE
@@ -256,7 +414,8 @@ This creates a new deployment under `/receipts/$CHAIN_ID/$TIMESTAMP`.
 ```typescript
 Fadroma.command('deploy tge',
   Deployments.new,
-  deployTGE)
+  deployTGE
+)
 ```
 
 ### Deploy just the Lend
@@ -275,7 +434,8 @@ to which it adds the contracts for Sienna Swap.
 ```typescript
 Fadroma.command('deploy amm',
   Deployments.activate,
-  AMMFactoryContract['v2'].deploy)
+  AMMFactoryContract.v2.deploy
+)
 ```
 
 ### Deploying Rewards v2 and v3 side-by-side
@@ -285,15 +445,18 @@ Used to test the migration from v2 to v3 pools.
 ```typescript
 Fadroma.command('deploy rewards v2',
   Deployments.activate,
-  RewardsContract['v2'].deploy)
+  RewardsContract.v2.deploy
+)
 
 Fadroma.command('deploy rewards v3',
   Deployments.activate,
-  RewardsContract['v3'].deploy)
+  RewardsContract.v3.deploy
+)
 
 Fadroma.command('deploy rewards v2+v3',
   Deployments.activate,
-  RewardsContract['v2+v3'].deploy)
+  RewardsContract['v2+v3'].deploy
+)
 ```
 
 ### Deploying a v1 factory
@@ -305,7 +468,8 @@ built from `main`.
 ```typescript
 Fadroma.command('deploy factory v1',
   Deployments.activate,
-  AMMFactoryContract['v1'].deploy)
+  AMMFactoryContract.v1.deploy
+)
 ```
 
 ## Helper commands for auditing the contract logic

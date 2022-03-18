@@ -1,14 +1,17 @@
 use std::str::FromStr;
 
-use lend_shared::fadroma::{
-    ensemble::{ContractEnsemble, ContractHarness, MockDeps, MockEnv},
-    from_binary, snip20_impl,
-    snip20_impl::msg::{
-        HandleMsg as Snip20HandleMsg, InitConfig as Snip20InitConfig, InitMsg as Snip20InitMsg,
-        QueryAnswer as Snip20QueryResp, QueryMsg as Snip20QueryMsg,
+use lend_shared::{
+    fadroma::{
+        ensemble::{ContractEnsemble, ContractHarness, MockDeps, MockEnv},
+        from_binary, snip20_impl,
+        snip20_impl::msg::{
+            HandleMsg as Snip20HandleMsg, InitConfig as Snip20InitConfig, InitMsg as Snip20InitMsg,
+            QueryAnswer as Snip20QueryResp, QueryMsg as Snip20QueryMsg,
+        },
+        to_binary, Binary, Composable, ContractInstantiationInfo, ContractLink, Decimal256, Env,
+        HandleResponse, HumanAddr, InitResponse, Permit, StdError, StdResult, Uint128, Uint256
     },
-    to_binary, Binary, Composable, ContractInstantiationInfo, ContractLink, Decimal256, Env,
-    HandleResponse, HumanAddr, InitResponse, Permit, StdError, StdResult, Uint128, Uint256,
+    core::Pagination
 };
 
 use lend_shared::interfaces::{interest_model, market, overseer};
@@ -254,10 +257,10 @@ impl Lend {
         self.ensemble.query(
             self.overseer.address.clone(),
             overseer::QueryMsg::Markets {
-                pagination: overseer::Pagination {
+                pagination: Pagination {
                     start: 0,
                     limit: 30,
-                },
+                }
             },
         )
     }

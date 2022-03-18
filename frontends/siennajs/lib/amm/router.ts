@@ -1,11 +1,9 @@
 // For running this test from the root directory of Sienna repository type a command:
 // ./api-test sienna-test/router.spec.mjs
-import {
-    Address, Uint128, Fee, create_fee,
-    get_token_type, TypeOfToken, CustomToken, TokenTypeAmount, Decimal, add_native_balance
-} from './core'
-import { SmartContract, Querier, Executor } from './contract'
-import { Snip20Contract } from './snip20'
+import { Address, Uint128, Fee, create_fee, Decimal } from '../core'
+import { get_token_type, TypeOfToken, CustomToken, TokenTypeAmount, add_native_balance } from './token'
+import { SmartContract, Querier, Executor } from '../contract'
+import { Snip20Contract } from '../snip20'
 
 import { SigningCosmWasmClient, ExecuteResult } from 'secretjs'
 import { Hop } from './hop'
@@ -27,7 +25,7 @@ export class RouterContract extends SmartContract<RouterExecutor, RouterQuerier>
     }
 }
 
-export class RouterExecutor extends Executor {
+class RouterExecutor extends Executor {
     constructor(
         address: Address,
         private querier: () => RouterQuerier,
@@ -82,7 +80,7 @@ export class RouterExecutor extends Executor {
     }
 }
 
-export class RouterQuerier extends Querier {
+class RouterQuerier extends Querier {
     async supported_tokens(): Promise<Address[]> {
         const result = await this.run({ supported_tokens: {} }) as Address[];
         

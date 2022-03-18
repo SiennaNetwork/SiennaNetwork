@@ -1,4 +1,5 @@
-import { Address, TokenType, CustomToken, NativeToken, get_type_of_token_id } from "./core";
+import { Address } from "../core";
+import { TokenType, get_type_of_token_id } from './token'
 
 /**
  * Simple token pair interface for easier filling in the pairs

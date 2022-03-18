@@ -10,7 +10,7 @@ use fadroma::{
 
 use serde::{Deserialize, Serialize};
 
-use crate::core::{AuthMethod, MasterKey};
+use crate::core::{AuthMethod, MasterKey, Pagination};
 use crate::interfaces::market::Config as MarketConfig;
 
 #[interface(
@@ -123,9 +123,9 @@ pub struct AccountLiquidity {
 #[serde(deny_unknown_fields)]
 pub struct Config {
     /// The discount on collateral that a liquidator receives.
-    pub premium: Decimal256,
+    premium: Decimal256,
     /// The percentage of a liquidatable account's borrow that can be repaid in a single liquidate transaction.
-    /// If a user has multiple borrowed assets, the closeFactor applies to any single borrowed asset,
+    /// If a user has multiple borrowed assets, the close factor applies to any single borrowed asset,
     /// not the aggregated value of a user’s outstanding borrowing.
     close_factor: Decimal256
 }
@@ -157,17 +157,10 @@ pub struct MarketInitConfig {
     pub entropy: Binary
 }
 
-#[derive(Serialize, Deserialize, schemars::JsonSchema, Debug)]
-#[serde(rename_all = "snake_case")]
-#[serde(deny_unknown_fields)]
-pub struct Pagination {
-    pub start: u64,
-    pub limit: u8,
-}
-
 impl Config {
     pub fn new(premium: Decimal256, close_factor: Decimal256) -> StdResult<Self> {
         Self::validate_close_factor(&close_factor)?;
+        Self::validate_premium(&premium)?;
 
         Ok(Self {
             premium,
@@ -183,8 +176,30 @@ impl Config {
         Ok(())
     }
 
+    #[inline]
     pub fn close_factor(&self) -> Decimal256 {
         self.close_factor
+    }
+
+    pub fn set_premium(&mut self, new: Decimal256) -> StdResult<()> {
+        Self::validate_premium(&new)?;
+
+        self.premium = new;
+
+        Ok(())
+    }
+
+    #[inline]
+    pub fn premium(&self) -> Decimal256 {
+        self.premium
+    }
+
+    fn validate_premium(premium: &Decimal256) -> StdResult<()> {
+        if *premium < Decimal256::one() {
+            return Err(StdError::generic_err("Premium rate cannot be less than 1."))
+        } else {
+            Ok(())
+        }
     }
 
     fn validate_close_factor(close_factor: &Decimal256) -> StdResult<()> {
@@ -207,20 +222,24 @@ impl<T> Market<T> {
     }
 }
 
-impl Canonize<Market<CanonicalAddr>> for Market<HumanAddr> {
-    fn canonize(&self, api: &impl Api) -> StdResult<Market<CanonicalAddr>> {
+impl Canonize for Market<HumanAddr> {
+    type Output = Market<CanonicalAddr>;
+
+    fn canonize(self, api: &impl Api) -> StdResult<Self::Output> {
         Ok(Market {
-            symbol: self.symbol.clone(),
+            symbol: self.symbol,
             contract: self.contract.canonize(api)?,
             ltv_ratio: self.ltv_ratio,
         })
     }
 }
 
-impl Humanize<Market<HumanAddr>> for Market<CanonicalAddr> {
-    fn humanize(&self, api: &impl Api) -> StdResult<Market<HumanAddr>> {
+impl Humanize for Market<CanonicalAddr> {
+    type Output = Market<HumanAddr>;
+
+    fn humanize(self, api: &impl Api) -> StdResult<Self::Output> {
         Ok(Market {
-            symbol: self.symbol.clone(),
+            symbol: self.symbol,
             contract: self.contract.humanize(api)?,
             ltv_ratio: self.ltv_ratio,
         })

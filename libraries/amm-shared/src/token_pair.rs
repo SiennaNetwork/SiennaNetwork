@@ -12,14 +12,18 @@ use crate::token_type::TokenType;
 #[derive(Clone, Debug, JsonSchema)]
 pub struct TokenPair<A>(pub TokenType<A>, pub TokenType<A>);
 
-impl Canonize<TokenPair<CanonicalAddr>> for TokenPair<HumanAddr> {
-    fn canonize(&self, api: &impl Api) -> StdResult<TokenPair<CanonicalAddr>> {
+impl Canonize for TokenPair<HumanAddr> {
+    type Output = TokenPair<CanonicalAddr>;
+
+    fn canonize(self, api: &impl Api) -> StdResult<Self::Output> {
         Ok(TokenPair(self.0.canonize(api)?, self.1.canonize(api)?))
     }
 }
 
-impl Humanize<TokenPair<HumanAddr>> for TokenPair<CanonicalAddr> {
-    fn humanize(&self, api: &impl Api) -> StdResult<TokenPair<HumanAddr>> {
+impl Humanize for TokenPair<CanonicalAddr> {
+    type Output = TokenPair<HumanAddr>;
+
+    fn humanize(self, api: &impl Api) -> StdResult<Self::Output> {
         Ok(TokenPair(self.0.humanize(api)?, self.1.humanize(api)?))
     }
 }

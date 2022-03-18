@@ -67,10 +67,6 @@ export type QueryMsg =
   | {
       admin: QueryMsg1;
       [k: string]: unknown;
-    }
-  | {
-      auth: QueryMsg1;
-      [k: string]: unknown;
     };
 export type HumanAddr = string;
 export type AuthMethodFor_OverseerPermissions =

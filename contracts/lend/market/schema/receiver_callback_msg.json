@@ -1,0 +1,68 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ReceiverCallbackMsg",
+  "anyOf": [
+    {
+      "type": "string",
+      "enum": [
+        "deposit"
+      ]
+    },
+    {
+      "type": "object",
+      "required": [
+        "repay"
+      ],
+      "properties": {
+        "repay": {
+          "type": "object",
+          "properties": {
+            "borrower": {
+              "description": "Repay someone else's debt.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Binary"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "liquidate"
+      ],
+      "properties": {
+        "liquidate": {
+          "type": "object",
+          "required": [
+            "borrower",
+            "collateral"
+          ],
+          "properties": {
+            "borrower": {
+              "$ref": "#/definitions/Binary"
+            },
+            "collateral": {
+              "$ref": "#/definitions/HumanAddr"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "definitions": {
+    "Binary": {
+      "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>",
+      "type": "string"
+    },
+    "HumanAddr": {
+      "type": "string"
+    }
+  }
+}

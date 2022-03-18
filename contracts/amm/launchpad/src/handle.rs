@@ -6,8 +6,7 @@ use amm_shared::fadroma::{
         BLOCK_SIZE,
     },
     admin::assert_admin,
-    auth_proc::require_admin,
-    storage::traits1::Storable
+    auth_proc::require_admin
 };
 use amm_shared::TokenType;
 use amm_shared::msg::launchpad::{ReceiverCallbackMsg, TokenSettings};

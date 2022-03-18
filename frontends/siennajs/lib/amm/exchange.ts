@@ -1,10 +1,13 @@
 import { 
-    Address, Uint128, Fee, create_fee, TokenTypeAmount, TokenPairAmount,
-    Decimal, ContractInfo, TokenPair, add_native_balance_pair, CustomToken,
-    add_native_balance, get_token_type, TypeOfToken, 
-} from './core'
-import { SmartContract, Executor, Querier } from './contract'
-import { Snip20Contract } from './snip20'
+    Address, Uint128, Fee, create_fee, Decimal, ContractInfo,
+} from '../core'
+import { 
+    TokenPair, add_native_balance_pair, CustomToken,
+    add_native_balance, get_token_type, TypeOfToken,
+    TokenTypeAmount, TokenPairAmount,
+} from './token'
+import { SmartContract, Executor, Querier } from '../contract'
+import { Snip20Contract } from '../snip20'
 
 import { ExecuteResult, SigningCosmWasmClient } from 'secretjs'
 
@@ -40,7 +43,7 @@ export class ExchangeContract extends SmartContract<ExchangeExecutor, ExchangeQu
     }
 }
 
-export class ExchangeExecutor extends Executor {
+class ExchangeExecutor extends Executor {
     constructor(
         address: Address,
         private querier: () => ExchangeQuerier,
@@ -113,7 +116,7 @@ export class ExchangeExecutor extends Executor {
     }
 }
 
-export class ExchangeQuerier extends Querier {
+class ExchangeQuerier extends Querier {
     async get_pair_info(): Promise<PairInfo> {
         const msg = 'pair_info' as unknown as object //yeah...
 

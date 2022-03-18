@@ -30,7 +30,6 @@ async function siennaStatus ({ deployment, agent, cmdArgs }) {
       return
     }
     const VK = await sienna.setViewingKey(vk)
-    console.log(VK)
     console.error(e.message)
   }
 }

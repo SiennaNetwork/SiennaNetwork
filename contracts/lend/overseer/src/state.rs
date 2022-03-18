@@ -10,8 +10,8 @@ use lend_shared::{
         Canonize, Humanize, ContractLink,
         ContractInstantiationInfo, Decimal256
     },
-    interfaces::overseer::{Pagination, Market, Config},
-    core::AuthenticatedUser
+    interfaces::overseer::{Market, Config},
+    core::{AuthenticatedUser, Pagination}
 };
 use serde::{Deserialize, Serialize};
 
@@ -105,7 +105,7 @@ impl Markets {
 
     pub fn push<S: Storage, A: Api, Q: Querier>(
         deps: &mut Extern<S, A, Q>,
-        market: &Market<HumanAddr>
+        market: Market<HumanAddr>
     ) -> StdResult<()> {
         let market = market.canonize(&deps.api)?;
 
@@ -243,7 +243,9 @@ impl Account {
         }
 
         for id in ids {
-            markets.push(id);
+            if !markets.contains(&id) {
+                markets.push(id);
+            }
         }
 
         self.save_markets(storage, &markets)

@@ -117,7 +117,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
         viewing_key,
     };
 
-    store_config(deps, &config)?;
+    store_config(deps, config)?;
 
     Ok(InitResponse {
         messages,
@@ -578,15 +578,16 @@ fn register_lp_token<S: Storage, A: Api, Q: Querier>(
     }
 
     config.lp_token_info.address = env.message.sender.clone();
+    let lp_token_hash = config.lp_token_info.code_hash.clone();
 
-    store_config(deps, &config)?;
+    store_config(deps, config)?;
 
     Ok(HandleResponse {
         messages: vec![snip20::register_receive_msg(
             env.contract_code_hash,
             None,
             BLOCK_SIZE,
-            config.lp_token_info.code_hash,
+            lp_token_hash,
             env.message.sender.clone(),
         )?],
         log: vec![log("liquidity_token_addr", env.message.sender)],
@@ -606,7 +607,7 @@ fn change_factory<S: Storage, A: Api, Q: Querier>(
     }
 
     config.factory_info = new_instance;
-    store_config(deps, &config)?;
+    store_config(deps, config)?;
 
     Ok(HandleResponse::default())
 }

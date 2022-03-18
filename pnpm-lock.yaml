@@ -85,9 +85,11 @@ importers:
   contracts/amm/lp-token:
     specifiers:
       '@hackbg/fadroma': workspace:../../../deps/fadroma
+      '@sienna/exchange': workspace:*
       '@sienna/settings': workspace:^1.0.0
     dependencies:
       '@hackbg/fadroma': link:../../../deps/fadroma
+      '@sienna/exchange': link:../exchange
       '@sienna/settings': link:../../../settings
 
   contracts/amm/rewards:
@@ -242,6 +244,7 @@ importers:
 
   deps/fadroma:
     specifiers:
+      '@fadroma/cli': workspace:*
       '@fadroma/ops': workspace:*
       '@fadroma/scrt': workspace:*
       '@fadroma/scrt-1.0': workspace:*
@@ -254,6 +257,7 @@ importers:
       typedoc: ^0.21.9
       typescript: ^4.5.4
     dependencies:
+      '@fadroma/cli': link:packages/cli
       '@fadroma/ops': link:packages/ops
       '@fadroma/scrt': link:packages/scrt
       '@fadroma/scrt-1.0': link:packages/scrt-1.0
@@ -284,12 +288,18 @@ importers:
 
   deps/fadroma/packages/cli:
     specifiers:
+      '@fadroma/ops': workspace:*
+      '@fadroma/scrt': workspace:*
+      '@fadroma/snip20': workspace:*
       '@hackbg/ganesha': ^1
       '@hackbg/komandi': ^2
       cross-spawn: ^7.0.3
       mkdirp: ^1.0.4
       prompts: ^2.4.1
     dependencies:
+      '@fadroma/ops': link:../ops
+      '@fadroma/scrt': link:../scrt
+      '@fadroma/snip20': link:../../crates/fadroma-snip20-impl
       '@hackbg/ganesha': 1.0.0
       '@hackbg/komandi': 2.0.0
       cross-spawn: 7.0.3
@@ -307,6 +317,7 @@ importers:
       exponential-backoff: ^3.1
       js-yaml: ^4.1.0
       json-schema-to-typescript: ^10.1.4
+      limiter: ^2.1.0
       toml: ^3
       wasm-ffi: ^0.3.0
     dependencies:
@@ -319,6 +330,7 @@ importers:
       exponential-backoff: 3.1.0
       js-yaml: 4.1.0
       json-schema-to-typescript: 10.1.5
+      limiter: 2.1.0
       toml: 3.0.0
       wasm-ffi: 0.3.0
 
@@ -1886,7 +1898,7 @@ packages:
     dependencies:
       '@ganesha/node': 2.0.0
       '@ganesha/node-legacy': 1.0.0
-      '@types/node': 17.0.17
+      '@types/node': 17.0.19
       cross-spawn: 7.0.3
 
   /@hackbg/kabinet/1.0.0:
@@ -3463,7 +3475,7 @@ packages:
   /@types/connect/3.4.35:
     resolution: {integrity: sha512-cdeYyv4KWoEgpBISTxWvqYsVy444DOqehiF3fM3ne10AmJ62RSyNkUnxMJXHQWRQQX2eR94m5y1IZyDwBjV9FQ==}
     dependencies:
-      '@types/node': 17.0.17
+      '@types/node': 17.0.13
 
   /@types/content-disposition/0.5.4:
     resolution: {integrity: sha512-0mPF08jn9zYI0n0Q/Pnz7C4kThdSt+6LD4amsrYDDpgBfrVWa3TcCOxKX1zkGgYniGagRv8heN2cbh+CAn+uuQ==}
@@ -3480,7 +3492,7 @@ packages:
       '@types/connect': 3.4.35
       '@types/express': 4.17.13
       '@types/keygrip': 1.0.2
-      '@types/node': 17.0.17
+      '@types/node': 17.0.12
     dev: true
     optional: true
 
@@ -3689,8 +3701,8 @@ packages:
   /@types/node/17.0.13:
     resolution: {integrity: sha512-Y86MAxASe25hNzlDbsviXl8jQHb0RDvKt4c40ZJQ1Don0AAL0STLZSs4N+6gLEO55pedy7r2cLwS+ZDxPm/2Bw==}
 
-  /@types/node/17.0.17:
-    resolution: {integrity: sha512-e8PUNQy1HgJGV3iU/Bp2+D/DXh3PYeyli8LgIwsQcs1Ar1LoaWHSIT6Rw+H2rNJmiq6SNWiDytfx8+gYj7wDHw==}
+  /@types/node/17.0.19:
+    resolution: {integrity: sha512-PfeQhvcMR4cPFVuYfBN4ifG7p9c+Dlh3yUZR6k+5yQK7wX3gDgVxBly4/WkBRs9x4dmcy1TVl08SY67wwtEvmA==}
 
   /@types/node/8.10.66:
     resolution: {integrity: sha512-tktOkFUA4kXx2hhhrB8bIFb5TbwzS4uOhKEmwiD+NoiL0qtP2OQ9mFldbgD4dV1djrlBYP6eBuQZiWjuHUpqFw==}
@@ -13101,6 +13113,10 @@ packages:
     engines: {node: '>=0.10.0'}
     dev: false
 
+  /just-performance/4.3.0:
+    resolution: {integrity: sha512-L7RjvtJsL0QO8xFs5wEoDDzzJwoiowRw6Rn/GnvldlchS2JQr9wFYPiwZcDfrbbujEKqKN0tvENdbjXdYhDp5Q==}
+    dev: false
+
   /keccak/2.1.0:
     resolution: {integrity: sha512-m1wbJRTo+gWbctZWay9i26v5fFnYkOn7D5PCxJ3fZUGUEb49dE1Pm4BREUYCt/aoO6di7jeoGmhvqN9Nzylm3Q==}
     engines: {node: '>=5.12.0'}
@@ -13554,6 +13570,12 @@ packages:
       tcompare: 5.0.7
       trivial-deferred: 1.0.1
       yapool: 1.0.0
+    dev: false
+
+  /limiter/2.1.0:
+    resolution: {integrity: sha512-361TYz6iay6n+9KvUUImqdLuFigK+K79qrUtBsXhJTLdH4rIt/r1y8r1iozwh8KbZNpujbFTSh74mJ7bwbAMOw==}
+    dependencies:
+      just-performance: 4.3.0
     dev: false
 
   /lines-and-columns/1.2.4:

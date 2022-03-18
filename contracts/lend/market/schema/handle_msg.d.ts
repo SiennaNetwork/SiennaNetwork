@@ -96,6 +96,10 @@ export type HandleMsg =
   | {
       admin: HandleMsg1;
       [k: string]: unknown;
+    }
+  | {
+      killswitch: HandleMsg1;
+      [k: string]: unknown;
     };
 export type Uint128 = string;
 export type HumanAddr = string;

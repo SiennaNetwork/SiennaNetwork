@@ -43,7 +43,7 @@ use lend_shared::{
             query_entered_markets
         },
     },
-    core::{MasterKey, AuthenticatedUser}
+    core::{MasterKey, AuthenticatedUser, Pagination}
 };
 
 pub const MAX_RESERVE_FACTOR: Decimal256 = Decimal256::one();
@@ -88,10 +88,10 @@ pub trait Market {
         Constants::save_config(&mut deps.storage, &config)?;
         BorrowerId::set_prng_seed(&mut deps.storage, &prng_seed)?;
         
-        Contracts::save_overseer(deps, &callback.contract)?;
-        Contracts::save_interest_model(deps, &interest_model_contract)?;
-        Contracts::save_underlying(deps, &underlying_asset)?;
-        Contracts::save_self_ref(deps, &self_ref)?;
+        Contracts::save_overseer(deps, callback.contract.clone())?;
+        Contracts::save_interest_model(deps, interest_model_contract)?;
+        Contracts::save_underlying(deps, underlying_asset.clone())?;
+        Contracts::save_self_ref(deps, self_ref.clone())?;
 
         Global::save_borrow_index(&mut deps.storage, &Decimal256::one())?;
         Global::save_accrual_block_number(&mut deps.storage, env.block.height)?;
@@ -385,7 +385,7 @@ pub trait Market {
     ) -> StdResult<HandleResponse> {
         let mut config = Constants::load_config(&deps.storage)?;
         if let Some(interest_model) = interest_model {
-            Contracts::save_interest_model(deps, &interest_model)?;
+            Contracts::save_interest_model(deps, interest_model)?;
         }
 
         if let Some(reserve_factor) = reserve_factor {
@@ -701,10 +701,9 @@ pub trait Market {
     #[query]
     fn borrowers(
         block: u64,
-        start_after: Option<u64>,
-        limit: Option<u8>
+        pagination: Pagination
     ) -> StdResult<Vec<Borrower>> {
-        let borrowers = load_borrowers(deps, start_after, limit)?;
+        let borrowers = load_borrowers(deps, pagination)?;
         let mut result = Vec::with_capacity(borrowers.len());
 
         let overseer = Contracts::load_overseer(deps)?;
