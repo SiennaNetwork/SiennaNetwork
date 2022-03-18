@@ -1,44 +1,55 @@
-mod state;
 mod migration;
+mod state;
 
 use fadroma::{
-    schemars,
-    derive_contract::*,
     admin,
     admin::assert_admin,
-    require_admin,
-    killswitch,
     cosmwasm_std,
     cosmwasm_std::{
-        Uint128, HumanAddr, CanonicalAddr, StdResult,
-        StdError, InitResponse, HandleResponse, log
+        log, CanonicalAddr, HandleResponse, HumanAddr, InitResponse, StdError, StdResult, Uint128,
     },
+    derive_contract::*,
+    killswitch, require_admin, schemars,
     secret_toolkit::snip20,
-    ContractLink, Humanize, Canonize, BLOCK_SIZE
+    Canonize, ContractLink, Humanize, BLOCK_SIZE,
 };
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
-use state::{Config, History, Claim, Pagination, Participant};
 use migration::MgmtKillswitch;
+use state::{Claim, Config, History, Pagination, Participant};
 
-use sienna_schedule::{
-    vesting::Vesting,
-    validate::Validation,
-    Seconds, Schedule, Account
-};
+use sienna_schedule::{validate::Validation, vesting::Vesting, Account, Schedule, Seconds};
 
 /// This doesn't need to be private because the schedule and claim history are public by design.
 const VIEWING_KEY: &str = "SiennaMGMT";
 
 /// Error messages
-#[macro_export] macro_rules! MGMTError {
-    (CORRUPTED)   => { "Contract has entered a state that violates core assumptions".to_string() };
-    (NOTHING)     => { "Nothing to claim right now.".to_string() };
-    (UNDERWAY)    => { "The vesting has already begun.".to_string() };
-    (PRELAUNCH)   => { "The vesting has not yet begun.".to_string() };
-    (NOT_FOUND)   => { "Can't find account or pool by name".to_string() };
-    (ADD_ACCOUNT) => { "Can't add account - pool full".to_string() };
-    (PREFUND, $balance:expr, $required:expr) => { format!("Required prefund balance: {}, actual balance: {}", $balance, $required) };
+#[macro_export]
+macro_rules! MGMTError {
+    (CORRUPTED) => {
+        "Contract has entered a state that violates core assumptions".to_string()
+    };
+    (NOTHING) => {
+        "Nothing to claim right now.".to_string()
+    };
+    (UNDERWAY) => {
+        "The vesting has already begun.".to_string()
+    };
+    (PRELAUNCH) => {
+        "The vesting has not yet begun.".to_string()
+    };
+    (NOT_FOUND) => {
+        "Can't find account or pool by name".to_string()
+    };
+    (ADD_ACCOUNT) => {
+        "Can't add account - pool full".to_string()
+    };
+    (PREFUND, $balance:expr, $required:expr) => {
+        format!(
+            "Required prefund balance: {}, actual balance: {}",
+            $balance, $required
+        )
+    };
 }
 
 #[contract(
@@ -53,7 +64,7 @@ pub trait Mgmt {
         token: ContractLink<HumanAddr>,
         // If false, the contract will be transfered ownership of the token and it will mint the required amount of tokens itself.
         // If true, it will expect and verify that it has the required balance upon launch.
-        prefund: bool
+        prefund: bool,
     ) -> StdResult<InitResponse> {
         schedule.validate()?;
         Config::save_schedule(deps, schedule)?;
@@ -71,7 +82,7 @@ pub trait Mgmt {
                 None,
                 BLOCK_SIZE,
                 token.code_hash,
-                token.address
+                token.address,
             )?);
         }
 
@@ -82,11 +93,7 @@ pub trait Mgmt {
     fn guard(msg: &HandleMsg) -> StdResult<()> {
         let operational = killswitch::is_operational(deps);
 
-        if operational.is_err() && matches!(
-            msg,
-            HandleMsg::Killswitch(_) |
-            HandleMsg::Admin(_)
-        ) {
+        if operational.is_err() && matches!(msg, HandleMsg::Killswitch(_) | HandleMsg::Admin(_)) {
             Ok(())
         } else {
             operational
@@ -104,7 +111,7 @@ pub trait Mgmt {
         Ok(HandleResponse {
             messages: vec![],
             log: vec![log("action", "configure")],
-            data: None
+            data: None,
         })
     }
 
@@ -119,7 +126,7 @@ pub trait Mgmt {
         Ok(HandleResponse {
             messages: vec![],
             log: vec![log("action", "add_account")],
-            data: None
+            data: None,
         })
     }
 
@@ -128,7 +135,7 @@ pub trait Mgmt {
     ///  - When not prefunding: the instance mints the total tokens as specified by
     /// the schedule, and prevents any more tokens from ever being minted
     /// by the underlying contract.
-    /// 
+    ///
     ///  - When prefunding: the instance simply checks if its token balance is equal to the
     /// amount specified by the schedule.
     #[handle]
@@ -147,11 +154,16 @@ pub trait Mgmt {
                 VIEWING_KEY.into(),
                 BLOCK_SIZE,
                 token.code_hash,
-                token.address
-            )?.amount;
+                token.address,
+            )?
+            .amount;
 
             if balance != schedule.total {
-                return Err(StdError::generic_err(MGMTError!(PREFUND, balance, schedule.total)));
+                return Err(StdError::generic_err(MGMTError!(
+                    PREFUND,
+                    balance,
+                    schedule.total
+                )));
             }
 
             vec![]
@@ -164,25 +176,16 @@ pub trait Mgmt {
                     None,
                     BLOCK_SIZE,
                     token.code_hash.clone(),
-                    token.address.clone()
+                    token.address.clone(),
                 )?,
-                snip20::set_minters_msg(
-                    vec![],
-                    None,
-                    BLOCK_SIZE,
-                    token.code_hash,
-                    token.address
-                )?,
+                snip20::set_minters_msg(vec![], None, BLOCK_SIZE, token.code_hash, token.address)?,
             ]
         };
 
         Ok(HandleResponse {
             messages,
-            log: vec![
-                log("action", "launch"),
-                log("launched", env.block.time)
-            ],
-            data: None
+            log: vec![log("action", "launch"), log("launched", env.block.time)],
+            data: None,
         })
     }
 
@@ -191,7 +194,7 @@ pub trait Mgmt {
     #[handle]
     fn claim() -> StdResult<HandleResponse> {
         let launched = Config::assert_launched(&deps.storage)?;
-        let elapsed  = get_elapsed(env.block.time, launched);
+        let elapsed = get_elapsed(env.block.time, launched);
 
         let mut claimant = Participant::new(deps, &env.message.sender)?;
         let schedule = Config::load_schedule(&deps.storage)?;
@@ -202,7 +205,7 @@ pub trait Mgmt {
             claimant.set_claimed(&mut deps.storage, unlocked.into())?;
             History::push(
                 &mut deps.storage,
-                Claim::new(claimant, &env.block, claimable.into())
+                Claim::new(claimant, &env.block, claimable.into()),
             )?;
 
             let token = Config::load_token(deps)?;
@@ -215,14 +218,10 @@ pub trait Mgmt {
                     None,
                     BLOCK_SIZE,
                     token.code_hash,
-                    token.address
+                    token.address,
                 )?],
-                log: vec![
-                    log("action", "claim"),
-                    log("claimed", claimable)
-                ],
-                data: None
-
+                log: vec![log("action", "claim"), log("claimed", claimable)],
+                data: None,
             })
         } else {
             Err(StdError::generic_err(MGMTError!(NOTHING)))
@@ -243,7 +242,7 @@ pub trait Mgmt {
             launched,
             elapsed,
             unlocked,
-            claimed: participant.claimed()
+            claimed: participant.claimed(),
         })
     }
 
@@ -251,7 +250,7 @@ pub trait Mgmt {
     fn config() -> StdResult<ConfigResponse> {
         Ok(ConfigResponse {
             launched: Config::get_launched(&deps.storage)?,
-            token: Config::load_token(deps)?
+            token: Config::load_token(deps)?,
         })
     }
 
@@ -272,26 +271,26 @@ pub trait Mgmt {
 #[serde(deny_unknown_fields)]
 pub struct ConfigResponse {
     launched: Option<Seconds>,
-    token: ContractLink<HumanAddr>
+    token: ContractLink<HumanAddr>,
 }
 
 #[derive(Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct HistoryResponse {
     entries: Vec<Claim<HumanAddr>>,
-    total: u64
+    total: u64,
 }
 
 #[derive(Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
-pub struct ProgressResponse { 
-    launched: Seconds,
-    elapsed: Seconds,
-    unlocked: Uint128,
-    claimed: Uint128
+pub struct ProgressResponse {
+    pub launched: Seconds,
+    pub elapsed: Seconds,
+    pub unlocked: Uint128,
+    pub claimed: Uint128,
 }
 
-fn get_elapsed (t1: Seconds, t2: Seconds) -> Seconds {
+fn get_elapsed(t1: Seconds, t2: Seconds) -> Seconds {
     if t1 > t2 {
         t1 - t2
     } else {
@@ -299,10 +298,10 @@ fn get_elapsed (t1: Seconds, t2: Seconds) -> Seconds {
     }
 }
 
-fn portion (
+fn portion(
     schedule: &Schedule<CanonicalAddr>,
     participant: &Participant,
-    elapsed: Seconds
+    elapsed: Seconds,
 ) -> (u128, u128) {
     let unlocked = schedule.unlocked(elapsed, &participant.address);
 
@@ -318,7 +317,10 @@ fn portion (
 }
 
 #[cfg(browser)]
-#[macro_use] extern crate wasm_bindgen;
+#[macro_use]
+extern crate wasm_bindgen;
 
-#[cfg(all(feature="browser",not(feature="apionly"),target_arch="wasm32"))]
-mod wasm { fadroma_bind_js::bind_js!(cosmwasm_std, crate); }
+#[cfg(all(feature = "browser", not(feature = "apionly"), target_arch = "wasm32"))]
+mod wasm {
+    fadroma_bind_js::bind_js!(cosmwasm_std, crate);
+}

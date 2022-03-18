@@ -13,7 +13,6 @@ fadroma = { path = "../../../deps/fadroma/crates/fadroma", features = ["derive"]
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 linear-map       = { path = "../../../libraries/linear-map" }
 sienna-mgmt      = { path = "../mgmt" }
-sienna-migrate   = { path = "../../../libraries/migrate" }
 
 fadroma-bind-js = { optional = true, path = "../../../deps/fadroma/crates/fadroma-bind-js" }
 wasm-bindgen    = { optional = true, version = "0.2" }
