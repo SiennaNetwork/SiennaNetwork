@@ -92,6 +92,7 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
     to_binary(&Contract::query(deps, msg)?)
 }
 
+
 pub trait Contract<S: Storage, A: Api, Q: Querier>:
     Composable<S, A, Q>
     + Auth<S, A, Q>
@@ -102,17 +103,18 @@ pub trait Contract<S: Storage, A: Api, Q: Querier>:
     + KeplrCompat<S, A, Q>
     + Drain<S, A, Q>
     + Sized
-{
-    fn init(&mut self, env: Env, msg: Init) -> StdResult<InitResponse> {
-        msg.init(self, env)
+    {
+        fn init(&mut self, env: Env, msg: Init) -> StdResult<InitResponse> {
+            msg.init(self, env)
+        }
+        fn handle(&mut self, env: Env, msg: Handle) -> StdResult<HandleResponse> {
+            msg.dispatch_handle(self, env)
+        }
+        fn query(&self, msg: Query) -> StdResult<Response> {
+            msg.dispatch_query(self)
+        }
     }
-    fn handle(&mut self, env: Env, msg: Handle) -> StdResult<HandleResponse> {
-        msg.dispatch_handle(self, env)
-    }
-    fn query(&self, msg: Query) -> StdResult<Response> {
-        msg.dispatch_query(self)
-    }
-}
+
 
 pub trait Rewards<S: Storage, A: Api, Q: Querier>:
 Composable<S, A, Q> // to compose with other modules
@@ -149,7 +151,9 @@ impl Init {
         C: Contract<S, A, Q>,
     {
         Auth::init(core, &env, &self.admin, &env.contract.address)?;
-        Governance::init(core, &env, self.governance_config.unwrap_or_default())?;
+        if cfg!(feature="gov") {
+            Governance::init(core, &env, self.governance_config.unwrap_or_default())?;
+        }
         Ok(InitResponse {
             messages: Rewards::init(core, &env, self.config)?,
             log: vec![],
@@ -275,6 +279,7 @@ macro_rules! compose {
 
         impl<S: Storage, A: Api, Q: Querier> Rewards<S, A, Q> for $Core {}
 
+        // #[cfg(feature="gov")]
         impl<S: Storage, A: Api, Q: Querier> Governance<S, A, Q> for $Core {}
 
         impl<S: Storage, A: Api, Q: Querier> crate::keplr::KeplrCompat<S, A, Q> for $Core {
