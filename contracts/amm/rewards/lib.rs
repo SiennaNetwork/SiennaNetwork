@@ -208,8 +208,7 @@ where
                 recipient,
                 key,
             } => Drain::drain(core, env, snip20, recipient, key),
-
-            Handle::Governance(msg) => Governance::handle(core, env, msg),
+            Handle::Governance(msg) => Governance::handle(core, env, msg)
         }
     }
 }
