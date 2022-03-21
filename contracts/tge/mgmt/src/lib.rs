@@ -53,6 +53,7 @@ macro_rules! MGMTError {
 }
 
 #[contract(
+    entry,
     component(path = "admin"),
     component(path = "killswitch", custom_impl = "MgmtKillswitch")
 )]
@@ -122,6 +123,8 @@ pub trait Mgmt {
 
         let mut schedule = Config::load_schedule(&deps.storage)?;
         schedule.add_account(&pool_name, account)?;
+
+        Config::save_schedule(deps, schedule.humanize(&deps.api)?)?;
 
         Ok(HandleResponse {
             messages: vec![],
