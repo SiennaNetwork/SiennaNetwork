@@ -102,7 +102,7 @@ pub trait Overseer {
         }
 
         oracle.address = env.message.sender.clone();
-        Contracts::save_oracle(deps, oracle)?;
+        Contracts::save_oracle(deps, oracle.clone())?;
 
         Ok(HandleResponse {
             messages: vec![],
