@@ -2,14 +2,18 @@ use std::convert::TryInto;
 
 use sienna_rewards::{
     ensemble::MockEnv,
+    handle::RewardsHandle,
+    query::RewardsQuery,
+    Handle, HumanAddr, Query, Response, Uint128,
+};
+
+#[cfg(feature="gov")]
+use sienna_rewards::{
     gov::handle::GovernanceHandle,
     gov::{
         poll_metadata::PollMetadata, query::GovernanceQuery,
         response::GovernanceResponse::VoteStatus, vote::VoteType,
     },
-    handle::RewardsHandle,
-    query::RewardsQuery,
-    Handle, HumanAddr, Query, Response, Uint128,
 };
 
 use crate::setup::Amm;
@@ -34,6 +38,7 @@ fn should_deposit_rewards() {
     assert_eq!(100, balance.u128());
 }
 #[test]
+#[cfg(feature="gov")]
 fn should_create_poll() {
     let mut amm = Amm::new();
     let sender = HumanAddr::from("user_b");
@@ -60,6 +65,7 @@ fn should_create_poll() {
     assert_eq!(1, poll_after.instance.id);
 }
 #[test]
+#[cfg(feature="gov")]
 fn should_paginate_polls() {
     let mut amm = Amm::new();
     let sender = HumanAddr::from("user_b");
@@ -91,6 +97,7 @@ fn should_paginate_polls() {
 }
 
 #[test]
+#[cfg(feature="gov")]
 fn should_cast_vote() {
     let mut amm = Amm::new();
     let sender = HumanAddr::from("user_b");
@@ -144,6 +151,7 @@ fn should_cast_vote() {
 }
 
 #[test]
+#[cfg(feature="gov")]
 fn should_change_choice() {
     let mut amm = Amm::new();
     let sender = HumanAddr::from("user_b");
@@ -228,6 +236,7 @@ fn should_change_choice() {
 }
 
 #[test]
+#[cfg(feature="gov")]
 fn should_remove_vote() {
     let mut amm = Amm::new();
     let sender = HumanAddr::from("user_b");
@@ -281,6 +290,7 @@ fn should_remove_vote() {
 }
 
 #[test]
+#[cfg(feature="gov")]
 fn should_update_after_deposit() {
     let mut amm = Amm::new();
     let sender = HumanAddr::from("user_b");
@@ -338,6 +348,7 @@ fn should_update_after_deposit() {
 }
 
 #[test]
+#[cfg(feature="gov")]
 fn should_not_withdraw() {
     let mut amm = Amm::new();
     let sender = HumanAddr::from("user_b");
@@ -383,6 +394,7 @@ fn should_not_withdraw() {
 }
 
 #[test]
+#[cfg(feature="gov")]
 fn should_withdraw() {
     let mut amm = Amm::new();
     let sender = HumanAddr::from("user_b");
@@ -417,6 +429,7 @@ fn should_withdraw() {
         .unwrap();
 }
 #[test]
+#[cfg(feature="gov")]
 fn should_be_closed() {
     let mut amm = Amm::new();
     let sender = HumanAddr::from("user_b");

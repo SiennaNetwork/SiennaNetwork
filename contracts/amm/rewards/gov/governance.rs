@@ -16,27 +16,14 @@ pub trait Governance<S: Storage, A: Api, Q: Querier>:
 {
     /// Configure the governance module
     fn init (&mut self, env: &Env, mut config: GovernanceConfig) -> StdResult<Vec<CosmosMsg>> {
-        // TODO make a require-feature macro instead of duplicating the same branch containing the magic string
-        if cfg!(feature="gov") {
-            config.initialize(self, env)
-        } else {
-            Err(StdError::generic_err("Governance disabled"))
-        }
+        config.initialize(self, env)
     }
     /// Handle transactions
     fn handle (&mut self, env: Env, msg: GovernanceHandle) -> StdResult<HandleResponse> {
-        if cfg!(feature="gov") {
-            msg.dispatch_handle(self, env)
-        } else {
-            Err(StdError::generic_err("Governance disabled"))
-        }
+        msg.dispatch_handle(self, env)
     }
     /// Handle queries
     fn query (&self, msg: GovernanceQuery) -> StdResult<GovernanceResponse> {
-        if cfg!(feature="gov") {
-            msg.dispatch_query(self)
-        } else {
-            Err(StdError::generic_err("Governance disabled"))
-        }
+        msg.dispatch_query(self)
     }
 }

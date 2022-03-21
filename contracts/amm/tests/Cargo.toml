@@ -1,6 +1,6 @@
 [package]
 name = "amm-tests"
-version = "0.1.0"
+version = "0.1.0"   
 edition = "2018"
 
 [lib]
@@ -15,3 +15,6 @@ factory = { path = "../factory" }
 exchange = { path = "../exchange" }
 sienna-rewards = { path = "../rewards" }
 router = { path = "../router" }
+
+[features]
+gov = []

@@ -87,7 +87,6 @@ where
     C: Composable<S, A, Q>,
 {
     fn get(core: &C, sender: &Sender, now: Moment) -> StdResult<User> {
-        // let sender = Sender::from_human(address, core.api())?;
         let active_polls = User::active_polls(core, &sender, now)?;
         let created_polls = User::created_polls(core, &sender, now)?;
         Ok(Self {

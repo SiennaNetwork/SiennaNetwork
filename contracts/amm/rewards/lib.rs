@@ -93,6 +93,31 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
 }
 
 
+
+#[cfg(not(feature="gov"))]
+pub trait Contract<S: Storage, A: Api, Q: Querier>:
+    Composable<S, A, Q>
+    + Auth<S, A, Q>
+    + Rewards<S, A, Q>
+    + Immigration<S, A, Q>
+    + Emigration<S, A, Q>
+    + KeplrCompat<S, A, Q>
+    + Drain<S, A, Q>
+    + Sized
+    {
+        fn init(&mut self, env: Env, msg: Init) -> StdResult<InitResponse> {
+            msg.init(self, env)
+        }
+        fn handle(&mut self, env: Env, msg: Handle) -> StdResult<HandleResponse> {
+            msg.dispatch_handle(self, env)
+        }
+        fn query(&self, msg: Query) -> StdResult<Response> {
+            msg.dispatch_query(self)
+        }
+    }
+
+    
+#[cfg(feature="gov")]    
 pub trait Contract<S: Storage, A: Api, Q: Querier>:
     Composable<S, A, Q>
     + Auth<S, A, Q>
@@ -151,9 +176,8 @@ impl Init {
         C: Contract<S, A, Q>,
     {
         Auth::init(core, &env, &self.admin, &env.contract.address)?;
-        if cfg!(feature="gov") {
-            Governance::init(core, &env, self.governance_config.unwrap_or_default())?;
-        }
+        #[cfg(feature="gov")]
+        Governance::init(core, &env, self.governance_config.unwrap_or_default())?;
         Ok(InitResponse {
             messages: Rewards::init(core, &env, self.config)?,
             log: vec![],
@@ -181,7 +205,7 @@ pub enum Handle {
         recipient: Option<HumanAddr>,
         key: String,
     },
-
+    #[cfg(feature="gov")]
     Governance(GovernanceHandle),
 }
 impl<S, A, Q, C> HandleDispatch<S, A, Q, C> for Handle
@@ -208,6 +232,7 @@ where
                 recipient,
                 key,
             } => Drain::drain(core, env, snip20, recipient, key),
+            #[cfg(feature="gov")]
             Handle::Governance(msg) => Governance::handle(core, env, msg)
         }
     }
@@ -218,6 +243,7 @@ where
 pub enum Query {
     Auth(AuthQuery),
     Rewards(RewardsQuery),
+    #[cfg(feature="gov")]
     Governance(GovernanceQuery),
     /// For Keplr integration
     TokenInfo {},
@@ -238,6 +264,7 @@ where
         Ok(match self {
             Query::Auth(msg) => Response::Auth(Auth::query(core, msg)?),
             Query::Rewards(msg) => Response::Rewards(Rewards::query(core, msg)?),
+            #[cfg(feature="gov")]
             Query::Governance(msg) => Response::Governance(Governance::query(core, msg)?),
             Query::TokenInfo {} => KeplrCompat::token_info(core)?,
             Query::Balance { address, key } => {

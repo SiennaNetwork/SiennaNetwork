@@ -39,8 +39,10 @@ serde_yaml = "0.8"
 
 
 [features]
+default=["gov"]
 browser = [
   "fadroma/browser", "fadroma-bind-js",
   "wasm-bindgen", "wasm-bindgen/serde-serialize",
   "js-sys"
 ]
+gov = []

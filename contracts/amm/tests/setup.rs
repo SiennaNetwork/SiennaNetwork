@@ -24,14 +24,19 @@ use factory::contract as factory;
 use lp_token;
 use rewards::{
     auth::AuthHandle,
+    handle::RewardsHandle,
+    Response
+};
+
+#[cfg(feature="gov")]
+use rewards::{
     gov::{
         poll::{Poll, PollInfo},
         query::GovernanceQuery,
         response::GovernanceResponse,
     },
-    handle::RewardsHandle,
-    Response,
 };
+
 use router::contract as router;
 use sienna_rewards as rewards;
 
@@ -306,6 +311,8 @@ impl Amm {
             } => self.get_balance(address, liquidity_token.into()),
         }
     }
+
+    #[cfg(feature="gov")]
     pub fn get_poll(&self, id: u64, now: u64) -> PollInfo {
         let result = self
             .ensemble
@@ -319,6 +326,8 @@ impl Amm {
             _ => panic!("wrong response"),
         }
     }
+
+    #[cfg(feature="gov")]
     pub fn get_polls(&self, page: u64, take: u64, asc: bool, now: u64) -> Vec<Poll> {
         let result = self
             .ensemble
