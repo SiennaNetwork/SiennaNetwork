@@ -893,5 +893,5 @@ pub fn test_ltv() {
             },
             MockEnv::new("ALICE", market1.contract.clone()),
         )
-        .unwrap();
+        .unwrap_err();
 }
