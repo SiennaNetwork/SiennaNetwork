@@ -148,3 +148,16 @@ fn should_distribute() {
 
     assert_ne!(initial_balance, updated_balance);
 }
+
+#[test]
+fn should_distrubite_to_various_pools() {
+    let mut tge = TGE::default();
+    
+}
+
+    // two separate pools in mgmt
+    // different intervals
+    // schedule update (wrong totals)
+    // claim before launch
+    // claim before interval 
+    // claim after X intervals

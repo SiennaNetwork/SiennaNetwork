@@ -162,6 +162,16 @@ impl TGE {
         }
     }
 
+    pub fn get_admin_env(&self) -> MockEnv {
+        MockEnv::new(
+            ADMIN,
+            ContractLink {
+                address: "MGMT_CONTRACT".into(),
+                code_hash: self.mgmt.code_hash.clone(),
+            }
+        )
+    }
+
     pub fn add_account(
         &mut self,
         pool_name: String,
@@ -169,13 +179,7 @@ impl TGE {
     ) -> Result<(), StdError> {
         self.ensemble.execute(
             &sienna_mgmt::HandleMsg::AddAccount { pool_name, account },
-            MockEnv::new(
-                ADMIN,
-                ContractLink {
-                    address: "MGMT_CONTRACT".into(),
-                    code_hash: self.mgmt.code_hash.clone(),
-                },
-            ),
+            self.get_admin_env()
         )
     }
 
@@ -210,6 +214,15 @@ impl TGE {
             QueryAnswer::Balance { amount } => amount,
             _ => panic!("Expecting QueryAnswer::Balance"),
         }
+    }
+
+    pub fn set_shedule(&mut self, schedule: Schedule<HumanAddr>) -> StdResult<()>{
+        self.ensemble.execute(
+            &sienna_mgmt::HandleMsg::Configure {
+                schedule
+            }, 
+            self.get_admin_env()
+        )
     }
 }
 
