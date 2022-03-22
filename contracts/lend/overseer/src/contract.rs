@@ -3,6 +3,7 @@ mod state;
 use std::borrow::Borrow;
 
 use lend_shared::{
+    core::Pagination,
     core::{AuthenticatedUser, MasterKey},
     fadroma::{
         admin,
@@ -13,8 +14,8 @@ use lend_shared::{
             InitResponse, Querier, StdError, StdResult, Storage, WasmMsg,
         },
         derive_contract::*,
-        require_admin,
-        Callback, ContractInstantiationInfo, ContractLink, Decimal256, Humanize, Uint256,
+        require_admin, Callback, ContractInstantiationInfo, ContractLink, Decimal256, Humanize,
+        Uint256,
     },
     interfaces::{
         market::{query_account, query_exchange_rate, InitMsg as MarketInitMsg, MarketAuth},
@@ -22,11 +23,10 @@ use lend_shared::{
             query_price, Asset, AssetType, HandleMsg as OracleHandleMsg, InitMsg as OracleInitMsg,
         },
         overseer::{
-            AccountLiquidity, Config, HandleMsg, Market,
-            MarketInitConfig, OverseerAuth, OverseerPermissions
+            AccountLiquidity, Config, HandleMsg, Market, MarketInitConfig, OverseerAuth,
+            OverseerPermissions,
         },
     },
-    core::Pagination
 };
 
 use state::{Account, Constants, Contracts, Markets, Whitelisting};
@@ -182,10 +182,7 @@ pub trait Overseer {
                 callback_code_hash: oracle.code_hash,
                 send: vec![],
                 msg: to_binary(&OracleHandleMsg::UpdateAssets {
-                    assets: vec![Asset {
-                        address,
-                        symbol,
-                    }],
+                    assets: vec![Asset { address, symbol }],
                 })?,
             })],
             log: vec![
@@ -200,10 +197,11 @@ pub trait Overseer {
     fn enter(markets: Vec<HumanAddr>) -> StdResult<HandleResponse> {
         let account = Account::new(&deps.api, &env.message.sender)?;
 
-        let ids = markets.iter()
+        let ids = markets
+            .iter()
             .map(|x| Markets::get_id(deps, x))
             .collect::<StdResult<Vec<u64>>>()?;
-            
+
         account.add_markets(&mut deps.storage, ids)?;
 
         Ok(HandleResponse {
@@ -265,9 +263,9 @@ pub trait Overseer {
     #[require_admin]
     fn change_market(
         market: HumanAddr,
-        ltv_ratio:  Option<Decimal256>,
-        symbol: Option<String>
-    ) -> StdResult<HandleResponse>{
+        ltv_ratio: Option<Decimal256>,
+        symbol: Option<String>,
+    ) -> StdResult<HandleResponse> {
         let (_, stored_market) = Markets::get_by_addr(deps, &market)?;
 
         let update_oracle = symbol.is_some();
@@ -281,14 +279,14 @@ pub trait Overseer {
                 QUOTE_SYMBOL.into(),
                 None,
             )?;
-    
+
             // Can't set collateral factor if the price is 0
             if price.rate == Decimal256::zero() {
                 return Err(StdError::generic_err(
                     "Cannot set LTV ratio if the price is 0",
                 ));
             }
-            
+
             ltv_ratio
         } else {
             stored_market.ltv_ratio
@@ -324,7 +322,7 @@ pub trait Overseer {
         Ok(HandleResponse {
             messages,
             log: vec![],
-            data: None
+            data: None,
         })
     }
 
@@ -332,7 +330,7 @@ pub trait Overseer {
     #[require_admin]
     fn change_config(
         premium_rate: Option<Decimal256>,
-        close_factor: Option<Decimal256>
+        close_factor: Option<Decimal256>,
     ) -> StdResult<HandleResponse> {
         let mut constants = Constants::load(&deps.storage)?;
 
@@ -351,9 +349,9 @@ pub trait Overseer {
             log: vec![
                 log("action", "change_config"),
                 log("premium_rate", constants.premium()),
-                log("close_factor", constants.close_factor())
+                log("close_factor", constants.close_factor()),
             ],
-            data: None
+            data: None,
         })
     }
 
@@ -457,12 +455,12 @@ pub trait Overseer {
             QUOTE_SYMBOL.into(),
             None,
         )?;
-    
+
         // Get the exchange rate and calculate the number of collateral tokens to seize
         let (_, market) = Markets::get_by_addr(deps, &collateral)?;
         let exchange_rate = query_exchange_rate(&deps.querier, market.contract, None)?;
         let ratio = ((premium * price_borrowed.rate)? / (price_collateral.rate * exchange_rate)?)?;
-    
+
         repay_amount.decimal_mul(ratio)
     }
 
@@ -500,14 +498,17 @@ fn calc_liquidity<S: Storage, A: Api, Q: Querier>(
     let mut total_borrowed = Uint256::zero();
 
     let markets = account.list_markets(deps)?;
-    
+
     if markets.len() == 0 {
         return Err(StdError::generic_err("Not entered in any markets."));
     }
 
     let target_asset = if let Some(asset) = target_asset {
         if !markets.iter().any(|x| x.contract.address == asset) {
-            return Err(StdError::generic_err(format!("Not entered in market: {}", asset)));
+            return Err(StdError::generic_err(format!(
+                "Not entered in market: {}",
+                asset
+            )));
         }
 
         asset
@@ -530,10 +531,6 @@ fn calc_liquidity<S: Storage, A: Api, Q: Querier>(
 
         let conversion_factor = ((market.ltv_ratio * snapshot.exchange_rate)? * price.rate)?;
 
-        if !market.ltv_ratio.is_zero() && conversion_factor.is_zero() {
-            return Err(StdError::generic_err("Invalid price"))
-        }
-
         total_collateral = (Uint256::from(snapshot.sl_token_balance)
             .decimal_mul(conversion_factor)?
             + total_collateral)?;
@@ -544,6 +541,10 @@ fn calc_liquidity<S: Storage, A: Api, Q: Querier>(
             total_borrowed = (redeem_amount.decimal_mul(conversion_factor)? + total_borrowed)?;
             total_borrowed = (borrow_amount.decimal_mul(price.rate)? + total_borrowed)?;
         }
+    }
+
+    if total_borrowed.is_zero() && total_collateral.is_zero() && !borrow_amount.is_zero() {
+        return Err(StdError::generic_err("Invalid price reported by oracle"))
     }
 
     if total_collateral > total_borrowed {
