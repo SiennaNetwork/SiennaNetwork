@@ -161,8 +161,17 @@ impl TGE {
             rpt,
         }
     }
+    pub fn get_mgmt_env(&self, sender: &HumanAddr) -> MockEnv {
+        MockEnv::new(
+            sender.clone(),
+            ContractLink {
+                address: "MGMT_CONTRACT".into(),
+                code_hash: self.mgmt.code_hash.clone(),
+            }
+        )
+    }
 
-    pub fn get_admin_env(&self) -> MockEnv {
+    pub fn get_mgmt_env_as_admin(&self) -> MockEnv {
         MockEnv::new(
             ADMIN,
             ContractLink {
@@ -179,7 +188,7 @@ impl TGE {
     ) -> Result<(), StdError> {
         self.ensemble.execute(
             &sienna_mgmt::HandleMsg::AddAccount { pool_name, account },
-            self.get_admin_env()
+            self.get_mgmt_env_as_admin()
         )
     }
 
@@ -221,7 +230,7 @@ impl TGE {
             &sienna_mgmt::HandleMsg::Configure {
                 schedule
             }, 
-            self.get_admin_env()
+            self.get_mgmt_env_as_admin()
         )
     }
 }
