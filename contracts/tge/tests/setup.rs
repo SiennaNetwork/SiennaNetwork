@@ -1,14 +1,17 @@
 use crate::impl_contract_harness_default;
 use fadroma::ensemble::{ContractEnsemble, ContractHarness, MockDeps, MockEnv};
 use fadroma::snip20_impl::msg::InitConfig;
-use fadroma::Uint128;
+use fadroma::snip20_impl::msg::{
+    QueryAnswer, QueryMsg as Snip20QueryMsg, QueryPermission as Snip20Permission, QueryWithPermit,
+};
 use fadroma::{
     from_binary, snip20_impl, snip20_impl::msg::InitMsg as Snip20InitMsg, Binary, ContractLink,
     Env, HandleResponse, HumanAddr, InitResponse, StdResult,
 };
+use fadroma::{Permit, StdError, Uint128};
 use sienna_mgmt;
 use sienna_rpt::{self, LinearMap};
-use sienna_schedule::{Pool, Schedule};
+use sienna_schedule::{Account, Pool, Schedule};
 
 pub struct MGMT;
 impl_contract_harness_default!(MGMT, sienna_mgmt);
@@ -45,6 +48,7 @@ pub struct TGE {
     pub ensemble: ContractEnsemble,
     pub mgmt: ContractLink<HumanAddr>,
     pub rpt: ContractLink<HumanAddr>,
+    pub token: ContractLink<HumanAddr>,
 }
 
 pub const ADMIN: &str = "admin";
@@ -57,7 +61,7 @@ impl TGE {
         let rpt_model = ensemble.register(Box::new(RPT));
         let token = ensemble.register(Box::new(Token));
 
-        let schedule = Schedule::new(&[Pool::full("test", &[])]);
+        let schedule = Schedule::new(&[Pool::partial("TEST", 25, &[])]);
 
         let token = ensemble
             .instantiate(
@@ -122,7 +126,10 @@ impl TGE {
             )
             .unwrap();
 
-        let distribution = LinearMap(vec![(HumanAddr::from(ADMIN), Uint128(2500))]);
+        let distribution = LinearMap(vec![
+            (HumanAddr::from(ADMIN), Uint128(20)),
+            (HumanAddr::from("STRANGER"), Uint128(5)),
+        ]);
 
         let rpt = ensemble
             .instantiate(
@@ -135,7 +142,7 @@ impl TGE {
                         address: "REWARD".into(),
                         code_hash: token.code_hash.clone(),
                     },
-                    portion: Uint128(2500),
+                    portion: Uint128(25),
                 },
                 MockEnv::new(
                     ADMIN,
@@ -150,7 +157,58 @@ impl TGE {
         Self {
             ensemble,
             mgmt,
+            token,
             rpt,
+        }
+    }
+
+    pub fn add_account(
+        &mut self,
+        pool_name: String,
+        account: Account<HumanAddr>,
+    ) -> Result<(), StdError> {
+        self.ensemble.execute(
+            &sienna_mgmt::HandleMsg::AddAccount { pool_name, account },
+            MockEnv::new(
+                ADMIN,
+                ContractLink {
+                    address: "MGMT_CONTRACT".into(),
+                    code_hash: self.mgmt.code_hash.clone(),
+                },
+            ),
+        )
+    }
+
+    pub fn query_schedule(&self) -> Schedule<HumanAddr> {
+        let schedule = self
+            .ensemble
+            .query(
+                self.mgmt.address.clone(),
+                &sienna_mgmt::QueryMsg::Schedule {},
+            )
+            .unwrap();
+
+        schedule
+    }
+    pub fn query_balance(&self, address: &str) -> Uint128 {
+        let result = self
+            .ensemble
+            .query(
+                self.token.address.clone(),
+                Snip20QueryMsg::WithPermit {
+                    permit: Permit::<Snip20Permission>::new(
+                        address,
+                        vec![Snip20Permission::Balance],
+                        vec![self.token.address.clone()],
+                        "balance",
+                    ),
+                    query: QueryWithPermit::Balance {},
+                },
+            )
+            .unwrap();
+        match result {
+            QueryAnswer::Balance { amount } => amount,
+            _ => panic!("Expecting QueryAnswer::Balance"),
         }
     }
 }

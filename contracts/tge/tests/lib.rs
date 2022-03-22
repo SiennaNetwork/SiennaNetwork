@@ -1,5 +1,5 @@
 #[cfg(test)]
-mod rpt_tests;
+mod tge_test;
 mod setup;
 
 #[macro_export]

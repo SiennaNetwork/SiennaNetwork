@@ -1,6 +1,7 @@
 use fadroma::{ensemble::MockEnv, ContractLink, HumanAddr, Uint128};
 use sienna_mgmt::ConfigResponse;
 use sienna_rpt::LinearMap;
+use sienna_schedule::Account;
 
 use crate::setup::{ADMIN, TGE};
 
@@ -88,7 +89,7 @@ fn only_valid_distribution() {
                 distribution: updated_distribution.clone(),
             },
             MockEnv::new(
-                "stranger",
+                ADMIN,
                 ContractLink {
                     address: "RPT_CONTRACT".into(),
                     code_hash: tge.rpt.code_hash,
@@ -100,6 +101,21 @@ fn only_valid_distribution() {
 #[test]
 fn should_distribute() {
     let mut tge = TGE::default();
+    let initial_balance = tge.query_balance(ADMIN);
+
+    tge.add_account(
+        "TEST".into(),
+        Account {
+            name: "RPT_SPLIT".into(),
+            address: tge.rpt.address.clone(),
+            amount: Uint128(25),
+            cliff: Uint128(0),
+            start_at: 0,
+            interval: 180,
+            duration: 0,
+        },
+    )
+    .unwrap();
 
     tge.ensemble
         .execute(
@@ -108,11 +124,12 @@ fn should_distribute() {
                 ADMIN,
                 ContractLink {
                     address: "MGMT_CONTRACT".into(),
-                    code_hash: tge.mgmt.code_hash,
+                    code_hash: tge.mgmt.code_hash.clone(),
                 },
             ),
         )
         .unwrap();
+
     tge.ensemble
         .execute(
             &sienna_rpt::HandleMsg::Vest {},
@@ -120,9 +137,14 @@ fn should_distribute() {
                 ADMIN,
                 ContractLink {
                     address: "RPT_CONTRACT".into(),
-                    code_hash: tge.rpt.code_hash,
+                    code_hash: tge.rpt.code_hash.clone(),
                 },
-            ),
+            )
+            .time(1978897420),
         )
         .unwrap();
+
+    let updated_balance = tge.query_balance(ADMIN);
+
+    assert_ne!(initial_balance, updated_balance);
 }
