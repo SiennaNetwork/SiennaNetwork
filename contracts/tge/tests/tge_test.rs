@@ -21,8 +21,8 @@ fn admin_update_distribution() {
     let token1 = HumanAddr::from("secret1TOKEN1");
     let token2 = HumanAddr::from("secret1TOKEN2");
     let updated_distribution = LinearMap(vec![
-        (token1.clone(), Uint128::from(1000u128)),
-        (token2.clone(), Uint128::from(1500u128)),
+        (token1.clone(), Uint128::from(10u128)),
+        (token2.clone(), Uint128::from(15u128)),
     ]);
 
     tge.ensemble
