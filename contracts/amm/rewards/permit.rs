@@ -7,13 +7,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 #[cfg(target_arch = "wasm32")]
-use cosmwasm_std::CanonicalAddr;
-#[cfg(target_arch = "wasm32")]
-use ripemd160::{Digest, Ripemd160};
-#[cfg(target_arch = "wasm32")]
 use secp256k1::Secp256k1;
-use sha2::Sha256;
-#[cfg(target_arch = "wasm32")]
 use sha2::Sha256;
 
 pub trait Permission: Serialize + JsonSchema + Clone + PartialEq {}
@@ -38,10 +32,9 @@ pub struct Permit<P: Permission> {
     pub address: HumanAddr,
 }
 
+const NS_PERMITS: &'static [u8] = b"GAl8kO8Z8w";
 #[cfg(not(target_arch = "wasm32"))]
 impl<P: Permission> Permit<P> {
-    const NS_PERMITS: &'static [u8] = b"GAl8kO8Z8w";
-
     pub fn new(
         address: impl Into<HumanAddr>,
         permissions: Vec<P>,
@@ -183,7 +176,7 @@ where
 
     fn assert_not_revoked(core: &C, account: &HumanAddr, permit_name: &str) -> StdResult<()> {
         let key = [
-            Self::NS_PERMITS,
+            NS_PERMITS,
             account.0.as_bytes(),
             permit_name.as_bytes(),
         ]
@@ -202,7 +195,7 @@ where
 
     fn revoke(core: &mut C, account: &HumanAddr, permit_name: &str) {
         let key = [
-            Self::NS_PERMITS,
+            NS_PERMITS,
             account.0.as_bytes(),
             permit_name.as_bytes(),
         ]
