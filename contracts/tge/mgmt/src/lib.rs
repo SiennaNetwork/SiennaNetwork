@@ -161,7 +161,7 @@ pub trait Mgmt {
             )?
             .amount;
 
-            if balance != schedule.total {
+            if balance < schedule.total {
                 return Err(StdError::generic_err(MGMTError!(
                     PREFUND,
                     balance,

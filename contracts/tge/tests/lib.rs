@@ -1,5 +1,6 @@
 #[cfg(test)]
 mod tge_test;
+#[cfg(test)]
 mod setup;
 
 #[macro_export]
