@@ -136,7 +136,7 @@ fn calc_accrued_interest<S: Storage, A: Api, Q: Querier>(
         Decimal256::from_uint256(reserves_prior)?,
     )?;
 
-    if borrow_rate >= MAX_BORROW_RATE {
+    if borrow_rate >= Decimal256(MAX_BORROW_RATE.into()) {
         // TODO: Should this be capped instead of returning an error?
         return Err(StdError::generic_err("Borrow rate is absurdly high"));
     }
