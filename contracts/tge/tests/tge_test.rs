@@ -320,9 +320,6 @@ fn should_set_schedule_multiple_pools() {
                         name: USER_INVESTOR_MIKE.to_string(),
                         address: HumanAddr::from(USER_INVESTOR_MIKE),
                         amount: Uint128(20_000),
-                        // total amount will be distributed to the user during the 'duration' period
-                        // on equidistant intervals.
-                        // In this case, 20_000 / 1000 * 10 = 200
                         cliff: Uint128(0),
                         duration: 1000, 
                         interval: 10,
@@ -388,9 +385,13 @@ fn should_support_different_schedule_intervals() {
                     Account {
                         name: USER_INVESTOR_MIKE.to_string(),
                         address: HumanAddr::from(USER_INVESTOR_MIKE),
+
+                        // total amount will be distributed to the user during the 'duration' period
+                        // on equidistant intervals.
+                        // In this case, 800 split on (2000/10) = 200 intervals, 4 tokens per each
                         amount: Uint128(800),
                         cliff: Uint128(0),
-                        duration: 1000,
+                        duration: 2000,
                         interval: 10,
                         start_at: 0
                     },
@@ -433,21 +434,41 @@ fn should_support_different_schedule_intervals() {
         tge.get_mgmt_env_as_admin().time(DEFAULT_EPOCH_START)
     ).unwrap();
 
+    // User Mike 
+    let mut actual_tokens_per_interval = 4;
+    
     tge.ensemble.execute(
         &sienna_mgmt::HandleMsg::Claim {}, 
-        tge.get_mgmt_env(USER_INVESTOR_JOHN).time(DEFAULT_EPOCH_START + 23)
+        tge.get_mgmt_env(USER_INVESTOR_MIKE).time(DEFAULT_EPOCH_START + 21)
+    ).unwrap();
+        
+    assert_eq!(tge.query_balance(USER_INVESTOR_MIKE).u128(), actual_tokens_per_interval * 3); // 0, 10, 20
+
+    tge.ensemble.execute(
+        &sienna_mgmt::HandleMsg::Claim {}, 
+        tge.get_mgmt_env(USER_INVESTOR_MIKE).time(DEFAULT_EPOCH_START + 21 + 10)
     ).unwrap();
     
-    let env = tge
-        .get_rpt_env(USER_INVESTOR_MIKE)
-        .time(DEFAULT_EPOCH_START + 21);
+    assert_eq!(tge.query_balance(USER_INVESTOR_MIKE).u128(), actual_tokens_per_interval * 4); 
 
-    assert_eq!(tge.query_balance(USER_INVESTOR_JOHN).u128(), 2_000);
-    // tge.ensemble
-    //     .execute(&sienna_rpt::HandleMsg::Vest {}, env)
-    //     .unwrap();
+    // User John 
+    let mut actual_tokens_per_interval = 2.4; // 200 / 1000 * 12;
     
-    // assert_eq!(tge.query_schedule().u128(), 25_000);
+    tge.ensemble.execute(
+        &sienna_mgmt::HandleMsg::Claim {}, 
+        tge.get_mgmt_env(USER_INVESTOR_JOHN).time(DEFAULT_EPOCH_START + 11)
+    ).unwrap();
+        
+    assert_eq!(tge.query_balance(USER_INVESTOR_JOHN).u128(), actual_tokens_per_interval * 1); 
+
+    tge.ensemble.execute(
+        &sienna_mgmt::HandleMsg::Claim {}, 
+        tge.get_mgmt_env(USER_INVESTOR_JOHN).time(DEFAULT_EPOCH_START + 11 + 60)
+    ).unwrap();
+    
+    assert_eq!(tge.query_balance(USER_INVESTOR_JOHN).u128(), actual_tokens_per_interval * 5); 
+
+
 }
     // different intervals
     // claim before launch
