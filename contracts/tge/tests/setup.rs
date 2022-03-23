@@ -161,7 +161,18 @@ impl TGE {
             rpt,
         }
     }
-    pub fn get_mgmt_env(&self, sender: &HumanAddr) -> MockEnv {
+
+    pub fn get_rpt_env(&self, sender: &str) -> MockEnv {
+        MockEnv::new(
+            sender.clone(),
+            ContractLink {
+                address: "RPT_CONTRACT".into(),
+                code_hash: self.rpt.code_hash.clone(),
+            }
+        )
+    }
+
+    pub fn get_mgmt_env(&self, sender: &str) -> MockEnv {
         MockEnv::new(
             sender.clone(),
             ContractLink {

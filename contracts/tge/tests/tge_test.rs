@@ -6,6 +6,12 @@ use sienna_schedule::{Account, Schedule, Pool};
 use crate::setup::{ADMIN, TGE};
 
 const DEFAULT_EPOCH_START: u64 = 1571797419;
+const USER_INVESTOR_MIKE: &str = "Mike";
+const USER_INVESTOR_JOHN: &str = "John";
+const USER_MP_RPT1: &str = "RTP1";
+const USER_MP_RPT2: &str = "RTP2";
+const TOKEN1: &str = "secret1TOKEN1";
+const TOKEN2: &str = "secret1TOKEN2";
 
 #[test]
 fn rpt_init() {
@@ -20,8 +26,8 @@ fn rpt_init() {
 #[test]
 fn admin_update_distribution() {
     let mut tge = TGE::default();
-    let token1 = HumanAddr::from("secret1TOKEN1");
-    let token2 = HumanAddr::from("secret1TOKEN2");
+    let token1 = HumanAddr::from(TOKEN1);
+    let token2 = HumanAddr::from(TOKEN2);
     let updated_distribution = LinearMap(vec![
         (token1.clone(), Uint128::from(10u128)),
         (token2.clone(), Uint128::from(15u128)),
@@ -52,8 +58,8 @@ fn admin_update_distribution() {
 #[test]
 fn stranger_cant_update_distribution() {
     let mut tge = TGE::default();
-    let token1 = HumanAddr::from("secret1TOKEN1");
-    let token2 = HumanAddr::from("secret1TOKEN2");
+    let token1 = HumanAddr::from(TOKEN1);
+    let token2 = HumanAddr::from(TOKEN2);
     let updated_distribution = LinearMap(vec![
         (token1.clone(), Uint128::from(1000u128)),
         (token2.clone(), Uint128::from(1500u128)),
@@ -77,8 +83,8 @@ fn stranger_cant_update_distribution() {
 #[test]
 fn only_valid_distribution() {
     let mut tge = TGE::default();
-    let token1 = HumanAddr::from("secret1TOKEN1");
-    let token2 = HumanAddr::from("secret1TOKEN2");
+    let token1 = HumanAddr::from(TOKEN1);
+    let token2 = HumanAddr::from(TOKEN2);
     //must add up to 2500
     let updated_distribution = LinearMap(vec![
         (token1.clone(), Uint128::from(1200u128)),
@@ -164,8 +170,8 @@ fn should_not_schedule_for_invalid_pool_total() {
                 total: Uint128(20_000),
                 accounts: vec![
                     Account {
-                        name: "Mark".to_string(),
-                        address: HumanAddr::from("Mark"),
+                        name: USER_INVESTOR_MIKE.to_string(),
+                        address: HumanAddr::from(USER_INVESTOR_MIKE),
                         amount: Uint128(2_000),
                         cliff: Uint128(0),
                         duration: 1000,
@@ -173,8 +179,8 @@ fn should_not_schedule_for_invalid_pool_total() {
                         start_at: 0
                     },
                     Account {
-                        name: "Thiel".to_string(),
-                        address: HumanAddr::from("Thiel"),
+                        name: USER_INVESTOR_JOHN.to_string(),
+                        address: HumanAddr::from(USER_INVESTOR_JOHN),
                         amount: Uint128(5_000),
                         cliff: Uint128(0),
                         duration: 1000,
@@ -205,8 +211,8 @@ fn should_set_schedule_snigle_pool() {
                 total: Uint128(25_000),
                 accounts: vec![
                     Account {
-                        name: "Mark".to_string(),
-                        address: HumanAddr::from("Mark"),
+                        name: USER_INVESTOR_MIKE.to_string(),
+                        address: HumanAddr::from(USER_INVESTOR_MIKE),
                         amount: Uint128(20_000),
                         cliff: Uint128(0),
                         duration: 1000,
@@ -214,8 +220,8 @@ fn should_set_schedule_snigle_pool() {
                         start_at: 0
                     },
                     Account {
-                        name: "Thiel".to_string(),
-                        address: HumanAddr::from("Thiel"),
+                        name: USER_INVESTOR_JOHN.to_string(),
+                        address: HumanAddr::from(USER_INVESTOR_JOHN),
                         amount: Uint128(5_000),
                         cliff: Uint128(0),
                         duration: 1000,
@@ -246,8 +252,8 @@ fn should_not_set_schedule_overall_total() {
                 total: Uint128(25_000),
                 accounts: vec![
                     Account {
-                        name: "Mark".to_string(),
-                        address: HumanAddr::from("Mark"),
+                        name: USER_INVESTOR_MIKE.to_string(),
+                        address: HumanAddr::from(USER_INVESTOR_MIKE),
                         amount: Uint128(20_000),
                         cliff: Uint128(0),
                         duration: 1000,
@@ -255,8 +261,8 @@ fn should_not_set_schedule_overall_total() {
                         start_at: 0
                     },
                     Account {
-                        name: "Thiel".to_string(),
-                        address: HumanAddr::from("Thiel"),
+                        name: USER_INVESTOR_JOHN.to_string(),
+                        address: HumanAddr::from(USER_INVESTOR_JOHN),
                         amount: Uint128(5_000),
                         cliff: Uint128(0),
                         duration: 1000,
@@ -271,8 +277,8 @@ fn should_not_set_schedule_overall_total() {
                 total: Uint128(20_000),
                 accounts: vec![
                     Account {
-                        name: "RPT1".to_string(),
-                        address: HumanAddr::from("RPT1"),
+                        name: USER_MP_RPT1.to_string(),
+                        address: HumanAddr::from(USER_MP_RPT1),
                         amount: Uint128(11_000),
                         cliff: Uint128(0),
                         duration: 1000,
@@ -280,8 +286,8 @@ fn should_not_set_schedule_overall_total() {
                         start_at: 0
                     },
                     Account {
-                        name: "RPT2".to_string(),
-                        address: HumanAddr::from("RPT2"),
+                        name: USER_MP_RPT2.to_string(),
+                        address: HumanAddr::from(USER_MP_RPT2),
                         amount: Uint128(9_000),
                         cliff: Uint128(0),
                         duration: 1000,
@@ -312,8 +318,8 @@ fn should_set_schedule_multiple_pools() {
                 total: Uint128(25_000),
                 accounts: vec![
                     Account {
-                        name: "Mark".to_string(),
-                        address: HumanAddr::from("Mark"),
+                        name: USER_INVESTOR_MIKE.to_string(),
+                        address: HumanAddr::from(USER_INVESTOR_MIKE),
                         amount: Uint128(20_000),
                         cliff: Uint128(0),
                         duration: 1000,
@@ -321,8 +327,8 @@ fn should_set_schedule_multiple_pools() {
                         start_at: 0
                     },
                     Account {
-                        name: "Thiel".to_string(),
-                        address: HumanAddr::from("Thiel"),
+                        name: USER_INVESTOR_JOHN.to_string(),
+                        address: HumanAddr::from(USER_INVESTOR_JOHN),
                         amount: Uint128(5_000),
                         cliff: Uint128(0),
                         duration: 1000,
@@ -337,8 +343,8 @@ fn should_set_schedule_multiple_pools() {
                 total: Uint128(20_000),
                 accounts: vec![
                     Account {
-                        name: "RPT1".to_string(),
-                        address: HumanAddr::from("RPT1"),
+                        name: USER_MP_RPT1.to_string(),
+                        address: HumanAddr::from(USER_MP_RPT1),
                         amount: Uint128(11_000),
                         cliff: Uint128(0),
                         duration: 1000,
@@ -346,8 +352,8 @@ fn should_set_schedule_multiple_pools() {
                         start_at: 0
                     }, 
                     Account {
-                        name: "RPT2".to_string(),
-                        address: HumanAddr::from("RPT2"),
+                        name: USER_MP_RPT2.to_string(),
+                        address: HumanAddr::from(USER_MP_RPT2),
                         amount: Uint128(9_000),
                         cliff: Uint128(0),
                         duration: 1000,
@@ -378,8 +384,8 @@ fn should_support_different_schedule_intervals() {
                 total: Uint128(1_000),
                 accounts: vec![
                     Account {
-                        name: "Mark".to_string(),
-                        address: HumanAddr::from("Mark"),
+                        name: USER_INVESTOR_MIKE.to_string(),
+                        address: HumanAddr::from(USER_INVESTOR_MIKE),
                         amount: Uint128(800),
                         cliff: Uint128(0),
                         duration: 1000,
@@ -387,8 +393,8 @@ fn should_support_different_schedule_intervals() {
                         start_at: 0
                     },
                     Account {
-                        name: "Thiel".to_string(),
-                        address: HumanAddr::from("Thiel"),
+                        name: USER_INVESTOR_JOHN.to_string(),
+                        address: HumanAddr::from(USER_INVESTOR_JOHN),
                         amount: Uint128(200),
                         cliff: Uint128(0),
                         duration: 1000,
@@ -403,8 +409,8 @@ fn should_support_different_schedule_intervals() {
                 total: Uint128(500),
                 accounts: vec![
                     Account {
-                        name: "RPT1".to_string(),
-                        address: HumanAddr::from("RPT1"),
+                        name: USER_MP_RPT1.to_string(),
+                        address: HumanAddr::from(USER_MP_RPT1),
                         amount: Uint128(500),
                         cliff: Uint128(0),
                         duration: 1000,
@@ -424,14 +430,20 @@ fn should_support_different_schedule_intervals() {
         tge.get_mgmt_env_as_admin().time(DEFAULT_EPOCH_START)
     ).unwrap();
 
-    tge.ensemble.execute(
-        &sienna_mgmt::HandleMsg::Claim {}, 
-        tge.get_mgmt_env(&HumanAddr::from("Thiel")).time(DEFAULT_EPOCH_START + 23)
-    ).unwrap();
-
-    let env = tge.get_mgmt_env(&HumanAddr::from("Thiel"));
+    // tge.ensemble.execute(
+    //     &sienna_mgmt::HandleMsg::Claim {}, 
+    //     tge.get_mgmt_env(&HumanAddr::from("Thiel")).time(DEFAULT_EPOCH_START + 23)
+    // ).unwrap();
     
-    //assert_eq!(tge.query_schedule().total.u128(), 25_000);
+    let env = tge
+        .get_rpt_env(USER_INVESTOR_MIKE)
+        .time(DEFAULT_EPOCH_START + 21);
+
+    tge.ensemble
+        .execute(&sienna_rpt::HandleMsg::Vest {}, env)
+        .unwrap();
+    
+    // assert_eq!(tge.query_schedule().u128(), 25_000);
 }
     // different intervals
     // claim before launch
