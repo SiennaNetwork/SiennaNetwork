@@ -13,6 +13,9 @@ use sienna_mgmt;
 use sienna_rpt::{self, LinearMap};
 use sienna_schedule::{Account, Pool, Schedule};
 
+
+pub const DEFAULT_EPOCH_START: u64 = 1571797419;
+
 pub struct MGMT;
 impl_contract_harness_default!(MGMT, sienna_mgmt);
 
@@ -88,7 +91,7 @@ impl TGE {
                         address: "REWARD".into(),
                         code_hash: token.code_hash.clone(),
                     },
-                ),
+                ).time(DEFAULT_EPOCH_START),
             )
             .unwrap();
         ensemble
