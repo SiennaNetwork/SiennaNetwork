@@ -111,3 +111,9 @@ pub fn governance_closed<T>(time: Moment, reason: String) -> StdResult<T> {
         time, reason
     )))
 }
+pub fn not_enough_stake_to_vote<T>(balance: Uint128, required: Uint128) -> StdResult<T> {
+    Err(StdError::generic_err(format!(
+        "Your staked balance is too low to vote. Balance: {}, required: {}",
+        balance, required
+    )))
+}

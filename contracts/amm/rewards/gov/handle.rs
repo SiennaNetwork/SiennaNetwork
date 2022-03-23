@@ -6,7 +6,7 @@ use fadroma::*;
 
 use crate::account::{Account, CloseSeal, IAccount};
 use crate::auth::Auth;
-use crate::errors::{self, poll_expired};
+use crate::errors::{self, not_enough_stake_to_vote, poll_expired};
 
 use super::user::{IUser, User};
 use super::validator;
@@ -114,6 +114,11 @@ where
 
                 let account = Account::from_env(core, &env)?;
                 let power = account.staked;
+
+                if power.le(&GovernanceConfig::MIN_STAKED_FOR_VOTE) {
+                    return not_enough_stake_to_vote(power, GovernanceConfig::MIN_STAKED_FOR_VOTE);
+                }
+
                 let sender = Sender::from_human(&env.message.sender, core.api())?;
                 User::add_vote(core, poll_id, &sender, choice, power, env.block.time)?;
                 Ok(HandleResponse::default())

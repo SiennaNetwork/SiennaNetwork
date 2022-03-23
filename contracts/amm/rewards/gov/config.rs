@@ -38,6 +38,8 @@ impl GovernanceConfig {
     pub const DEFAULT_TRESHOLD: Uint128 = Uint128(3500);
     pub const DEFAULT_DEADLINE: u64 = 7 * 24 * 60 * 60;
 
+    pub const MIN_STAKED_FOR_VOTE: Uint128 = Uint128(1);
+
     /// Keys where config data is stored
     pub const THRESHOLD: &'static [u8] = b"/gov/threshold";
     pub const QUORUM: &'static [u8] = b"/gov/quorum";
