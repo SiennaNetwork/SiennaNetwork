@@ -20,7 +20,7 @@ use super::{
 pub enum GovernanceResponse {
     Polls {
         polls: Vec<Poll>,
-        total: usize,
+        total: u64,
         total_pages: u64,
     },
     Poll(PollInfo),
@@ -50,10 +50,9 @@ where
     Q: Querier,
     C: Governance<S, A, Q>,
 {
-    fn polls(core: &C, take: u64, page: u64, asc: bool, now: Moment) -> StdResult<Self> {
+    fn polls(core: &C, mut take: u64, page: u64, asc: bool, now: Moment) -> StdResult<Self> {
         let total = Poll::count(core)?;
         let total_pages = (total + take - 1) / take;
-        let mut take = min(take, 10);
 
         let build_ascended = |take| -> StdResult<Vec<Poll>> {
             let start = (page - 1) * take;
@@ -87,7 +86,7 @@ where
         };
 
         Ok(GovernanceResponse::Polls {
-            total: polls.len(),
+            total,
             polls,
             total_pages,
         })
