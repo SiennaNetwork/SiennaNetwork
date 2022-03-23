@@ -11,6 +11,8 @@ const USER_MP_RPT1: &str = "RTP1";
 const USER_MP_RPT2: &str = "RTP2";
 const TOKEN1: &str = "secret1TOKEN1";
 const TOKEN2: &str = "secret1TOKEN2";
+const TOKEN_DECIMALS:u128 = 1_000_000_000_000_000_000;
+    
 
 #[test]
 fn rpt_init() {
@@ -375,12 +377,12 @@ fn should_support_different_schedule_intervals() {
     let mut tge = TGE::default();
 
     let schedule = Schedule {
-        total: Uint128(1_500),
+        total: Uint128(1_500_000_000_000_000_000_000),
         pools: vec![
             Pool{
                 name: "Investors".to_string(),
                 partial: false,
-                total: Uint128(1_000),
+                total: Uint128(1_000_000_000_000_000_000_000),
                 accounts: vec![
                     Account {
                         name: USER_INVESTOR_MIKE.to_string(),
@@ -389,7 +391,7 @@ fn should_support_different_schedule_intervals() {
                         // total amount will be distributed to the user during the 'duration' period
                         // on equidistant intervals.
                         // In this case, 800 split on (2000/10) = 200 intervals, 4 tokens per each
-                        amount: Uint128(800),
+                        amount: Uint128(800_000_000_000_000_000_000),
                         cliff: Uint128(0),
                         duration: 2000,
                         interval: 10,
@@ -398,7 +400,7 @@ fn should_support_different_schedule_intervals() {
                     Account {
                         name: USER_INVESTOR_JOHN.to_string(),
                         address: HumanAddr::from(USER_INVESTOR_JOHN),
-                        amount: Uint128(200),
+                        amount: Uint128(200_000_000_000_000_000_000),
                         cliff: Uint128(0),
                         duration: 1000,
                         interval: 12,
@@ -409,12 +411,12 @@ fn should_support_different_schedule_intervals() {
             Pool{
                 name: "Minting Pool".to_string(),
                 partial: false,
-                total: Uint128(500),
+                total: Uint128(500_000_000_000_000_000_000),
                 accounts: vec![
                     Account {
                         name: USER_MP_RPT1.to_string(),
                         address: HumanAddr::from(USER_MP_RPT1),
-                        amount: Uint128(500),
+                        amount: Uint128(500_000_000_000_000_000_000),
                         cliff: Uint128(0),
                         duration: 1000,
                         interval: 14,
@@ -427,15 +429,16 @@ fn should_support_different_schedule_intervals() {
     };
     tge.set_shedule(schedule).unwrap();
 
-    assert_eq!(tge.query_schedule().total.u128(), 1_500);
+    assert_eq!(tge.query_schedule().total.u128(), 1_500_000_000_000_000_000_000);
 
     tge.ensemble.execute(
         &sienna_mgmt::HandleMsg::Launch {}, 
         tge.get_mgmt_env_as_admin().time(DEFAULT_EPOCH_START)
     ).unwrap();
 
+    
     // User Mike 
-    let mut actual_tokens_per_interval = 4;
+    let mut actual_tokens_per_interval = 4 * TOKEN_DECIMALS;
     
     tge.ensemble.execute(
         &sienna_mgmt::HandleMsg::Claim {}, 
@@ -452,21 +455,21 @@ fn should_support_different_schedule_intervals() {
     assert_eq!(tge.query_balance(USER_INVESTOR_MIKE).u128(), actual_tokens_per_interval * 4); 
 
     // User John 
-    let mut actual_tokens_per_interval = 2.4; // 200 / 1000 * 12;
+    actual_tokens_per_interval = 2_400_000_000_000_000_000; // 200 / 1000 * 12;
     
     tge.ensemble.execute(
         &sienna_mgmt::HandleMsg::Claim {}, 
         tge.get_mgmt_env(USER_INVESTOR_JOHN).time(DEFAULT_EPOCH_START + 11)
     ).unwrap();
         
-   // assert_eq!(tge.query_balance(USER_INVESTOR_JOHN).u128(), actual_tokens_per_interval * 1); 
+   assert_eq!(tge.query_balance(USER_INVESTOR_JOHN).u128(), actual_tokens_per_interval * 1); 
 
     tge.ensemble.execute(
         &sienna_mgmt::HandleMsg::Claim {}, 
         tge.get_mgmt_env(USER_INVESTOR_JOHN).time(DEFAULT_EPOCH_START + 11 + 60)
     ).unwrap();
     
-    //assert_eq!(tge.query_balance(USER_INVESTOR_JOHN).u128(), actual_tokens_per_interval * 5); 
+    assert_eq!(tge.query_balance(USER_INVESTOR_JOHN).u128(), actual_tokens_per_interval * 5); 
 
 
 }
