@@ -247,6 +247,15 @@ impl TGE {
             self.get_mgmt_env_as_admin()
         )
     }
+
+
+    pub fn claim_for(&mut self, user_name: &str, seconds_after: u64) {
+        self.ensemble.execute(
+            &sienna_mgmt::HandleMsg::Claim {}, 
+            self.get_mgmt_env(user_name).time(DEFAULT_EPOCH_START + seconds_after)
+        ).unwrap();
+    }
+
 }
 
 impl Default for TGE {

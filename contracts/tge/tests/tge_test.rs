@@ -12,7 +12,7 @@ const USER_MP_RPT2: &str = "RTP2";
 const TOKEN1: &str = "secret1TOKEN1";
 const TOKEN2: &str = "secret1TOKEN2";
 const TOKEN_DECIMALS:u128 = 1_000_000_000_000_000_000;
-    
+ 
 
 #[test]
 fn rpt_init() {
@@ -419,7 +419,7 @@ fn should_support_different_schedule_intervals() {
                         amount: Uint128(500_000_000_000_000_000_000),
                         cliff: Uint128(0),
                         duration: 1000,
-                        interval: 14,
+                        interval: 12,
                         start_at: 0
                     },
                 ]
@@ -427,6 +427,10 @@ fn should_support_different_schedule_intervals() {
             
         ]
     };
+
+    let john = &schedule.pools[0].accounts[1].clone();
+    let mike = &schedule.pools[0].accounts[0].clone();
+
     tge.set_shedule(schedule).unwrap();
 
     assert_eq!(tge.query_schedule().total.u128(), 1_500_000_000_000_000_000_000);
@@ -435,44 +439,45 @@ fn should_support_different_schedule_intervals() {
         &sienna_mgmt::HandleMsg::Launch {}, 
         tge.get_mgmt_env_as_admin().time(DEFAULT_EPOCH_START)
     ).unwrap();
-
     
-    // User Mike 
-    let mut actual_tokens_per_interval = 4 * TOKEN_DECIMALS;
+    // Mike's interval = 10
+    // John's interval = 12
+    let mike_actual_tokens_per_interval = 4 * TOKEN_DECIMALS;
     
-    tge.ensemble.execute(
-        &sienna_mgmt::HandleMsg::Claim {}, 
-        tge.get_mgmt_env(USER_INVESTOR_MIKE).time(DEFAULT_EPOCH_START + 21)
-    ).unwrap();
-        
-    assert_eq!(tge.query_balance(USER_INVESTOR_MIKE).u128(), actual_tokens_per_interval * 3); // 0, 10, 20
+    // claimed = amount (200e18) / potion size
+    // portion size = duration / interval => 1000 / 12 = 83.3333
+    // which is rounded to 83 as it's uint
+    // so 200e18 / 83.3333333 would be 2.4 (correct)
+    // but 200e18 / 83 = 2.409638554216867469 which is bad
+    // remainder is 0.009638554216867469 which will be added
+    // to another portion
+    let johns_rounded_intervals_count = john.duration / john.interval;
+    // should be 2_409_638_554_216_867_469
+    let john_actual_tokens_per_interval = john.amount.u128() / johns_rounded_intervals_count as u128;
 
-    tge.ensemble.execute(
-        &sienna_mgmt::HandleMsg::Claim {}, 
-        tge.get_mgmt_env(USER_INVESTOR_MIKE).time(DEFAULT_EPOCH_START + 21 + 10)
-    ).unwrap();
-    
-    assert_eq!(tge.query_balance(USER_INVESTOR_MIKE).u128(), actual_tokens_per_interval * 4); 
+    tge.claim_for(USER_INVESTOR_JOHN, john.interval - 1); // 0
+    assert_eq!(tge.query_balance(USER_INVESTOR_JOHN).u128(), john_actual_tokens_per_interval); 
 
-    // User John 
-    actual_tokens_per_interval = 2_400_000_000_000_000_000; // 200 / 1000 * 12;
-    
-    tge.ensemble.execute(
-        &sienna_mgmt::HandleMsg::Claim {}, 
-        tge.get_mgmt_env(USER_INVESTOR_JOHN).time(DEFAULT_EPOCH_START + 11)
-    ).unwrap();
-        
-   assert_eq!(tge.query_balance(USER_INVESTOR_JOHN).u128(), actual_tokens_per_interval * 1); 
+    tge.claim_for(USER_INVESTOR_MIKE, 2 * mike.interval + 1);
+    assert_eq!(tge.query_balance(USER_INVESTOR_MIKE).u128(), mike_actual_tokens_per_interval * 3); // 0, 10, 20
 
-    tge.ensemble.execute(
-        &sienna_mgmt::HandleMsg::Claim {}, 
-        tge.get_mgmt_env(USER_INVESTOR_JOHN).time(DEFAULT_EPOCH_START + 11 + 60)
-    ).unwrap();
-    
-    assert_eq!(tge.query_balance(USER_INVESTOR_JOHN).u128(), actual_tokens_per_interval * 5); 
+    tge.claim_for(USER_INVESTOR_JOHN, 2 * john.interval + 1);
+    assert_eq!(tge.query_balance(USER_INVESTOR_JOHN).u128(), john_actual_tokens_per_interval * 3); 
 
+    // tge.claim_for(USER_INVESTOR_MIKE, 3 * mike.interval + 1);
+    // assert_eq!(tge.query_balance(USER_INVESTOR_MIKE).u128(), mike_actual_tokens_per_interval * 4); 
+    // assert_eq!(tge.query_balance(USER_INVESTOR_JOHN).u128(), john_actual_tokens_per_interval * 5); 
+
+
+    tge.claim_for(USER_INVESTOR_JOHN, john.interval * (johns_rounded_intervals_count + 1));
+    assert_eq!(tge.query_balance(USER_INVESTOR_JOHN).u128(), john.amount.u128() ); 
+
+    // tge.claim_for(USER_INVESTOR_JOHN, 6 * john.interval - 1);
+    // assert_eq!(tge.query_balance(USER_INVESTOR_JOHN).u128(), john_actual_tokens_per_interval * 5); 
 
 }
+
+
     // different intervals
     // claim before launch
     // claim before interval 

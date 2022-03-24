@@ -204,8 +204,6 @@ pub trait Mgmt {
 
         let (unlocked, claimable) = portion(&schedule, &claimant, elapsed);
 
-        println!("Claimable {:} {:}", &claimable, &unlocked);
-
         if claimable > 0 {
             claimant.set_claimed(&mut deps.storage, unlocked.into())?;
             History::push(
