@@ -71,8 +71,18 @@ pub trait RPT {
     }
 
     #[handle_guard]
-    fn guard(_msg: &HandleMsg) -> StdResult<()> {
-        killswitch::is_operational(deps)
+    fn guard(msg: &HandleMsg) -> StdResult<()> {
+        let operational = killswitch::is_operational(deps);
+
+        if operational.is_err() && matches!(
+            msg,
+            HandleMsg::Killswitch(_) |
+            HandleMsg::Admin(_)
+        ) {
+            Ok(())
+        } else {
+            operational
+        }
     }
 
     #[handle]

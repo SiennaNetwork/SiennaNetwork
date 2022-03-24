@@ -96,7 +96,11 @@ pub trait Mgmt {
     fn guard(msg: &HandleMsg) -> StdResult<()> {
         let operational = killswitch::is_operational(deps);
 
-        if operational.is_err() && matches!(msg, HandleMsg::Killswitch(_) | HandleMsg::Admin(_)) {
+        if operational.is_err() && matches!(
+            msg,
+            HandleMsg::Killswitch(_) |
+            HandleMsg::Admin(_)
+        ) {
             Ok(())
         } else {
             operational
