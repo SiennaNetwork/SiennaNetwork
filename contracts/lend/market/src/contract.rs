@@ -47,8 +47,8 @@ use lend_shared::{
 };
 
 pub const MAX_RESERVE_FACTOR: Decimal256 = Decimal256::one();
-// TODO: proper value here
-pub const MAX_BORROW_RATE: Decimal256 = Decimal256::one();
+/// 0.0005%
+pub const MAX_BORROW_RATE: u64 = 5000000000000;
 
 const TOKEN_PREFIX: &str = "sl-";
 
