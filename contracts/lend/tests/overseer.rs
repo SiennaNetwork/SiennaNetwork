@@ -665,6 +665,15 @@ pub fn liquidity_oracle_low_price() {
         )
         .unwrap();
 
+    lend.ensemble
+        .execute(
+            &HandleMsg::Enter {
+                markets: vec![market.contract.address.clone()],
+            },
+            MockEnv::new("MALLORY", lend.overseer.clone()),
+        )
+        .unwrap();
+
     let _res = lend
         .ensemble
         .execute(
@@ -703,7 +712,7 @@ pub fn test_ltv() {
         .unwrap();
 
     let market2 = lend
-        .whitelist_market(underlying2.clone(), Decimal256::percent(50), None, None)
+        .whitelist_market(underlying2.clone(), Decimal256::percent(10), None, None)
         .unwrap();
 
     lend.set_oracle_price(market1.symbol.as_bytes(), Uint128(1))
@@ -711,7 +720,7 @@ pub fn test_ltv() {
 
     lend.set_oracle_price(
         market2.symbol.as_bytes(),
-        Uint128(1_000_000_000_000_000_000u128),
+        Uint128(10_000_000_000_000_000_000u128),
     )
     .unwrap();
 
@@ -845,14 +854,14 @@ pub fn test_ltv() {
     // provide some collateral to 2nd market, where ltv is 50%, borrow should succeed
     lend.prefund_and_deposit(
         "MALLORY",
-        Uint128(1_000_000),
+        Uint128(1_000_00),
         market2.contract.address.clone(),
     );
 
     lend.ensemble
         .execute(
             &market::HandleMsg::Borrow {
-                amount: Uint256::from(1_000u128),
+                amount: Uint256::from(1_000_0u128),
             },
             MockEnv::new("MALLORY", market2.contract.clone()),
         )
@@ -894,4 +903,61 @@ pub fn test_ltv() {
             MockEnv::new("ALICE", market1.contract.clone()),
         )
         .unwrap_err();
+
+    // crash the price of first token and liquidate
+    lend.set_oracle_price(market2.symbol.as_bytes(), Uint128(1))
+        .unwrap();
+    let id = lend.id("MALLORY", market2.contract.address.clone());
+
+    // should fail with invalid price
+    let res = lend
+        .ensemble
+        .execute(
+            &Snip20HandleMsg::Send {
+                recipient: market2.contract.address.clone(),
+                recipient_code_hash: None,
+                amount: Uint128(4_000_000),
+                msg: Some(
+                    to_binary(&market::ReceiverCallbackMsg::Liquidate {
+                        borrower: id.clone(),
+                        collateral: market2.contract.address.clone(),
+                    })
+                    .unwrap(),
+                ),
+                memo: None,
+                padding: None,
+            },
+            MockEnv::new(BORROWER, underlying2.clone()),
+        )
+        .unwrap_err();
+    assert_eq!(
+        res,
+        StdError::generic_err("Invalid price reported by oracle")
+    );
+
+    // try to transfer
+    let res = lend.ensemble.execute(
+        &market::HandleMsg::Transfer {
+            recipient: "MALLORY".into(),
+            amount: Uint256::from(1_000_000u128),
+        },
+        MockEnv::new(BORROWER, market2.contract.clone()),
+    ).unwrap_err();
+    assert_eq!(
+        res,
+        StdError::generic_err("Invalid price reported by oracle")
+    );
+
+    // set valid price and try to transfer again
+    lend.set_oracle_price(market2.symbol.as_bytes(), Uint128(1_000_000_000_000_000_000u128))
+        .unwrap();
+
+    // should be ok
+    lend.ensemble.execute(
+        &market::HandleMsg::Transfer {
+            recipient: "MALLORY".into(),
+            amount: Uint256::from(1_000_000u128),
+        },
+        MockEnv::new(BORROWER, market2.contract.clone()),
+    ).unwrap();
 }

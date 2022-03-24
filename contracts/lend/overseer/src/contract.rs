@@ -1,5 +1,4 @@
 mod state;
-
 use std::borrow::Borrow;
 
 use lend_shared::{
@@ -518,9 +517,9 @@ fn calc_liquidity<S: Storage, A: Api, Q: Querier>(
 
     for market in markets {
         let is_target_asset = target_asset == market.contract.address;
+        let is_zero_ltv = market.ltv_ratio.is_zero();
 
         let snapshot = query_account(&deps.querier, market.contract, method.clone(), block)?;
-
         let price = query_price(
             &deps.querier,
             oracle.clone(),
@@ -531,20 +530,37 @@ fn calc_liquidity<S: Storage, A: Api, Q: Querier>(
 
         let conversion_factor = ((market.ltv_ratio * snapshot.exchange_rate)? * price.rate)?;
 
-        total_collateral = (Uint256::from(snapshot.sl_token_balance)
-            .decimal_mul(conversion_factor)?
-            + total_collateral)?;
-        total_borrowed =
-            (Uint256::from(snapshot.borrow_balance).decimal_mul(price.rate)? + total_borrowed)?;
+        // Precalculate, so we can check if the price is valid.
+        let redeem_amount_validated = redeem_amount.decimal_mul(conversion_factor)?;
+        let borrow_amount_validated = borrow_amount.decimal_mul(price.rate)?;
+        let sl_token_conversion = snapshot.sl_token_balance.decimal_mul(conversion_factor)?;
+        let borrow_conversion = snapshot.borrow_balance.decimal_mul(price.rate)?;
+
+        // This check is needed to check validity of price 
+        // in case `redeem_amount` and `borrow_amount` are both 0.
+        if !is_zero_ltv && !snapshot.sl_token_balance.is_zero() && sl_token_conversion.is_zero() {
+            return Err(StdError::generic_err("Invalid price reported by oracle"));
+        }
+        if !is_zero_ltv && !snapshot.borrow_balance.is_zero() && borrow_conversion.is_zero() {
+            return Err(StdError::generic_err("Invalid price reported by oracle"));
+        }
+
+        total_collateral = (sl_token_conversion + total_collateral)?;
+        total_borrowed = (borrow_conversion + total_borrowed)?;
 
         if is_target_asset {
-            total_borrowed = (redeem_amount.decimal_mul(conversion_factor)? + total_borrowed)?;
-            total_borrowed = (borrow_amount.decimal_mul(price.rate)? + total_borrowed)?;
-        }
-    }
+            if !is_zero_ltv {
+                if !redeem_amount.is_zero() && redeem_amount_validated.is_zero() {
+                    return Err(StdError::generic_err("Invalid price reported by oracle"));
+                }
 
-    if total_borrowed.is_zero() && total_collateral.is_zero() && !borrow_amount.is_zero() {
-        return Err(StdError::generic_err("Invalid price reported by oracle"))
+                if !borrow_amount.is_zero() && borrow_amount_validated.is_zero() {
+                    return Err(StdError::generic_err("Invalid price reported by oracle"));
+                }
+            }
+            total_borrowed = (redeem_amount_validated + total_borrowed)?;
+            total_borrowed = (borrow_amount_validated + total_borrowed)?;
+        }
     }
 
     if total_collateral > total_borrowed {
