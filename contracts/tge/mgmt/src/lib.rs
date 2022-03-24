@@ -1,6 +1,8 @@
 mod migration;
 mod state;
 
+pub use state::{Pagination, Claim};
+
 use fadroma::{
     admin,
     admin::assert_admin,
@@ -16,7 +18,7 @@ use fadroma::{
 use serde::{Deserialize, Serialize};
 
 use migration::MgmtKillswitch;
-use state::{Claim, Config, History, Pagination, Participant};
+use state::{Config, History, Participant};
 
 use sienna_schedule::{validate::Validation, vesting::Vesting, Account, Schedule, Seconds};
 
@@ -273,15 +275,15 @@ pub trait Mgmt {
 #[derive(Serialize, Deserialize, schemars::JsonSchema, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct ConfigResponse {
-    launched: Option<Seconds>,
-    token: ContractLink<HumanAddr>,
+    pub launched: Option<Seconds>,
+    pub token: ContractLink<HumanAddr>,
 }
 
 #[derive(Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct HistoryResponse {
-    entries: Vec<Claim<HumanAddr>>,
-    total: u64,
+    pub entries: Vec<Claim<HumanAddr>>,
+    pub total: u64,
 }
 
 #[derive(Serialize, Deserialize, schemars::JsonSchema)]

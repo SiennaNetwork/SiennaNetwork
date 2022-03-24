@@ -136,9 +136,9 @@ pub struct History;
 #[derive(Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct Claim<T> {
-    claimant: T,
-    amount: Uint128,
-    timestamp: u64
+    pub claimant: T,
+    pub amount: Uint128,
+    pub timestamp: u64
 }
 
 #[derive(Serialize, Deserialize, schemars::JsonSchema, Debug)]

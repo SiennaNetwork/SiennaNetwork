@@ -1865,6 +1865,7 @@ version = "0.1.0"
 dependencies = [
  "fadroma",
  "serde",
+ "serde_json",
  "sienna-mgmt",
  "sienna-rpt",
  "sienna-schedule",
