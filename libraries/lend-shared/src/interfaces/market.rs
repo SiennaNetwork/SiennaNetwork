@@ -156,11 +156,13 @@ pub struct Config {
 impl Config {
     pub fn set_reserve_factor(&mut self, new: Decimal256) -> StdResult<()> {
         Self::validate_reserve_factor(&new)?;
+
         self.reserve_factor = new;
+
         Ok(())
     }
 
-    pub fn validate_reserve_factor(reserve_factor: &Decimal256) -> StdResult<()> {
+    fn validate_reserve_factor(reserve_factor: &Decimal256) -> StdResult<()> {
         if *reserve_factor > Decimal256::one() {
             return Err(StdError::generic_err("Reserve factor must be lower than or equal to 1"));
         } else {
@@ -168,7 +170,7 @@ impl Config {
         }
     }
 
-    pub fn validate_initial_exchange_rate(rate: &Decimal256) -> StdResult<()> {
+    fn validate_initial_exchange_rate(rate: &Decimal256) -> StdResult<()> {
         if *rate == Decimal256::zero() {
             return Err(StdError::generic_err("Initial exchange rate must be greater than 0"));
         } else {
@@ -176,9 +178,9 @@ impl Config {
         }
     }
 
-    pub fn validate(config: &Self) -> StdResult<()> {
-        Config::validate_initial_exchange_rate(&config.initial_exchange_rate)?;
-        Config::validate_reserve_factor(&config.reserve_factor)?;
+    pub fn validate(&self) -> StdResult<()> {
+        Self::validate_initial_exchange_rate(&self.initial_exchange_rate)?;
+        Self::validate_reserve_factor(&self.reserve_factor)?;
 
         Ok(())
     }

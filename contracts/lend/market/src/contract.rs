@@ -73,7 +73,7 @@ pub trait Market {
             code_hash: env.contract_code_hash.clone(),
         };
 
-        Config::validate(&config)?;
+        config.validate()?;
         Constants::save_config(&mut deps.storage, &config)?;
         BorrowerId::set_prng_seed(&mut deps.storage, &prng_seed)?;
 
@@ -359,22 +359,24 @@ pub trait Market {
         borrow_cap: Option<Uint256>,
     ) -> StdResult<HandleResponse> {
         let mut config = Constants::load_config(&deps.storage)?;
+
+        let underlying_asset = Contracts::load_underlying(deps)?;
+        let balance = snip20::balance_query(
+            &deps.querier,
+            env.contract.address.clone(),
+            Constants::load_vk(&deps.storage)?,
+            BLOCK_SIZE,
+            underlying_asset.code_hash.clone(),
+            underlying_asset.address.clone(),
+        )?
+        .amount;
+        accrue_interest(deps, env.block.height, balance)?;
+
         if let Some(interest_model) = interest_model {
             Contracts::save_interest_model(deps, interest_model)?;
         }
 
         if let Some(reserve_factor) = reserve_factor {
-            let underlying_asset = Contracts::load_underlying(deps)?;
-            let balance = snip20::balance_query(
-                &deps.querier,
-                env.contract.address.clone(),
-                Constants::load_vk(&deps.storage)?,
-                BLOCK_SIZE,
-                underlying_asset.code_hash.clone(),
-                underlying_asset.address.clone(),
-            )?
-            .amount;
-            accrue_interest(deps, env.block.height, balance)?;
             config.set_reserve_factor(reserve_factor)?;
             Constants::save_config(&mut deps.storage, &config)?;
         }
