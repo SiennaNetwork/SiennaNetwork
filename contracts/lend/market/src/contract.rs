@@ -358,8 +358,6 @@ pub trait Market {
         reserve_factor: Option<Decimal256>,
         borrow_cap: Option<Uint256>,
     ) -> StdResult<HandleResponse> {
-        let mut config = Constants::load_config(&deps.storage)?;
-
         let underlying_asset = Contracts::load_underlying(deps)?;
         let balance = snip20::balance_query(
             &deps.querier,
@@ -377,6 +375,7 @@ pub trait Market {
         }
 
         if let Some(reserve_factor) = reserve_factor {
+            let mut config = Constants::load_config(&deps.storage)?;
             config.set_reserve_factor(reserve_factor)?;
             Constants::save_config(&mut deps.storage, &config)?;
         }
