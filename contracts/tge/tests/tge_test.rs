@@ -1,9 +1,9 @@
-use fadroma::{ensemble::MockEnv, ContractLink, HumanAddr, Uint128, CanonicalAddr};
+use fadroma::{ensemble::MockEnv, ContractLink, HumanAddr, Uint128};
 use sienna_mgmt::ConfigResponse;
 use sienna_rpt::LinearMap;
 use sienna_schedule::{Account, Schedule, Pool};
 
-use crate::setup::{ADMIN, TGE, DEFAULT_EPOCH_START};
+use crate::setup::{ADMIN, TGE, DEFAULT_EPOCH_START, AccountFactory};
 
 const USER_INVESTOR_MIKE: &str = "Mike";
 const USER_INVESTOR_JOHN: &str = "John";
@@ -170,24 +170,8 @@ fn should_not_schedule_for_invalid_pool_total() {
                 partial: false,
                 total: Uint128(20_000),
                 accounts: vec![
-                    Account {
-                        name: USER_INVESTOR_MIKE.to_string(),
-                        address: HumanAddr::from(USER_INVESTOR_MIKE),
-                        amount: Uint128(2_000),
-                        cliff: Uint128(0),
-                        duration: 1000,
-                        interval: 10,
-                        start_at: 0
-                    },
-                    Account {
-                        name: USER_INVESTOR_JOHN.to_string(),
-                        address: HumanAddr::from(USER_INVESTOR_JOHN),
-                        amount: Uint128(5_000),
-                        cliff: Uint128(0),
-                        duration: 1000,
-                        interval: 10,
-                        start_at: 0
-                    }
+                    Account::create(USER_INVESTOR_MIKE, 2_000, 1000, 10),
+                    Account::create(USER_INVESTOR_JOHN, 5_000, 1000, 10),
                 ]
             }
         ]
@@ -198,9 +182,31 @@ fn should_not_schedule_for_invalid_pool_total() {
     
 }
 
+#[test]
+fn should_not_lanuch_with_incorrect_prefund_balance() { // WIP
+    let mut tge = TGE::default();
+    let schedule = Schedule {
+        total: Uint128(25_000),
+        pools: vec![
+            Pool{
+                name: "Investors".to_string(),
+                partial: false,
+                total: Uint128(20_000),
+                accounts: vec![
+                    Account::create(USER_INVESTOR_MIKE, 2_000, 1000, 10),
+                    Account::create(USER_INVESTOR_JOHN, 5_000, 1000, 10),
+                ]
+            }
+        ]
+    };
+    tge.set_shedule(schedule).unwrap_err();
+    // tge.launch().unwrap_err(); 
+}
+
+
 
 #[test]
-fn should_set_schedule_snigle_pool() {
+fn should_set_schedule_single_pool() {
     let mut tge = TGE::default();
 
     let schedule = Schedule {
@@ -211,24 +217,8 @@ fn should_set_schedule_snigle_pool() {
                 partial: false,
                 total: Uint128(25_000),
                 accounts: vec![
-                    Account {
-                        name: USER_INVESTOR_MIKE.to_string(),
-                        address: HumanAddr::from(USER_INVESTOR_MIKE),
-                        amount: Uint128(20_000),
-                        cliff: Uint128(0),
-                        duration: 1000,
-                        interval: 10,
-                        start_at: 0
-                    },
-                    Account {
-                        name: USER_INVESTOR_JOHN.to_string(),
-                        address: HumanAddr::from(USER_INVESTOR_JOHN),
-                        amount: Uint128(5_000),
-                        cliff: Uint128(0),
-                        duration: 1000,
-                        interval: 10,
-                        start_at: 0
-                    }
+                    Account::create(USER_INVESTOR_MIKE, 20_000, 1000, 10),
+                    Account::create(USER_INVESTOR_JOHN, 5_000, 1000, 10),
                 ]
             }
         ]
@@ -252,24 +242,8 @@ fn should_not_set_schedule_overall_total() {
                 partial: false,
                 total: Uint128(25_000),
                 accounts: vec![
-                    Account {
-                        name: USER_INVESTOR_MIKE.to_string(),
-                        address: HumanAddr::from(USER_INVESTOR_MIKE),
-                        amount: Uint128(20_000),
-                        cliff: Uint128(0),
-                        duration: 1000,
-                        interval: 10,
-                        start_at: 0
-                    },
-                    Account {
-                        name: USER_INVESTOR_JOHN.to_string(),
-                        address: HumanAddr::from(USER_INVESTOR_JOHN),
-                        amount: Uint128(5_000),
-                        cliff: Uint128(0),
-                        duration: 1000,
-                        interval: 10,
-                        start_at: 0
-                    }
+                    Account::create(USER_INVESTOR_MIKE, 20_000, 1000, 10),
+                    Account::create(USER_INVESTOR_JOHN, 5_000, 1000, 10),
                 ]
             }, 
             Pool{
@@ -277,24 +251,8 @@ fn should_not_set_schedule_overall_total() {
                 partial: false,
                 total: Uint128(20_000),
                 accounts: vec![
-                    Account {
-                        name: USER_MP_RPT1.to_string(),
-                        address: HumanAddr::from(USER_MP_RPT1),
-                        amount: Uint128(11_000),
-                        cliff: Uint128(0),
-                        duration: 1000,
-                        interval: 10,
-                        start_at: 0
-                    },
-                    Account {
-                        name: USER_MP_RPT2.to_string(),
-                        address: HumanAddr::from(USER_MP_RPT2),
-                        amount: Uint128(9_000),
-                        cliff: Uint128(0),
-                        duration: 1000,
-                        interval: 10,
-                        start_at: 0
-                    }
+                    Account::create(USER_MP_RPT1, 11_000, 1000, 10),
+                    Account::create(USER_MP_RPT2, 9_000, 1000, 10), 
                 ]
             }, 
             
@@ -318,49 +276,17 @@ fn should_set_schedule_multiple_pools() {
                 partial: false,
                 total: Uint128(25_000),
                 accounts: vec![
-                    Account {
-                        name: USER_INVESTOR_MIKE.to_string(),
-                        address: HumanAddr::from(USER_INVESTOR_MIKE),
-                        amount: Uint128(20_000),
-                        cliff: Uint128(0),
-                        duration: 1000, 
-                        interval: 10,
-                        start_at: 0
-                    },
-                    Account {
-                        name: USER_INVESTOR_JOHN.to_string(),
-                        address: HumanAddr::from(USER_INVESTOR_JOHN),
-                        amount: Uint128(5_000),
-                        cliff: Uint128(0),
-                        duration: 1000,
-                        interval: 10,
-                        start_at: 0
-                    }
+                    Account::create(USER_INVESTOR_MIKE, 20_000, 1000, 10),
+                    Account::create(USER_INVESTOR_JOHN, 5_000, 1000, 10),
                 ]
             }, 
             Pool{
                 name: "Minting Pool".to_string(),
                 partial: false,
                 total: Uint128(20_000),
-                accounts: vec![
-                    Account {
-                        name: USER_MP_RPT1.to_string(),
-                        address: HumanAddr::from(USER_MP_RPT1),
-                        amount: Uint128(11_000),
-                        cliff: Uint128(0),
-                        duration: 1000,
-                        interval: 10,
-                        start_at: 0
-                    }, 
-                    Account {
-                        name: USER_MP_RPT2.to_string(),
-                        address: HumanAddr::from(USER_MP_RPT2),
-                        amount: Uint128(9_000),
-                        cliff: Uint128(0),
-                        duration: 1000,
-                        interval: 10,
-                        start_at: 0
-                    }
+                accounts: vec![ 
+                    Account::create(USER_MP_RPT1, 11_000, 1000, 10),
+                    Account::create(USER_MP_RPT2, 9_000, 1000, 10),
                 ]
             }, 
             
@@ -385,24 +311,8 @@ fn should_not_claim_before_launch() {
                 partial: false,
                 total: Uint128(25_000),
                 accounts: vec![
-                    Account {
-                        name: USER_INVESTOR_MIKE.to_string(),
-                        address: HumanAddr::from(USER_INVESTOR_MIKE),
-                        amount: Uint128(20_000),
-                        cliff: Uint128(0),
-                        duration: 1000,
-                        interval: 10,
-                        start_at: 0
-                    },
-                    Account {
-                        name: USER_INVESTOR_JOHN.to_string(),
-                        address: HumanAddr::from(USER_INVESTOR_JOHN),
-                        amount: Uint128(5_000),
-                        cliff: Uint128(0),
-                        duration: 1000,
-                        interval: 10,
-                        start_at: 0
-                    }
+                    Account::create(USER_INVESTOR_MIKE, 20_000, 1000, 10),
+                    Account::create(USER_INVESTOR_JOHN, 5_000, 1000, 10),
                 ]
             }
         ]
@@ -412,13 +322,15 @@ fn should_not_claim_before_launch() {
     assert_eq!(tge.query_schedule().total.u128(), 25_000);
 
     tge.claim_for(USER_INVESTOR_MIKE, 5).unwrap_err();
-    tge.launch();
+    tge.launch().unwrap();
     
 }
 
 #[test]
 fn should_support_different_schedule_intervals() {
     let mut tge = TGE::default();
+    let mike = Account::create(USER_INVESTOR_MIKE, 800_000_000_000_000_000_000, 2000, 10);
+    let john = Account::create(USER_INVESTOR_JOHN, 200_000_000_000_000_000_000, 1000, 12);
 
     let schedule = Schedule {
         total: Uint128(1_500_000_000_000_000_000_000),
@@ -428,28 +340,11 @@ fn should_support_different_schedule_intervals() {
                 partial: false,
                 total: Uint128(1_000_000_000_000_000_000_000),
                 accounts: vec![
-                    Account {
-                        name: USER_INVESTOR_MIKE.to_string(),
-                        address: HumanAddr::from(USER_INVESTOR_MIKE),
-
-                        // total amount will be distributed to the user during the 'duration' period
-                        // on equidistant intervals.
-                        // In this case, 800 split on (2000/10) = 200 intervals, 4 tokens per each
-                        amount: Uint128(800_000_000_000_000_000_000),
-                        cliff: Uint128(0),
-                        duration: 2000,
-                        interval: 10,
-                        start_at: 0
-                    },
-                    Account {
-                        name: USER_INVESTOR_JOHN.to_string(),
-                        address: HumanAddr::from(USER_INVESTOR_JOHN),
-                        amount: Uint128(200_000_000_000_000_000_000),
-                        cliff: Uint128(0),
-                        duration: 1000,
-                        interval: 12,
-                        start_at: 0
-                    }
+                    // total amount will be distributed to the user during the 'duration' period
+                    // on equidistant intervals.
+                    // In this case, 800 split on (2000/10) = 200 intervals, 4 tokens per each
+                    mike.clone(),
+                    john.clone(),
                 ]
             }, 
             Pool{
@@ -457,29 +352,18 @@ fn should_support_different_schedule_intervals() {
                 partial: false,
                 total: Uint128(500_000_000_000_000_000_000),
                 accounts: vec![
-                    Account {
-                        name: USER_MP_RPT1.to_string(),
-                        address: HumanAddr::from(USER_MP_RPT1),
-                        amount: Uint128(500_000_000_000_000_000_000),
-                        cliff: Uint128(0),
-                        duration: 1000,
-                        interval: 12,
-                        start_at: 0
-                    },
+                    Account::create(USER_MP_RPT1, 500_000_000_000_000_000_000, 1000, 12),
                 ]
             }, 
             
         ]
     };
 
-    let john = &schedule.pools[0].accounts[1].clone();
-    let mike = &schedule.pools[0].accounts[0].clone();
-
     tge.set_shedule(schedule).unwrap();
 
     assert_eq!(tge.query_schedule().total.u128(), 1_500_000_000_000_000_000_000);
 
-    tge.launch();
+    tge.launch().unwrap();
     
     // Mike's interval = 10
     // John's interval = 12

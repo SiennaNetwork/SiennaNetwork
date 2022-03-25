@@ -247,11 +247,11 @@ impl TGE {
             self.get_mgmt_env_as_admin()
         )
     }
-    pub fn launch(&mut self)  {
+    pub fn launch(&mut self) -> StdResult<()>  {
         self.ensemble.execute(
             &sienna_mgmt::HandleMsg::Launch {}, 
             self.get_mgmt_env_as_admin().time(DEFAULT_EPOCH_START)
-        ).unwrap();
+        )
     }
 
 
@@ -267,5 +267,27 @@ impl TGE {
 impl Default for TGE {
     fn default() -> Self {
         TGE::new()
+    }
+}
+
+pub trait AccountFactory {
+    fn create(name: &str, amount: u128, duration: u64, interval: u64) -> Account<HumanAddr>;
+    fn create_ext(name: String, address: &str, amount: u128, cliff: u128, duration: u64, interval: u64, start_at: u64) -> Account<HumanAddr>;
+}
+
+impl AccountFactory for Account<HumanAddr> {
+    fn create(name: &str, amount: u128, duration: u64, interval: u64) -> Account<HumanAddr>{
+        Self::create_ext(name.to_string(), name, amount, 0, duration, interval, 0)
+    }
+    fn create_ext(name: String, address: &str, amount: u128, cliff: u128, duration: u64, interval: u64, start_at: u64) -> Account<HumanAddr>{
+        Account {
+            name,
+            address: HumanAddr::from(address),
+            amount: Uint128(amount),
+            cliff: Uint128(cliff),
+            duration,
+            interval,
+            start_at
+        }
     }
 }
