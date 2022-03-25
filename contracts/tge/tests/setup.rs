@@ -247,13 +247,19 @@ impl TGE {
             self.get_mgmt_env_as_admin()
         )
     }
+    pub fn launch(&mut self)  {
+        self.ensemble.execute(
+            &sienna_mgmt::HandleMsg::Launch {}, 
+            self.get_mgmt_env_as_admin().time(DEFAULT_EPOCH_START)
+        ).unwrap();
+    }
 
 
-    pub fn claim_for(&mut self, user_name: &str, seconds_after: u64) {
+    pub fn claim_for(&mut self, user_name: &str, seconds_after: u64) -> StdResult<()> {
         self.ensemble.execute(
             &sienna_mgmt::HandleMsg::Claim {}, 
             self.get_mgmt_env(user_name).time(DEFAULT_EPOCH_START + seconds_after)
-        ).unwrap();
+        )
     }
 
 }
