@@ -119,7 +119,7 @@ fn borrow() {
 
     assert_eq!(utilization_rate, Decimal256::percent(10));
 
-    let info: Vec<market::Borrower> = lend
+    let info: market::BorrowersResponse = lend
         .ensemble
         .query(
             market_one.address.clone(),
@@ -133,9 +133,10 @@ fn borrow() {
         )
         .unwrap();
 
-    assert_eq!(info.len(), 1);
+    assert_eq!(info.total, 1);
+    assert_eq!(info.entries.len(), 1);
 
-    let chester = info.first().unwrap();
+    let chester = info.entries.first().unwrap();
 
     assert_eq!(chester.liquidity.liquidity, Uint256::zero());
     assert_eq!(chester.liquidity.shortfall, Uint256::zero());
@@ -348,7 +349,7 @@ fn do_repay(self_repay: bool) {
         (prefund_amount.0 * 2).into()
     );
 
-    let info: Vec<market::Borrower> = lend
+    let info: market::BorrowersResponse = lend
         .ensemble
         .query(
             market_one.address.clone(),
@@ -363,5 +364,6 @@ fn do_repay(self_repay: bool) {
         .unwrap();
 
     // Borrows repaid in full are removed from storage.
-    assert_eq!(info.len(), 0);
+    assert_eq!(info.total, 0);
+    assert_eq!(info.entries.len(), 0);
 }

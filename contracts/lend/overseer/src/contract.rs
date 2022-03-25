@@ -23,7 +23,7 @@ use lend_shared::{
         },
         overseer::{
             AccountLiquidity, Config, HandleMsg, Market, MarketInitConfig, OverseerAuth,
-            OverseerPermissions,
+            OverseerPermissions, MarketsResponse
         },
     },
 };
@@ -464,8 +464,13 @@ pub trait Overseer {
     }
 
     #[query]
-    fn markets(pagination: Pagination) -> StdResult<Vec<Market<HumanAddr>>> {
-        Markets::list(deps, pagination)
+    fn markets(pagination: Pagination) -> StdResult<MarketsResponse> {
+        let (total, markets) = Markets::list(deps, pagination)?;
+
+        Ok(MarketsResponse {
+            total,
+            entries: markets
+        })
     }
 
     #[query]

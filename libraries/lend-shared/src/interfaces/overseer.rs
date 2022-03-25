@@ -62,7 +62,7 @@ pub trait Overseer {
     ) -> StdResult<HandleResponse>;
 
     #[query]
-    fn markets(pagination: Pagination) -> StdResult<Vec<Market<HumanAddr>>>;
+    fn markets(pagination: Pagination) -> StdResult<MarketsResponse>;
 
     #[query]
     fn market(address: HumanAddr) -> StdResult<Market<HumanAddr>>;
@@ -128,6 +128,14 @@ pub struct Config {
     /// If a user has multiple borrowed assets, the close factor applies to any single borrowed asset,
     /// not the aggregated value of a user’s outstanding borrowing.
     close_factor: Decimal256
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct MarketsResponse {
+    pub entries: Vec<Market<HumanAddr>>,
+    /// The total number of entries stored by the contract.
+    pub total: u64
 }
 
 #[derive(Serialize, Deserialize, schemars::JsonSchema, Debug)]

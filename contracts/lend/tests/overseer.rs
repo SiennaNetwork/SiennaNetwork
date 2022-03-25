@@ -79,7 +79,7 @@ fn whitelist() {
     lend.whitelist_market(underlying_2.clone(), Decimal256::percent(90), None, None)
         .unwrap();
 
-    let res: Vec<Market<HumanAddr>> = lend
+    let res: MarketsResponse = lend
         .ensemble
         .query(
             lend.overseer.address,
@@ -92,7 +92,8 @@ fn whitelist() {
         )
         .unwrap();
 
-    assert_eq!(res.len(), 2)
+    assert_eq!(res.total, 2);
+    assert_eq!(res.entries.len(), 2)
 }
 
 #[test]

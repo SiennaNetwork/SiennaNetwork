@@ -27,7 +27,7 @@ use lend_shared::{
         interest_model::{query_borrow_rate, query_supply_rate},
         market::{
             AccountInfo, Borrower, Config, HandleMsg, MarketAuth, MarketPermissions,
-            ReceiverCallbackMsg, State,
+            ReceiverCallbackMsg, State, BorrowersResponse
         },
         overseer::{
             query_account_liquidity, query_can_transfer, query_entered_markets, query_market,
@@ -650,8 +650,8 @@ pub trait Market {
     }
 
     #[query]
-    fn borrowers(block: u64, pagination: Pagination) -> StdResult<Vec<Borrower>> {
-        let borrowers = load_borrowers(deps, pagination)?;
+    fn borrowers(block: u64, pagination: Pagination) -> StdResult<BorrowersResponse> {
+        let (total, borrowers) = load_borrowers(deps, pagination)?;
         let mut result = Vec::with_capacity(borrowers.len());
 
         let overseer = Contracts::load_overseer(deps)?;
@@ -694,7 +694,10 @@ pub trait Market {
             });
         }
 
-        Ok(result)
+        Ok(BorrowersResponse {
+            total,
+            entries: result
+        })
     }
 }
 

@@ -110,7 +110,7 @@ pub trait Market {
     fn borrowers(
         block: u64,
         pagination: Pagination
-    ) -> StdResult<Vec<Borrower>>;
+    ) -> StdResult<BorrowersResponse>;
 }
 
 pub type MarketAuth = AuthMethod<MarketPermissions>;
@@ -184,6 +184,14 @@ impl Config {
 
         Ok(())
     }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct BorrowersResponse {
+    pub entries: Vec<Borrower>,
+    /// The total number of entries stored by the contract.
+    pub total: u64
 }
 
 #[derive(Serialize, Deserialize, Debug)]

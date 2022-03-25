@@ -189,7 +189,7 @@ impl Markets {
     pub fn list<S: Storage, A: Api, Q: Querier>(
         deps: &Extern<S, A, Q>,
         pagination: Pagination
-    ) -> StdResult<Vec<Market<HumanAddr>>> {
+    ) -> StdResult<(u64, Vec<Market<HumanAddr>>)> {
         let limit = pagination.limit.min(PAGINATION_LIMIT);
 
         let storage = IterableStorage::new(Self::NS);
@@ -205,7 +205,7 @@ impl Markets {
             result.push(elem.humanize(&deps.api)?);
         }
 
-        Ok(result)
+        Ok((storage.len(&deps.storage)? ,result))
     }
 
     #[inline]

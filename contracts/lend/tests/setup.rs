@@ -254,7 +254,7 @@ impl Lend {
     }
 
     pub fn get_markets(&self) -> StdResult<Vec<overseer::Market<HumanAddr>>> {
-        self.ensemble.query(
+        let markets: overseer::MarketsResponse = self.ensemble.query(
             self.overseer.address.clone(),
             overseer::QueryMsg::Markets {
                 pagination: Pagination {
@@ -262,7 +262,10 @@ impl Lend {
                     limit: 30,
                 }
             },
-        )
+        )?;
+        assert_eq!(markets.entries.len(), markets.total as usize);
+
+        Ok(markets.entries)
     }
 
     pub fn whitelist_market(
