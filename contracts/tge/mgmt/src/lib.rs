@@ -166,7 +166,7 @@ pub trait Mgmt {
                 token.address,
             )?
             .amount;
-
+            
             if balance < schedule.total {
                 return Err(StdError::generic_err(MGMTError!(
                     PREFUND,

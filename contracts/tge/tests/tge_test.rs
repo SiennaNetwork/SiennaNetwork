@@ -3,7 +3,7 @@ use sienna_mgmt::ConfigResponse;
 use sienna_rpt::LinearMap;
 use sienna_schedule::{Account, Schedule, Pool};
 
-use crate::setup::{ADMIN, TGE, DEFAULT_EPOCH_START, AccountFactory};
+use crate::setup::{ADMIN, TGE, AccountFactory, MGMT, MGMT_ADDR};
 
 const USER_INVESTOR_MIKE: &str = "Mike";
 const USER_INVESTOR_JOHN: &str = "John";
@@ -184,23 +184,26 @@ fn should_not_schedule_for_invalid_pool_total() {
 
 #[test]
 fn should_not_lanuch_with_incorrect_prefund_balance() { // WIP
-    let mut tge = TGE::default();
+    let mut tge = TGE::new(true);
+    
     let schedule = Schedule {
-        total: Uint128(25_000),
+        total: Uint128(1_001_000_000_000_000_000_000),
         pools: vec![
             Pool{
                 name: "Investors".to_string(),
                 partial: false,
-                total: Uint128(20_000),
+                total: Uint128(1_001_000_000_000_000_000_000),
                 accounts: vec![
-                    Account::create(USER_INVESTOR_MIKE, 2_000, 1000, 10),
-                    Account::create(USER_INVESTOR_JOHN, 5_000, 1000, 10),
+                    Account::create(USER_INVESTOR_MIKE, 1_000_000_000_000_000_000_000, 1000, 10),
+                    Account::create(USER_INVESTOR_JOHN,     1_000_000_000_000_000_000, 1000, 10),
                 ]
             }
         ]
     };
-    tge.set_shedule(schedule).unwrap_err();
-    // tge.launch().unwrap_err(); 
+    tge.set_shedule(schedule).unwrap();
+    let balance = tge.query_balance(MGMT_ADDR);
+    println!("MGMT balance {:}", balance);
+    tge.launch().unwrap_err(); 
 }
 
 

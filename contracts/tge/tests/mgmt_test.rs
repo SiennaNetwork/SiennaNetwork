@@ -10,7 +10,7 @@ use crate::setup::{TGE, ADMIN};
 
 #[test]
 fn init() {
-    let tge = TGE::new();
+    let tge = TGE::new(false);
 
     let admin: HumanAddr = tge.ensemble.query(
         tge.mgmt.address.clone(),
@@ -38,7 +38,7 @@ fn init() {
 
 #[test]
 fn configure() {
-    let mut tge = TGE::new();
+    let mut tge = TGE::new(false);
 
     let original = sienna_schedule::Schedule::new(&[Pool::full("original", &[])]);
     tge.ensemble.execute(
@@ -83,7 +83,7 @@ fn configure() {
 
 #[test]
 fn launch() {
-    let mut tge = TGE::new();
+    let mut tge = TGE::new(false);
 
     let launch_time = 1000;
 
@@ -125,7 +125,7 @@ fn launch() {
 
 #[test]
 fn claim() {
-    let mut tge = TGE::new();
+    let mut tge = TGE::new(false);
 
     let claimant = "claimant";
     let launch_time = 1000;
@@ -196,7 +196,7 @@ fn claim() {
 
 #[test]
 fn prod_schedule_simulation() {
-    let mut tge = TGE::new();
+    let mut tge = TGE::new(false);
 
     let launch_time = 2;
 

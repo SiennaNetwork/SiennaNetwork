@@ -1,8 +1,8 @@
 use crate::impl_contract_harness_default;
 use fadroma::ensemble::{ContractEnsemble, ContractHarness, MockDeps, MockEnv};
-use fadroma::snip20_impl::msg::InitConfig;
+use fadroma::snip20_impl::msg::{InitConfig, InitialBalance};
 use fadroma::snip20_impl::msg::{
-    QueryAnswer, QueryMsg as Snip20QueryMsg, QueryPermission as Snip20Permission, QueryWithPermit,
+    QueryAnswer, QueryMsg as Snip20QueryMsg, QueryPermission as Snip20Permission, QueryWithPermit, HandleMsg as Snip20HandleMsg
 };
 use fadroma::{
     from_binary, snip20_impl, snip20_impl::msg::InitMsg as Snip20InitMsg, Binary, ContractLink,
@@ -15,6 +15,10 @@ use sienna_schedule::{Account, Pool, Schedule};
 
 
 pub const DEFAULT_EPOCH_START: u64 = 1571797419;
+const REWARD_TOKEN_ADDR: &str = "REWARD";
+pub const ADMIN: &str = "admin";
+pub const MGMT_ADDR: &str = "MGMT_CONTRACT";
+pub const RPT_ADDR: &str = "RPT_CONTRACT";
 
 pub struct MGMT;
 impl_contract_harness_default!(MGMT, sienna_mgmt);
@@ -54,27 +58,31 @@ pub struct TGE {
     pub token: ContractLink<HumanAddr>,
 }
 
-pub const ADMIN: &str = "admin";
 
 impl TGE {
-    pub fn new() -> Self {
+    pub fn new(prefund: bool) -> Self {
         let mut ensemble = ContractEnsemble::new(50);
-
         let mgmt_model = ensemble.register(Box::new(MGMT));
         let rpt_model = ensemble.register(Box::new(RPT));
         let token = ensemble.register(Box::new(Token));
-
         let schedule = Schedule::new(&[Pool::partial("TEST", 25, &[])]);
 
+        
         let token = ensemble
             .instantiate(
                 token.id,
                 &Snip20InitMsg {
-                    name: "REWARD".into(),
-                    admin: Some("MGMT_CONTRACT".into()),
+                    name: REWARD_TOKEN_ADDR.into(),
+                    admin: Some(MGMT_ADDR.into()),
                     symbol: "TKN".into(),
                     decimals: 18,
-                    initial_balances: None,
+                    initial_balances: match prefund {
+                        true => Some(vec![InitialBalance {
+                                    address: MGMT_ADDR.into(),
+                                    amount:  Uint128(1_000_000_000_000_000_000_000),
+                                }]),
+                        false => None
+                    },
                     initial_allowances: None,
                     prng_seed: Binary::from(b"whatever"),
                     config: Some(
@@ -88,7 +96,7 @@ impl TGE {
                 MockEnv::new(
                     ADMIN,
                     ContractLink {
-                        address: "REWARD".into(),
+                        address: REWARD_TOKEN_ADDR.into(),
                         code_hash: token.code_hash.clone(),
                     },
                 ).time(DEFAULT_EPOCH_START),
@@ -97,13 +105,13 @@ impl TGE {
         ensemble
             .execute(
                 &snip20_sienna::msg::HandleMsg::AddMinters {
-                    minters: vec!["admin".into(), "MGMT_CONTRACT".into()],
+                    minters: vec![ADMIN.into(), MGMT_ADDR.into()],
                     padding: None,
                 },
                 MockEnv::new(
-                    "MGMT_CONTRACT",
+                    MGMT_ADDR,
                     ContractLink {
-                        address: "REWARD".into(),
+                        address: REWARD_TOKEN_ADDR.into(),
                         code_hash: token.code_hash.clone(),
                     },
                 ),
@@ -115,14 +123,14 @@ impl TGE {
                 mgmt_model.id,
                 &sienna_mgmt::InitMsg {
                     admin: Some(ADMIN.into()),
-                    prefund: false,
+                    prefund,
                     schedule,
                     token: token.clone(),
                 },
                 MockEnv::new(
                     ADMIN,
                     ContractLink {
-                        address: "MGMT_CONTRACT".into(),
+                        address: MGMT_ADDR.into(),
                         code_hash: mgmt_model.code_hash.clone(),
                     },
                 ),
@@ -142,7 +150,7 @@ impl TGE {
                     mgmt: mgmt.clone(),
                     distribution,
                     token: ContractLink {
-                        address: "REWARD".into(),
+                        address: REWARD_TOKEN_ADDR.into(),
                         code_hash: token.code_hash.clone(),
                     },
                     portion: Uint128(25),
@@ -150,7 +158,7 @@ impl TGE {
                 MockEnv::new(
                     ADMIN,
                     ContractLink {
-                        address: "RPT_CONTRACT".into(),
+                        address: RPT_ADDR.into(),
                         code_hash: rpt_model.code_hash,
                     },
                 ),
@@ -169,7 +177,7 @@ impl TGE {
         MockEnv::new(
             sender.clone(),
             ContractLink {
-                address: "RPT_CONTRACT".into(),
+                address: RPT_ADDR.into(),
                 code_hash: self.rpt.code_hash.clone(),
             }
         )
@@ -179,7 +187,7 @@ impl TGE {
         MockEnv::new(
             sender.clone(),
             ContractLink {
-                address: "MGMT_CONTRACT".into(),
+                address: MGMT_ADDR.into(),
                 code_hash: self.mgmt.code_hash.clone(),
             }
         )
@@ -189,7 +197,7 @@ impl TGE {
         MockEnv::new(
             ADMIN,
             ContractLink {
-                address: "MGMT_CONTRACT".into(),
+                address: MGMT_ADDR.into(),
                 code_hash: self.mgmt.code_hash.clone(),
             }
         )
@@ -266,7 +274,7 @@ impl TGE {
 
 impl Default for TGE {
     fn default() -> Self {
-        TGE::new()
+        TGE::new(false)
     }
 }
 
