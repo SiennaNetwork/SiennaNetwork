@@ -1,15 +1,11 @@
-import { randomHex, Scrt_1_2, Agent } from "@hackbg/fadroma"
+import { Client, Agent, randomHex } from "@hackbg/fadroma"
 import { workspace } from '@sienna/settings'
 
 // @ts-ignore
 const decoder = new TextDecoder();
 const decode = (buffer: any) => decoder.decode(buffer).trim();
 
-export class LaunchpadContract extends Scrt_1_2.Contract<any> {
-
-  name   = 'SiennaAMMLaunchpad'
-
-  source = { workspace, crate: 'launchpad' }
+export class LaunchpadClient extends Client {
 
   /**
    * This action will remove the token from the contract
@@ -20,7 +16,7 @@ export class LaunchpadContract extends Scrt_1_2.Contract<any> {
    * @returns
    */
   async adminRemoveToken(index: number, agent?: Agent) {
-    return this.tx.admin_remove_token({ index }, agent);
+    return this.execute({admin_remove_token: { index }});
   }
 
   /**

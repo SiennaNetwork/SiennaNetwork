@@ -227,9 +227,9 @@ importers:
   deps/fadroma:
     specifiers:
       '@fadroma/cli': workspace:*
+      '@fadroma/mocknet': workspace:*
       '@fadroma/ops': workspace:*
       '@fadroma/scrt': workspace:*
-      '@fadroma/scrt-1.0': workspace:*
       '@fadroma/scrt-1.2': workspace:*
       '@fadroma/snip20': workspace:*
       '@hackbg/ganesha': ^1
@@ -240,9 +240,9 @@ importers:
       typescript: ^4.5.4
     dependencies:
       '@fadroma/cli': link:packages/cli
+      '@fadroma/mocknet': link:packages/mocknet
       '@fadroma/ops': link:packages/ops
       '@fadroma/scrt': link:packages/scrt
-      '@fadroma/scrt-1.0': link:packages/scrt-1.0
       '@fadroma/scrt-1.2': link:packages/scrt-1.2
       '@fadroma/snip20': link:crates/fadroma-snip20-impl
       '@hackbg/komandi': 2.0.0
@@ -255,14 +255,10 @@ importers:
 
   deps/fadroma/crates/fadroma-snip20-impl:
     specifiers:
-      '@fadroma/scrt': workspace:*
-      '@fadroma/scrt-1.0': workspace:*
-      '@fadroma/scrt-1.2': workspace:*
+      '@fadroma/ops': workspace:*
       '@hackbg/tools': ^1
     dependencies:
-      '@fadroma/scrt': link:../../packages/scrt
-      '@fadroma/scrt-1.0': link:../../packages/scrt-1.0
-      '@fadroma/scrt-1.2': link:../../packages/scrt-1.2
+      '@fadroma/ops': link:../../packages/ops
       '@hackbg/tools': 1.0.0
 
   deps/fadroma/doc/example:
@@ -270,23 +266,38 @@ importers:
 
   deps/fadroma/packages/cli:
     specifiers:
+      '@fadroma/mocknet': workspace:*
       '@fadroma/ops': workspace:*
       '@fadroma/scrt': workspace:*
+      '@fadroma/scrt-1.2': workspace:*
       '@fadroma/snip20': workspace:*
       '@hackbg/ganesha': ^1
       '@hackbg/komandi': ^2
       cross-spawn: ^7.0.3
       mkdirp: ^1.0.4
       prompts: ^2.4.1
+      typescript: ^4.4.4
     dependencies:
+      '@fadroma/mocknet': link:../mocknet
       '@fadroma/ops': link:../ops
       '@fadroma/scrt': link:../scrt
+      '@fadroma/scrt-1.2': link:../scrt-1.2
       '@fadroma/snip20': link:../../crates/fadroma-snip20-impl
       '@hackbg/ganesha': 1.0.0
       '@hackbg/komandi': 2.0.0
       cross-spawn: 7.0.3
       mkdirp: 1.0.4
       prompts: 2.4.2
+    devDependencies:
+      typescript: 4.6.3
+
+  deps/fadroma/packages/mocknet:
+    specifiers:
+      '@fadroma/ops': workspace:*
+      wasm-ffi: ^0.3.0
+    dependencies:
+      '@fadroma/ops': link:../ops
+      wasm-ffi: 0.3.0
 
   deps/fadroma/packages/ops:
     specifiers:
@@ -297,11 +308,12 @@ importers:
       align-yaml: ^0.1.8
       dotenv: ^15
       exponential-backoff: ^3.1
+      freeport-async: ^2.0.0
       js-yaml: ^4.1.0
       json-schema-to-typescript: ^10.1.4
       limiter: ^2.1.0
+      line-transform-stream: ^0.1.0
       toml: ^3
-      wasm-ffi: ^0.3.0
     dependencies:
       '@hackbg/tools': 1.0.0
       '@iov/crypto': 2.5.0
@@ -310,11 +322,12 @@ importers:
       align-yaml: 0.1.8
       dotenv: 15.0.1
       exponential-backoff: 3.1.0
+      freeport-async: 2.0.0
       js-yaml: 4.1.0
       json-schema-to-typescript: 10.1.5
       limiter: 2.1.0
+      line-transform-stream: 0.1.0
       toml: 3.0.0
-      wasm-ffi: 0.3.0
 
   deps/fadroma/packages/scrt:
     specifiers:
@@ -330,25 +343,18 @@ importers:
       pako: 1.0.11
       secretjs: 0.17.5
 
-  deps/fadroma/packages/scrt-1.0:
-    specifiers:
-      '@fadroma/scrt': workspace:*
-      '@hackbg/tools': ^1
-      secretjs: 0.16.5
-    dependencies:
-      '@fadroma/scrt': link:../scrt
-      '@hackbg/tools': 1.0.0
-      secretjs: 0.16.5
-
   deps/fadroma/packages/scrt-1.2:
     specifiers:
       '@fadroma/scrt': workspace:*
       '@hackbg/tools': ^1
+      axios: ^0.26.0
       secretjs: 0.17.5
     dependencies:
       '@fadroma/scrt': link:../scrt
       '@hackbg/tools': 1.0.0
       secretjs: 0.17.5
+    optionalDependencies:
+      axios: 0.26.1
 
   deps/fadroma/test:
     specifiers:
@@ -6251,7 +6257,7 @@ packages:
     resolution: {integrity: sha512-ANA4rr2BDcmmAQLOKft2fufrtuvlqR+cXNNinUmvfeSNCOF98PZL+7M/v1zIdGo7OLjEA9J2gXJL+j4zGsl0bA==}
     deprecated: Critical security vulnerability fixed in v0.21.1. For more information, see https://github.com/axios/axios/pull/3410
     dependencies:
-      follow-redirects: 1.14.7_debug@4.3.3
+      follow-redirects: 1.14.9
     transitivePeerDependencies:
       - debug
     dev: true
@@ -6287,6 +6293,16 @@ packages:
     transitivePeerDependencies:
       - debug
     dev: false
+
+  /axios/0.26.1:
+    resolution: {integrity: sha512-fPwcX4EvnSHuInCMItEhAGnaSEXRBjtzh9fOtsE6E1G6p7vl7edEeZe11QHf18+6+9gR5PbKV/sGKNaD8YaMeA==}
+    requiresBuild: true
+    dependencies:
+      follow-redirects: 1.14.9
+    transitivePeerDependencies:
+      - debug
+    dev: false
+    optional: true
 
   /axobject-query/2.2.0:
     resolution: {integrity: sha512-Td525n+iPOOyUQIeBfcASuG6uJsDOITl7Mds5gFyerkWiX7qhUTdYUBlSgNMyVqtSJqwpt1kXGLdUt6SykLMRA==}
@@ -11711,6 +11727,16 @@ packages:
     dependencies:
       debug: 4.3.3_supports-color@6.1.0
 
+  /follow-redirects/1.14.9:
+    resolution: {integrity: sha512-MQDfihBQYMcyy5dhRDJUHcw7lb2Pv/TuE6xP1vyraLukNDHKbDxDNaOE3NbCAdKQApno+GPRyo1YAp89yCjK4w==}
+    engines: {node: '>=4.0'}
+    peerDependencies:
+      debug: '*'
+    peerDependenciesMeta:
+      debug:
+        optional: true
+    optional: true
+
   /for-each/0.3.3:
     resolution: {integrity: sha512-jqYfLp7mo9vIyQf8ykW2v7A+2N4QjeCeI5+Dz9XraiO1ign81wjiH7Fb9vSOWvQfNtmSa4H2RoQTrrXivdUZmw==}
     dependencies:
@@ -15897,6 +15923,10 @@ packages:
     resolution: {integrity: sha512-361TYz6iay6n+9KvUUImqdLuFigK+K79qrUtBsXhJTLdH4rIt/r1y8r1iozwh8KbZNpujbFTSh74mJ7bwbAMOw==}
     dependencies:
       just-performance: 4.3.0
+    dev: false
+
+  /line-transform-stream/0.1.0:
+    resolution: {integrity: sha1-Hvhnmsy/cbBkREwroTsheFs+vXg=}
     dev: false
 
   /lines-and-columns/1.2.4:
@@ -21163,23 +21193,6 @@ packages:
       elliptic: 6.5.4
       node-addon-api: 2.0.2
       node-gyp-build: 4.3.0
-
-  /secretjs/0.16.5:
-    resolution: {integrity: sha512-w3K4+bFxgy1NJ0o2PDeEtdUsGJ2XYEi3KhLG1o05/LCNGL4Uh+2MOBnR/fyQWNGDA03vw/UrMb6Cs4hXciiBJw==}
-    dependencies:
-      '@iov/crypto': 2.1.0
-      '@iov/encoding': 2.1.0
-      '@iov/utils': 2.0.2
-      axios: 0.21.1
-      curve25519-js: 0.0.4
-      fast-deep-equal: 3.1.1
-      js-crypto-hkdf: 0.7.3
-      miscreant: 0.3.2
-      pako: 1.0.11
-      secure-random: 1.1.2
-    transitivePeerDependencies:
-      - debug
-    dev: false
 
   /secretjs/0.17.0-beta.4:
     resolution: {integrity: sha512-sMWIAE9rdOn9Gd4eNjf5pwt3BW+8Kg/EJfYAcidluEwBfhtpxibQbbtaQXcLYi4VTXIxX+OpfV4KAy4+VUQpEw==}
