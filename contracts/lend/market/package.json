@@ -1,7 +1,7 @@
 {
   "name":    "@sienna/lend-market",
   "version": "0.0.1",
-  "main":    "./LendMarketContract.ts",
+  "main":    "./LendMarket.ts",
   "type":    "module",
   "dependencies": {
     "@hackbg/fadroma": "workspace:../../../deps/fadroma"

@@ -1,8 +1,7 @@
 {
   "name": "@sienna/snip20-sienna",
   "version": "1.0.0",
-  "main":    "./SiennaSnip20Contract.ts",
-  "browser": "./SiennaSnip20Client.ts",
+  "main": "./SiennaSnip20Client.ts",
   "type": "module",
   "dependencies": {
     "@hackbg/fadroma":  "workspace:../../../deps/fadroma",
