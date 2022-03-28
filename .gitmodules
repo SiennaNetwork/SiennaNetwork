@@ -14,9 +14,6 @@
 
 # Read-write private deps
 
-[submodule "frontends/amm-types"]
-  path   = frontends/amm-types
-  url    = git@git.sienna.network:siennanetwork/amm-types.git
 [submodule "frontends/claim"]
   path   = frontends/claim
   url    = git@git.sienna.network:siennanetwork/claim.git
