@@ -1,3 +1,5 @@
+export * from '@fadroma/snip20'
+
 export * from '@sienna/snip20-sienna'
 export * from '@sienna/mgmt'
 export * from '@sienna/rpt'

@@ -6,24 +6,16 @@
   "workspace": true,
 
   "packages": [
-    "./deps/*",
-
-    "./scripts",
-    "./settings",
-    "./receipts",
-
-    "./contracts/tge",
-    "./contracts/tge/*",
-    "./libraries/schedule",
-
-    "./contracts/amm",
     "./contracts/amm/*",
-    "./libraries/ops-amm",
-
-    "./contracts/lend",
+    "./contracts/launchpad/*",
     "./contracts/lend/*",
-
-    "./frontends/*"
+    "./contracts/tge/*",
+    "./deps/*",
+    "./frontends/*",
+    "./libraries/schedule",
+    "./receipts",
+    "./scripts",
+    "./settings"
   ],
 
   "dependencies": {
