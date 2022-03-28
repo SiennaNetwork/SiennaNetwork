@@ -9,7 +9,7 @@ import {
 import { SmartContract, Executor, Querier } from '../contract'
 import { Snip20Contract } from '../snip20'
 
-import { Tx, SecretNetworkClient } from 'secretjs'
+import { ExecuteResult, SigningCosmWasmClient } from 'secretjs'
 
 export interface SwapSimulationResponse {
     return_amount: Uint128
@@ -32,14 +32,14 @@ export class ExchangeContract extends SmartContract<ExchangeExecutor, ExchangeQu
         return new ExchangeExecutor(
             this.address,
             () => this.query.apply(this),
-            this.client,
+            this.execute_client,
             fee,
             memo
         )
     }
 
     query(): ExchangeQuerier {
-        return new ExchangeQuerier(this.address, this.client)
+        return new ExchangeQuerier(this.address, this.query_client)
     }
 }
 
@@ -47,14 +47,14 @@ class ExchangeExecutor extends Executor {
     constructor(
         address: Address,
         private querier: () => ExchangeQuerier,
-        client: SecretNetworkClient,
+        client?: SigningCosmWasmClient,
         fee?: Fee,
         memo?: string,
     ) {
         super(address, client, fee, memo)
     }
 
-    async provide_liquidity(amount: TokenPairAmount, tolerance?: Decimal): Promise<Tx> {
+    async provide_liquidity(amount: TokenPairAmount, tolerance?: Decimal): Promise<ExecuteResult> {
         const msg = {
             add_liquidity: {
                 deposit: amount,
@@ -67,7 +67,7 @@ class ExchangeExecutor extends Executor {
         return this.run(msg, '100000', transfer)
     }
 
-    async withdraw_liquidity(amount: Uint128, recipient: Address): Promise<Tx> {
+    async withdraw_liquidity(amount: Uint128, recipient: Address): Promise<ExecuteResult> {
         const msg = {
             remove_liquidity: {
                 recipient
@@ -86,7 +86,7 @@ class ExchangeExecutor extends Executor {
         amount: TokenTypeAmount,
         recipient?: Address,
         expected_return?: Decimal
-    ): Promise<Tx> {
+    ): Promise<ExecuteResult> {
         if (get_token_type(amount.token) == TypeOfToken.Native) {
             const msg = {
                 swap: {
