@@ -1,5 +1,5 @@
 import { b64encode, b64decode, b64fromBuffer } from "@waiting/base64";
-import { Tx, EncryptionUtilsImpl, Coin } from "secretjs";
+import { EnigmaUtils, ExecuteResult, InstantiateResult } from "secretjs";
 
 export type Uint128 = string;
 export type Uint256 = string;
@@ -12,6 +12,12 @@ export type Decimal256 = string;
  */
 export type ViewingKey = string
 
+// These two are not exported in secretjs...
+export interface Coin {
+    readonly denom: string;
+    readonly amount: string;
+}
+
 export interface Fee {
     readonly amount: ReadonlyArray<Coin>
     readonly gas: Uint128
@@ -22,10 +28,9 @@ export interface Pagination {
     start: number;
 }
 
-export function decode_data<T>(result: Tx): T {
-    const hack = result as any // data field not included in the interface
-    const b64string = b64fromBuffer(hack.data)
-    
+export function decode_data<T>(result: ExecuteResult | InstantiateResult): T {
+    const b64string = b64fromBuffer(result.data)
+
     return JSON.parse(b64decode(b64string))
 }
 
@@ -52,7 +57,7 @@ export function create_base64_msg(msg: object): string {
 }
 
 export function create_entropy(): string {
-    const rand = EncryptionUtilsImpl.GenerateNewSeed().toString()
+    const rand = EnigmaUtils.GenerateNewSeed().toString()
     return b64encode(rand)
 }
 

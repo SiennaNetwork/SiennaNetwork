@@ -2,7 +2,7 @@ import { Address, Fee, ContractInstantiationInfo, Pagination, create_entropy } f
 import { TokenPair } from './token'
 import { SmartContract, Executor, Querier } from '../contract'
 
-import { Tx } from 'secretjs'
+import { ExecuteResult } from 'secretjs'
 
 export interface Exchange {
     pair: TokenPair,
@@ -28,16 +28,16 @@ export interface FactoryConfig {
 
 export class AmmFactoryContract extends SmartContract<AmmFactoryExecutor, AmmFactoryQuerier> {
     exec(fee?: Fee, memo?: string): AmmFactoryExecutor {
-        return new AmmFactoryExecutor(this.address, this.client, fee, memo)
+        return new AmmFactoryExecutor(this.address, this.execute_client, fee, memo)
     }
 
     query(): AmmFactoryQuerier {
-        return new AmmFactoryQuerier(this.address, this.client)
+        return new AmmFactoryQuerier(this.address, this.query_client)
     }
 }
 
 class AmmFactoryExecutor extends Executor {
-    async create_exchange(pair: TokenPair): Promise<Tx> {
+    async create_exchange(pair: TokenPair): Promise<ExecuteResult> {
         const msg = {
             create_exchange: {
                 pair,

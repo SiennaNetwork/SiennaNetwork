@@ -3,7 +3,7 @@ import { Fee, Address, Pagination, ContractInfo, Decimal256, Uint256 } from '../
 import { ViewingKeyComponentExecutor } from '../executors/viewing_key_executor'
 import { LendAuth } from './auth'
 
-import { Tx } from 'secretjs'
+import { ExecuteResult } from 'secretjs'
 
 export interface Market {
     contract: ContractInfo,
@@ -51,19 +51,19 @@ export class OverseerContract extends SmartContract<OverseerExecutor, OverseerQu
     exec(fee?: Fee, memo?: string): OverseerExecutor {
         return new OverseerExecutor(
             this.address,
-            this.client,
+            this.execute_client,
             fee,
             memo
         )
     }
 
     query(): OverseerQuerier {
-        return new OverseerQuerier(this.address, this.client)
+        return new OverseerQuerier(this.address, this.query_client)
     }
 }
 
 class OverseerExecutor extends ViewingKeyComponentExecutor {
-    async enter_markets(markets: Address[]): Promise<Tx> {
+    async enter_markets(markets: Address[]): Promise<ExecuteResult> {
         const msg = {
             enter: {
                 markets
@@ -73,7 +73,7 @@ class OverseerExecutor extends ViewingKeyComponentExecutor {
         return this.run(msg, '40000')
     }
 
-    async exit_markets(market_address: Address): Promise<Tx> {
+    async exit_markets(market_address: Address): Promise<ExecuteResult> {
         const msg = {
             exit: {
                 market_address
@@ -121,7 +121,7 @@ class OverseerQuerier extends Querier {
     async current_liquidity(auth: LendAuth): Promise<AccountLiquidity> {
         const msg = {
             account_liquidity: {
-                block: await this.get_height(),
+                block: (await this.client.getBlock()).header.height,
                 method: await auth.create_method<OverseerPermissions>(this.address, 'account_info'),
                 market: null,
                 redeem_amount: '0',
@@ -146,7 +146,7 @@ class OverseerQuerier extends Querier {
     ): Promise<AccountLiquidity> {
         const msg = {
             account_liquidity: {
-                block: await this.get_height(),
+                block: (await this.client.getBlock()).header.height,
                 method: await auth.create_method<OverseerPermissions>(this.address, 'account_info'),
                 market,
                 redeem_amount,
@@ -171,7 +171,7 @@ class OverseerQuerier extends Querier {
     ): Promise<AccountLiquidity> {
         const msg = {
             account_liquidity: {
-                block: await this.get_height(),
+                block: (await this.client.getBlock()).header.height,
                 method: await auth.create_method<OverseerPermissions>(this.address, 'account_info'),
                 market,
                 redeem_amount: '0',
