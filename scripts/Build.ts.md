@@ -25,11 +25,12 @@ Which contracts are built by each command is defined in:
 * [`@sienna/amm/build.ts`](../contracts/amm/build.ts')
 * [`@sienna/lend/build.ts`](../contracts/tge/build.ts')
 
-The builder procedure is implemented in [`@fadroma/ops/Build`](https://github.com/hackbg/fadroma/tree/22.01/packages/ops/Build.ts).
+The builder environment and procedure are defined in:
+* [`@fadroma/ops/Build`](https://github.com/hackbg/fadroma/tree/v100/packages/ops/Build.ts).
+* [`@fadroma/ops/Docker`](https://github.com/hackbg/fadroma/tree/v100/packages/ops/Docker.ts).
+* [`@fadroma/scrt-1.2`](https://github.com/hackbg/fadroma/tree/v100/packages/scrt-1.2).
 
-The [image of the build container](https://github.com/hackbg/fadroma/tree/22.01/packages/scrt/ScrtBuild.Dockerfile)
-and the [build script that runs in it](https://github.com/hackbg/fadroma/tree/22.01/packages/scrt/ScrtBuild.sh)
-are set in [@fadroma/scrt/Scrt](https://github.com/hackbg/fadroma/tree/22.01/packages/scrt/Scrt.ts).
+You will need at least **2G of disk space** for the build container.
 
 ## Contract sources
 
@@ -66,7 +67,7 @@ export const getSources = collectCrates(workspace, [
 ```typescript
 export const refs = {
   // TGE_v1: TODO find which commit was deployed on mainnet launch
-  AMM_v1:     '2f75175212', //'a99d8273b4',
+  AMM_v1:     'legacy/amm-v1',
   AMM_v2:     '39e87e4',
   Rewards_v2: 'rewards-2.1.2',
   Rewards_v3: '39e87e4'
