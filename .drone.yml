@@ -44,24 +44,12 @@ steps:
       #cache_key: "{{ .Repo.Name }}"
       #mount:     [ "/drone/src/.cargo-home", "/drone/src/target" ]
 
-  - name:        build
-    #depends_on:
-      #- get-rust-cache
-    image:       xd009642/tarpaulin:0.20.0-nightly-slim
-    # This container needs to be privileged to generate coverage
-    # because Tarpaulin relies on disabling ASLR for the process
-    # in order to perform tracing. Maybe try grcov after all.
-    # privileged:  true
+  - name: build-and-test
+    image: rust:1.61-slim
     environment: 
       COVERAGE_KEY: { from_secret: coverage_key }
       CARGO_HOME: /drone/src/.cargo-home
     commands:
-    # Are these needed or not?
-    #- rustup toolchain install stable
-    #- rustup set profile minimal
-    #- rustup target add wasm32-unknown-unknown
-    # But we aint doing coverage anyway, just seeing if the contract builds
-    #- cargo tarpaulin --workspace --ignore-panics --ignore-tests --coveralls $COVERAGE_KEY --report-uri https://cov.sienna.network/api/v1/jobs
     - cargo --version
     - rustc --version
     - cargo build
@@ -71,6 +59,34 @@ steps:
     - echo $HOME
     - ls -al $HOME
     - export
+
+  #- name: coverage
+    ##depends_on:
+      ##- get-rust-cache
+    #image:       xd009642/tarpaulin:0.20.0-nightly-slim
+    ## This container needs to be privileged to generate coverage
+    ## because Tarpaulin relies on disabling ASLR for the process
+    ## in order to perform tracing. Maybe try grcov after all.
+    ## privileged:  true
+    #environment: 
+      #COVERAGE_KEY: { from_secret: coverage_key }
+      #CARGO_HOME: /drone/src/.cargo-home
+    #commands:
+    ## Are these needed or not?
+    ##- rustup toolchain install stable
+    ##- rustup set profile minimal
+    ##- rustup target add wasm32-unknown-unknown
+    ## But we aint doing coverage anyway, just seeing if the contract builds
+    ##- cargo tarpaulin --workspace --ignore-panics --ignore-tests --coveralls $COVERAGE_KEY --report-uri https://cov.sienna.network/api/v1/jobs
+    #- cargo --version
+    #- rustc --version
+    #- cargo build
+    #- cargo test
+    #- pwd
+    #- ls -al
+    #- echo $HOME
+    #- ls -al $HOME
+    #- export
 
   # Update cache.
   # See http://plugins.drone.io/meltwater/drone-cache/
