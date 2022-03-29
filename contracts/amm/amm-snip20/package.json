@@ -1,8 +1,7 @@
 {
   "name":    "@sienna/amm-snip20",
   "version": "1.0.0",
-  "main":    "./AMMSNIP20Contract.ts",
-  "browser": "./AMMSNIP20Client.ts",
+  "main":    "./AMMSnip20.ts",
   "type":    "module",
   "dependencies": {
     "@hackbg/fadroma": "workspace:../../../deps/fadroma"

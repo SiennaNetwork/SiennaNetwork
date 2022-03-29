@@ -52,12 +52,12 @@ Fadroma.command('import receipts rewards v3',
 )
 ```
 
-### Reset localnet
+### Reset devnet
 
-Commands that spawn localnets (such as benchmarks and integration tests)
+Commands that spawn devnets (such as benchmarks and integration tests)
 will do their best to clean up after themselves. However, if you need to
-reset the localnet manually, the `pnpm -w ops reset` command will stop the
-currently running localnet container, and will delete the localnet data under `/receipts`.
+reset the devnet manually, the `pnpm -w ops reset` command will stop the
+currently running devnet container, and will delete the devnet data under `/receipts`.
 
 ```typescript
 import { ChainNode } from '@hackbg/fadroma'
@@ -474,7 +474,7 @@ Fadroma.command('deploy factory v1',
 
 ## Helper commands for auditing the contract logic
 
-This spins up a rewards contract on localnet and lets you interact with it.
+This spins up a rewards contract on devnet and lets you interact with it.
 
 ```typescript
 import { rewardsAudit } from '@sienna/amm'
@@ -506,14 +506,14 @@ This involves recreating all the AMM and rewards contracts.
 import { schedule } from '@sienna/settings'
 import { AMMSNIP20Contract } from '@sienna/amm'
 const integrationTest = {
-  setup: async function integrationTestSetup ({ chain: { isLocalnet }, agent: { address } }) {
-    if (!isLocalnet) {
-      throw new Error('@sienna/mgmt: This command is for localnet only.')
+  setup: async function integrationTestSetup ({ chain: { isDevnet }, agent: { address } }) {
+    if (!isDevnet) {
+      throw new Error('@sienna/mgmt: This command is for devnet only.')
     }
     const scheduleMod = JSON.parse(JSON.stringify(schedule))
-    console.warn('Redirecting MintingPool/LPF to admin balance. Only run this on localnet.')
+    console.warn('Redirecting MintingPool/LPF to admin balance. Only run this on devnet.')
     scheduleMod.pools[5].accounts[0].address = address
-    console.warn('Changing RPT to vest every 10 seconds. Only run this on localnet.')
+    console.warn('Changing RPT to vest every 10 seconds. Only run this on devnet.')
     scheduleMod.pools[5].accounts[1].interval = 10
     console.warn('Setting viewing key of agent to empty string.')
     return { schedule: scheduleMod }

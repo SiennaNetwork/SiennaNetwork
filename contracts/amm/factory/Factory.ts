@@ -18,6 +18,23 @@ export type AMMFactoryTemplates = {
 
 export type AMMVersion = "v1"|"v2"
 
+export type CreateExchangesRequest = {
+  templates: AMMFactoryTemplates
+  pairs: Array<{
+    name?: string,
+    pair: {
+      token_0: Snip20Client|TokenType,
+      token_1: Snip20Client|TokenType
+    }
+  }>
+}
+
+export type CreateExchangesResult = Array<{
+  name?:   string,
+  token_0: Snip20Client|TokenType,
+  token_1: Snip20Client|TokenType
+}>
+
 export abstract class AMMFactoryClient extends Client {
 
   abstract readonly version: AMMVersion
@@ -41,7 +58,7 @@ export abstract class AMMFactoryClient extends Client {
   /** Return the collection of contract templates
     * (`{ id, code_hash }` structs) that the factory
     * uses to instantiate contracts. */
-  async getContracts (): Promise<AMMFactoryTemplates> {
+  async getTemplates (): Promise<AMMFactoryTemplates> {
     const { config } = await this.query({ get_config: {} })
     return {
       snip20_contract:    config.snip20_contract,
@@ -67,51 +84,33 @@ export abstract class AMMFactoryClient extends Client {
   }
 
   /** Creates multiple exchanges in the same transaction. */
-  async createExchanges (input: {
-
-    templates: AMMFactoryTemplates
-
-    pairs: Array<{
-      name?: string,
-      pair: {
-        token_0: Snip20Client|TokenType,
-        token_1: Snip20Client|TokenType
-      }
-    }>
-
-  }): Promise<Array<{
-
-    name?: string,
-
-    token_0: Snip20Client|TokenType,
-    token_1: Snip20Client|TokenType
-
-  }>> {
-
+  async createExchanges (input: CreateExchangesRequest): Promise<CreateExchangesResult> {
     const {
-      templates = await this.getContracts(),
+      templates = await this.getTemplates(),
       pairs,
     } = input
-
     if (pairs.length === 0) {
       console.warn('Creating 0 exchanges.')
       return []
     }
-
     const newPairs = []
-
     await this.agent.bundle().wrap(async bundle=>{
-      const bundledThis = this.switchAgent(bundle)
+      const agent = this.agent
+      // @ts-ignore
+      this.agent = bundle
       for (const pair of pairs) {
+        // @ts-ignore
         let token_0 = pair.pair?.token_0 || pair.raw?.token_0
+        // @ts-ignore
         let token_1 = pair.pair?.token_1 || pair.raw?.token_1
         if (token_0 instanceof Snip20Client) token_0 = token_0.asCustomToken
         if (token_1 instanceof Snip20Client) token_1 = token_1.asCustomToken
-        const exchange = await bundledThis.createExchange(token_0, token_1)
+        const exchange = await this.createExchange(token_0, token_1)
         newPairs.push(pair)
       }
+      // @ts-ignore
+      this.agent = agent
     })
-
     return newPairs
   }
 

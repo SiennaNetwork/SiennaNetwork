@@ -34,11 +34,11 @@ const projectRoot = resolve(dirname(fileURLToPath(import.meta.url))),
       abs = (...args: Array<string>) => resolve(projectRoot, ...args)
 
 async function setupNetwork (numberOfAgents: number) {
-  console.info(`Setting up localnet with ${numberOfAgents} agents`)
+  console.info(`Setting up devnet with ${numberOfAgents} agents`)
 
   const identities = ["ADMIN", ...[...Array(numberOfAgents)].map((_,i)=>`Agent${i}`)]
 
-  const network = await Scrt.localnet_1_2({ identities }).ready
+  const network = await Scrt.devnet_1_2({ identities }).ready
 
   const agents = await Promise.all(identities.map(name=>network.getAgent({
     name,
@@ -168,14 +168,14 @@ async function runBenchmark (actions: Array<Action>, agents: Array<Agent>) {
     //this.timeout(600000)
     //const T0 = + new Date()
 
-    //// connect to a localnet with a large number of predefined agents
+    //// connect to a devnet with a large number of predefined agents
     //const numberOfAgents = 20
     //const agentNames = [...Array(numberOfAgents)].map((_,i)=>`Agent${i}`)
-    //const localnet = Scrt.localnet({
+    //const devnet = Scrt.devnet({
       //stateBase:       abs("artifacts"),
       //genesisAccounts: ["ADMIN", ...agentNames]
     //})
-    //const {node, network, builder, agent} = await localnet.connect()
+    //const {node, network, builder, agent} = await devnet.connect()
     //const agents = await Promise.all(agentNames.map(name=>
       //network.getAgent(name, { mnemonic: node.genesisAccount(name).mnemonic })))
     //console.log({agents})

@@ -6,35 +6,39 @@
   "workspace": true,
 
   "packages": [
-    "./deps/*",
-
-    "./scripts",
-    "./settings",
-    "./receipts",
-
-    "./contracts/tge",
-    "./contracts/tge/*",
-    "./libraries/schedule",
-
-    "./contracts/amm",
     "./contracts/amm/*",
-    "./libraries/ops-amm",
-
-    "./contracts/lend",
+    "./contracts/launchpad/*",
     "./contracts/lend/*",
-
-    "./frontends/*"
+    "./contracts/tge/*",
+    "./deps/*",
+    "./frontends/*",
+    "./libraries/schedule",
+    "./receipts",
+    "./scripts",
+    "./settings"
   ],
 
   "dependencies": {
     "@hackbg/fadroma": "workspace:./deps/fadroma",
-    "@hackbg/ganesha": "^1",
-    "typescript":      "^4.4.4"
+    "@hackbg/ganesha": "workspace:./deps/ganesha",
+    "typescript":      "^4.4.4",
+    "open":            "^8.4.0"
   },
 
   "scripts": {
-    "dev": "ganesha-node --unhandled-rejections=strict scripts/Dev.ts.md",
-    "ops": "ganesha-node --unhandled-rejections=strict scripts/Ops.ts.md",
+    "dev": "ganesha-node --unhandled-rejections=strict scripts/README.md",
+    "ops": "ganesha-node --unhandled-rejections=strict scripts/README.md",
+
+    "build":    "ganesha-node --unhandled-rejections=strict scripts/Build.ts.md",
+    "chain":    "ganesha-node --unhandled-rejections=strict scripts/Chain.ts.md",
+    "deploy":   "ganesha-node --unhandled-rejections=strict scripts/Deploy.ts.md",
+    "fix":      "ganesha-node --unhandled-rejections=strict scripts/Fix.ts.md",
+    "generate": "ganesha-node --unhandled-rejections=strict scripts/Generate.ts.md",
+    "live":     "Ganesha_Live=1 ganesha-node --inspect --unhandled-rejections=strict --huge-max-old-generation-size scripts/Live.ts.md",
+    "receipts": "ganesha-node --unhandled-rejections=strict scripts/Receipts.ts.md",
+    "schema":   "ganesha-node --unhandled-rejections=strict scripts/Schema.ts.md",
+    "test":     "ganesha-node --unhandled-rejections=strict scripts/Test.ts.md",
+    "upload":   "ganesha-node --unhandled-rejections=strict scripts/Upload.ts.md",
 
     "dash":         "cd frontends/dashboard; pnpm web",
     "dash:build":   "frontends/dashboard/build.sh",

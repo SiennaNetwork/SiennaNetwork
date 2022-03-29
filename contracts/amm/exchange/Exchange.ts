@@ -1,5 +1,5 @@
 import { Agent, Client, Snip20Client } from '@hackbg/fadroma'
-import { LPTokenClient } from '@sienna/api'
+import { LPTokenClient } from '@sienna/lp-token'
 
 import { TokenPair, Uint128 } from './schema/handle_msg.d'
 
