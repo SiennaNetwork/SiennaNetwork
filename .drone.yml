@@ -47,7 +47,7 @@ steps:
   - name:        build
     #depends_on:
       #- get-rust-cache
-    image:       xd009642/tarpaulin
+    image:       xd009642/tarpaulin:0.20.0-nightly-slim
     # This container needs to be privileged to generate coverage
     # because Tarpaulin relies on disabling ASLR for the process
     # in order to perform tracing. Maybe try grcov after all.
