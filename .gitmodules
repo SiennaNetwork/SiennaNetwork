@@ -3,25 +3,11 @@
   path   = deps/fadroma
   url    = https://github.com/hackbg/fadroma.git
   branch = v100
+[submodule "deps/ganesha"]
+	path   = deps/ganesha
+	url    = https://github.com/hackbg/ganesha.git
 [submodule "kukumba"] # BDD test helper
   update = rebase
   path   = libraries/kukumba
   url    = https://github.com/hackbg/kukumba.git
   branch = 21.04
-
-# Read-write private deps
-[submodule "frontends/claim"]
-  path   = frontends/claim
-  url    = git@git.sienna.network:siennanetwork/claim.git
-[submodule "frontends/reward-pools-monitor"]
-  path   = frontends/reward-pools-monitor
-  url    = git@git.sienna.network:siennanetwork/reward-pools-monitor.git
-[submodule "frontends/vest"]
-  path   = frontends/vest
-  url    = git@git.sienna.network:siennanetwork/vest.git
-[submodule "frontends/EthereumBridgeBackend"]
-  path = frontends/EthereumBridgeBackend
-  url = https://github.com/SiennaNetwork/EthereumBridgeBackend
-[submodule "deps/ganesha"]
-	path = deps/ganesha
-	url = git@github.com:hackbg/ganesha.git
