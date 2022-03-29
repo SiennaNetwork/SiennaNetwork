@@ -115,7 +115,7 @@ impl ContractHarness for MockBand {
 
 #[derive(Default)]
 pub struct LendConfig {
-    market: Option<Box<dyn ContractHarness>>,
+    market: Option<Market>,
     close_factor: Option<Decimal256>,
     premium: Option<Decimal256>
 }
@@ -125,7 +125,7 @@ impl LendConfig {
         Self::default()
     }
 
-    pub fn market(mut self, market: Box<dyn ContractHarness>) -> Self {
+    pub fn market(mut self, market: Market) -> Self {
         self.market = Some(market);
         self
     }
