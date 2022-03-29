@@ -68,9 +68,9 @@ export const getSources = collectCrates(workspace, [
 export const refs = {
   // TGE_v1: TODO find which commit was deployed on mainnet launch
   AMM_v1:     'legacy/amm-v1',
-  AMM_v2:     '39e87e4',
+  AMM_v2:     'legacy/amm-v2-rewards-v3',
   Rewards_v2: 'rewards-2.1.2',
-  Rewards_v3: '39e87e4'
+  Rewards_v3: 'legacy/amm-v2-rewards-v3'
 }
 ```
 
