@@ -3,7 +3,7 @@
 ```typescript
 import Fadroma, {
   bold, timestamp, Console,
-  collectCrates, Scrt_1_2
+  Source, Scrt_1_2
 } from '@hackbg/fadroma'
 import { workspace } from '@sienna/settings'
 const console = new Console('@sienna/scripts/Build')
@@ -39,7 +39,7 @@ The `getSources` function takes one optional argument, `ref`
 and returns a mapping from crate name to `Source` object.
 
 ```typescript
-export const getSources = collectCrates(workspace, [
+export const getSources = Source.collectCrates(workspace, [
   // TGE
   'snip20-sienna',
   'sienna-mgmt',
