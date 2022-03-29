@@ -45,7 +45,7 @@ steps:
       #mount:     [ "/drone/src/.cargo-home", "/drone/src/target" ]
 
   - name: build-and-test
-    image: rust:1.61-slim
+    image: rust:1.59-slim
     environment: 
       COVERAGE_KEY: { from_secret: coverage_key }
       CARGO_HOME: /drone/src/.cargo-home
