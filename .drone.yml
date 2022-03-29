@@ -62,6 +62,8 @@ steps:
     #- rustup target add wasm32-unknown-unknown
     # But we aint doing coverage anyway, just seeing if the contract builds
     #- cargo tarpaulin --workspace --ignore-panics --ignore-tests --coveralls $COVERAGE_KEY --report-uri https://cov.sienna.network/api/v1/jobs
+    - cargo --version
+    - rustc --version
     - cargo build
     - cargo test
     - pwd
