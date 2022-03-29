@@ -153,12 +153,12 @@ impl Lend {
     pub fn new(config: LendConfig) -> Self {
         let mut ensemble = ContractEnsemble::new(50);
 
-        let overseer = ensemble.register(Box::new(Overseer));
-        let market = ensemble.register(config.market.unwrap_or(Box::new(Market)));
-        let oracle = ensemble.register(Box::new(Oracle));
-        let mock_band = ensemble.register(Box::new(MockBand));
-        let token = ensemble.register(Box::new(Token));
-        let interest = ensemble.register(Box::new(InterestModel));
+        let overseer = ensemble.register(Overseer);
+        let market = ensemble.register(config.market.unwrap_or(Market));
+        let oracle = ensemble.register(Oracle);
+        let mock_band = ensemble.register(MockBand);
+        let token = ensemble.register(Token);
+        let interest = ensemble.register(InterestModel);
 
         let mock_band = ensemble
             .instantiate(

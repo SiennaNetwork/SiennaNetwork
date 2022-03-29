@@ -53,11 +53,11 @@ impl Amm {
     
         let mut ensemble = ContractEnsemble::new(200);
     
-        let factory = ensemble.register(Box::new(Factory));
-        let snip20 = ensemble.register(Box::new(Token));
-        let lp_token = ensemble.register(Box::new(LpToken));
-        let pair = ensemble.register(Box::new(Pair));
-        let _router = ensemble.register(Box::new(Router));
+        let factory = ensemble.register(Factory);
+        let snip20 = ensemble.register(Token);
+        let lp_token = ensemble.register(LpToken);
+        let pair = ensemble.register(Pair);
+        let _router = ensemble.register(Router);
         
         let factory = ensemble.instantiate(
             factory.id,

@@ -199,9 +199,9 @@ impl LaunchpadIdo {
        
         let mut ensemble = ContractEnsemble::new(200);
     
-        let ido = ensemble.register(Box::new(Ido));
-        let launchpad = ensemble.register(Box::new(Launchpad));
-        let token = ensemble.register(Box::new(Token));
+        let ido = ensemble.register(Ido);
+        let launchpad = ensemble.register(Launchpad);
+        let token = ensemble.register(Token);
 
         let token = ensemble.instantiate(
             token.id,
