@@ -1216,14 +1216,14 @@ export async function deployLend (
   // Create the overseer
   await deployment.init(
     deployAgent, overseerTemplate, names.overseer, {
-      entropy, prng_seed, close_factor, premium, oracle_source,
+      entropy, prng_seed, close_factor, premium,
       market_contract: {
         code_hash: marketTemplate.codeHash,
-        id:        marketTemplate.codeId
+        id:        Number(marketTemplate.codeId)
       },
       oracle_contract: {
         code_hash: oracleTemplate.codeHash,
-        id:        oracleTemplate.codeId
+        id:        Number(oracleTemplate.codeId)
       },
       oracle_source: {
         code_hash: mockOracle.codeHash,
@@ -1232,7 +1232,6 @@ export async function deployLend (
     })
 
   // Return clients to the instantiated contracts
-  agent = clientAgent
   return {
     OVERSEER:       new API.LendOverseerClient({
       ...deployment.get(names.overseer),      agent
@@ -1240,10 +1239,11 @@ export async function deployLend (
     INTEREST_MODEL: new API.InterestModelClient({
       ...deployment.get(names.interestModel), agent
     })
-    ORACLE:         new API.LendOracleClient({
-      ...deployment.get(names.oracle),        agent
-    })
-    MOCK_ORACLE:    new API.LendMockOracleClient({
+    // TODO: get oracle by querying overseer (once this query exists)
+    // ORACLE:         new API.LendOracleClient({
+    //   ...deployment.get(names.oracle),        agent
+    // })
+    MOCK_ORACLE:    new API.MockOracleClient({
       ...deployment.get(names.mockOracle),    agent
     })
     TOKEN1:         new API.AMMSnip20Client({
@@ -1306,6 +1306,8 @@ Fadroma.command('all',
   Sienna.Upgrade.AMM.Factory.v1_to_v2,
   Sienna.Upgrade.AMM.Exchanges.v1_to_v2,
   Sienna.Upgrade.Rewards.v2_to_v3,
+  Fadroma.Deploy.Status,
+  Sienna.Deploy.Lend,
   Fadroma.Deploy.Status)
 ```
 
