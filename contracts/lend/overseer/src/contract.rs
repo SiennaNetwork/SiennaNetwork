@@ -116,10 +116,26 @@ pub trait Overseer {
     #[handle]
     #[require_admin]
     fn whitelist(config: MarketInitConfig) -> StdResult<HandleResponse> {
+        let price = query_price(
+            &deps.querier,
+            Contracts::load_oracle(deps)?,
+            config.token_symbol.clone().into(),
+            QUOTE_SYMBOL.into(),
+            None,
+        )?;
+
+        if price.rate == Decimal256::zero() {
+            return Err(StdError::generic_err(
+                "Cannot whitelist market if the price is 0.",
+            ));
+        }
+
         let info = Whitelisting::load_market_contract(&deps.storage)?;
         let label = format!(
-            "Sienna Lend {} market with overseer: {}",
-            config.token_symbol, env.contract.address
+            "Sienna Lend {}({}) market with overseer: {}",
+            config.underlying_asset.address,
+            config.token_symbol,
+            env.contract.address
         );
 
         let market = Market {
@@ -282,7 +298,7 @@ pub trait Overseer {
             // Can't set collateral factor if the price is 0
             if price.rate == Decimal256::zero() {
                 return Err(StdError::generic_err(
-                    "Cannot set LTV ratio if the price is 0",
+                    "Cannot set LTV ratio if the price is 0.",
                 ));
             }
 

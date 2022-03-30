@@ -151,7 +151,7 @@ pub struct Lend {
 
 impl Lend {
     pub fn new(config: LendConfig) -> Self {
-        let mut ensemble = ContractEnsemble::new(50);
+        let mut ensemble = ContractEnsemble::new(60);
 
         let overseer = ensemble.register(Box::new(Overseer));
         let market = ensemble.register(config.market.unwrap_or(Box::new(Market)));
