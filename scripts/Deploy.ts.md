@@ -167,6 +167,8 @@ Sienna.Deploy.AMM.v2 =
     return run(deployAMM, {
       ammVersion: 'v2' }) }
 
+Sienna.Deploy.Router = deployRouter
+
 Sienna.Deploy.Rewards = {}
 Sienna.Deploy.Rewards.v2 =
   function deployRewards_v2 ({run}) {
@@ -464,7 +466,7 @@ as compared by `TOKEN0` and `TOKEN1`.
 </td><td valign="top">
 
 ```typescript
-import { buildAMMTemplates } from './Build'
+import { buildAMMTemplates, buildRouter } from './Build'
 import * as Tokens from './Tokens'
 
 Fadroma.command('amm',
@@ -592,6 +594,32 @@ async function deployAMMExchange (options) {
       )
     }
   }
+}
+
+export async function deployRouter (
+  context: MigrationContext
+): Promise {
+
+  const { agent
+        , builder
+        , uploader, deployAgent
+        , deployment, prefix
+        } = context
+
+  const [
+    routerTemplate,
+  ] = await uploader.uploadMany(await buildRouter())
+
+  // Define name for deployed contracts
+  const v = 'v2'
+  const name = `AMM[${v}].Router`
+
+  // Deploy router
+  const router = await deployment.init(
+    deployAgent, routerTemplate, name, {})
+
+  // Return clients to the instantiated contracts
+  return { router }
 }
 ```
 
@@ -1278,6 +1306,7 @@ Fadroma.command('latest',
   Sienna.Deploy.TGE,
   Sienna.Deploy.AMM.v2,
   Sienna.Deploy.Rewards.v3,
+  Sienna.Deploy.Router,
   Sienna.Deploy.Lend,
   Sienna.Deploy.Status)
 ```
@@ -1302,6 +1331,7 @@ Fadroma.command('all',
   Sienna.Deploy.TGE,
   Sienna.Deploy.AMM.v1,
   Sienna.Deploy.Rewards.v2,
+  Sienna.Deploy.Router,
   Fadroma.Deploy.Status,
   Sienna.Upgrade.AMM.Factory.v1_to_v2,
   Sienna.Upgrade.AMM.Exchanges.v1_to_v2,
