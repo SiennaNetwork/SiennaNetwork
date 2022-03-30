@@ -644,7 +644,7 @@ fn calculate_amount_seize() {
 }
 
 #[test]
-pub fn liquidity_oracle_low_price() {
+fn liquidity_oracle_low_price() {
     let mut lend = Lend::default();
     let underlying = lend.new_underlying_token("ONE", 6).unwrap();
 
@@ -701,7 +701,7 @@ pub fn liquidity_oracle_low_price() {
 }
 
 #[test]
-pub fn test_ltv() {
+fn test_ltv() {
     let mut lend = Lend::default();
     let underlying1 = lend.new_underlying_token("ONE", 6).unwrap();
     let underlying2 = lend.new_underlying_token("TWO", 6).unwrap();
@@ -752,7 +752,7 @@ pub fn test_ltv() {
         )
         .unwrap();
 
-    let _res = lend
+    lend
         .ensemble
         .execute(
             &Snip20HandleMsg::Send {
@@ -767,7 +767,7 @@ pub fn test_ltv() {
         )
         .unwrap();
 
-    let _res = lend
+    lend
         .ensemble
         .execute(
             &Snip20HandleMsg::Send {
@@ -933,7 +933,7 @@ pub fn test_ltv() {
         .unwrap_err();
     assert_eq!(
         res,
-        StdError::generic_err("Invalid price reported by oracle")
+        StdError::generic_err("Invalid price reported by the oracle.")
     );
 
     // try to transfer
@@ -946,7 +946,7 @@ pub fn test_ltv() {
     ).unwrap_err();
     assert_eq!(
         res,
-        StdError::generic_err("Invalid price reported by oracle")
+        StdError::generic_err("Invalid price reported by the oracle.")
     );
 
     // set valid price and try to transfer again
@@ -961,4 +961,71 @@ pub fn test_ltv() {
         },
         MockEnv::new(BORROWER, market2.contract.clone()),
     ).unwrap();
+}
+
+#[test]
+fn faulty_oracle_price_causes_liquidity_check_to_error() {
+    let bob = "bob";
+    let mallory = "mallory";
+    let alice = "alice";
+
+    let mut lend = Lend::default();
+
+    let underlying_1 = lend.new_underlying_token("SLATOM", 18).unwrap();
+    let underlying_2 = lend.new_underlying_token("SLSCRT", 18).unwrap();
+
+    let market_1 = lend.whitelist_market(
+        underlying_1.clone(),
+        Decimal256::percent(70),
+        Some(Decimal256::percent(20)),
+        Some(Decimal256::one())
+    ).unwrap();
+
+    let market_2 = lend.whitelist_market(
+        underlying_2,
+        Decimal256::percent(70),
+        Some(Decimal256::percent(20)),
+        Some(Decimal256::one())
+    ).unwrap();
+
+    lend.set_oracle_price(market_1.symbol.as_bytes(), Uint128(1 * one_token(18))).unwrap();
+    lend.set_oracle_price(market_2.symbol.as_bytes(), Uint128(10000)).unwrap();
+
+    lend.prefund_user(
+        bob,
+        Uint128(1000),
+        underlying_1.clone()
+    );
+
+    lend.prefund_user(
+        mallory,
+        Uint128(300),
+        underlying_1
+    );
+
+    lend.prefund_and_deposit(
+        alice,
+        Uint128(100),
+        market_2.contract.address.clone()
+    );
+
+    lend.ensemble.execute(
+        &HandleMsg::Enter {
+            markets: vec![
+                market_1.contract.address.clone(),
+                market_2.contract.address.clone()
+            ],
+        },
+        MockEnv::new(bob, lend.overseer.clone()),
+    )
+    .unwrap();
+
+    let err = lend.ensemble.execute(
+        &market::HandleMsg::Borrow {
+            amount: 100.into()
+        },
+        MockEnv::new(bob, market_2.contract)
+    ).unwrap_err();
+
+    assert_eq!(err, StdError::generic_err("Invalid price reported by the oracle."));
 }

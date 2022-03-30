@@ -517,6 +517,8 @@ fn calc_liquidity<S: Storage, A: Api, Q: Querier>(
     redeem_amount: Uint256,
     borrow_amount: Uint256,
 ) -> StdResult<AccountLiquidity> {
+    const INVALID_PRICE_ERR: &str = "Invalid price reported by the oracle.";
+
     let oracle = Contracts::load_oracle(deps)?;
 
     let mut total_collateral = Uint256::zero();
@@ -565,10 +567,10 @@ fn calc_liquidity<S: Storage, A: Api, Q: Querier>(
         // This check is needed to check validity of price 
         // in case `redeem_amount` and `borrow_amount` are both 0.
         if !is_zero_ltv && !snapshot.sl_token_balance.is_zero() && sl_token_conversion.is_zero() {
-            return Err(StdError::generic_err("Invalid price reported by oracle"));
+            return Err(StdError::generic_err(INVALID_PRICE_ERR));
         }
         if !is_zero_ltv && !snapshot.borrow_balance.is_zero() && borrow_conversion.is_zero() {
-            return Err(StdError::generic_err("Invalid price reported by oracle"));
+            return Err(StdError::generic_err(INVALID_PRICE_ERR));
         }
 
         total_collateral = (sl_token_conversion + total_collateral)?;
@@ -577,11 +579,11 @@ fn calc_liquidity<S: Storage, A: Api, Q: Querier>(
         if is_target_asset {
             if !is_zero_ltv {
                 if !redeem_amount.is_zero() && redeem_amount_validated.is_zero() {
-                    return Err(StdError::generic_err("Invalid price reported by oracle"));
+                    return Err(StdError::generic_err(INVALID_PRICE_ERR));
                 }
 
                 if !borrow_amount.is_zero() && borrow_amount_validated.is_zero() {
-                    return Err(StdError::generic_err("Invalid price reported by oracle"));
+                    return Err(StdError::generic_err(INVALID_PRICE_ERR));
                 }
             }
             total_borrowed = (redeem_amount_validated + total_borrowed)?;
