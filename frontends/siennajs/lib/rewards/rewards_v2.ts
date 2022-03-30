@@ -2,7 +2,7 @@ import { Address, Uint128, Fee, ContractInfo, ViewingKey } from '../core'
 import { SmartContract, Querier } from '../contract'
 import { ViewingKeyExecutor } from '../executors/viewing_key_executor'
 
-import { Tx } from 'secretjs'
+import { ExecuteResult } from 'secretjs'
 
 export interface RewardPool {
     lp_token: ContractInfo;
@@ -99,16 +99,16 @@ export interface RewardsAccount {
 
 export class RewardsV2Contract extends SmartContract<RewardsV2Executor, RewardsV2Querier> {
     exec(fee?: Fee, memo?: string): RewardsV2Executor {
-        return new RewardsV2Executor(this.address, this.client, fee, memo)
+        return new RewardsV2Executor(this.address, this.execute_client, fee, memo)
     }
 
     query(): RewardsV2Querier {
-        return new RewardsV2Querier(this.address, this.client)
+        return new RewardsV2Querier(this.address, this.query_client)
     }
 }
 
 class RewardsV2Executor extends ViewingKeyExecutor {
-    async claim(): Promise<Tx> {
+    async claim(): Promise<ExecuteResult> {
         const msg = {
             claim: { }
         }
@@ -116,7 +116,7 @@ class RewardsV2Executor extends ViewingKeyExecutor {
         return this.run(msg, '80000')
     }
 
-    async lock_tokens(amount: Uint128): Promise<Tx> {
+    async lock_tokens(amount: Uint128): Promise<ExecuteResult> {
         const msg = {
             lock: {
                 amount
@@ -126,7 +126,7 @@ class RewardsV2Executor extends ViewingKeyExecutor {
         return this.run(msg, '75000')
     }
 
-    async retrieve_tokens(amount: Uint128,): Promise<Tx> {
+    async retrieve_tokens(amount: Uint128,): Promise<ExecuteResult> {
         const msg = {
             retrieve: {
                 amount

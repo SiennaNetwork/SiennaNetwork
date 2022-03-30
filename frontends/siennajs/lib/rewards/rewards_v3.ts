@@ -1,29 +1,8 @@
-import {
-  Address,
-  Uint128,
-  Uint256,
-  Fee,
-  ContractInfo,
-  ViewingKey,
-} from "../core";
-import { SmartContract, Querier } from "../contract";
-import { ViewingKeyExecutor } from "../executors/viewing_key_executor";
+import { Address, Uint128, Uint256, Fee, ContractInfo, ViewingKey } from '../core'
+import { SmartContract, Querier } from '../contract'
+import { ViewingKeyExecutor } from '../executors/viewing_key_executor'
 
-import { Tx } from "secretjs";
-import {
-  GetGovernanceConfigResponse,
-  GetPollResponse,
-  GetPollsResponse,
-  GetVoteStatusResponse,
-  GovernanceConfig,
-  Poll,
-  PollInfo,
-  PollMetadata,
-  PollsCollection,
-  SortingDirection,
-  VoteStatus,
-  VoteType,
-} from "./governance";
+import { ExecuteResult } from 'secretjs'
 
 export type Moment = number;
 export type Duration = number;
@@ -101,55 +80,33 @@ export interface RewardsAccount {
   bonding: Duration;
 }
 
-export class RewardsV3Contract extends SmartContract<
-  RewardsV3Executor,
-  RewardsV3Querier
-> {
-  exec(fee?: Fee, memo?: string): RewardsV3Executor {
-    return new RewardsV3Executor(this.address, this.client, fee, memo);
-  }
+export class RewardsV3Contract extends SmartContract<RewardsV3Executor, RewardsV3Querier> {
+    exec(fee?: Fee, memo?: string): RewardsV3Executor {
+        return new RewardsV3Executor(this.address, this.execute_client, fee, memo)
+    }
 
-  query(): RewardsV3Querier {
-    return new RewardsV3Querier(this.address, this.client);
-  }
+    query(): RewardsV3Querier {
+        return new RewardsV3Querier(this.address, this.query_client)
+    }
 }
 
 class RewardsV3Executor extends ViewingKeyExecutor {
-  async claim(): Promise<Tx> {
-    const msg = { rewards: { claim: {} } };
-
-    return this.run(msg, "80000");
-  }
-
-  async deposit_tokens(amount: Uint128): Promise<Tx> {
-    const msg = { rewards: { deposit: { amount } } };
-
-    return this.run(msg, "75000");
-  }
-
-  async withdraw_tokens(amount: Uint128): Promise<Tx> {
-    const msg = { rewards: { withdraw: { amount } } };
-
-    return this.run(msg, "75000");
-  }
+    async claim(): Promise<ExecuteResult> {
+        const msg = { rewards: { claim: { } } }
 
   async create_poll(meta: PollMetadata) {
     const msg = { governance: { create_poll: { meta } } };
 
-    return this.run(msg, "80000");
-  }
-  async vote(choice: VoteType, poll_id: number) {
-    const msg = { governance: { vote: { choice, poll_id } } };
+    async deposit_tokens(amount: Uint128): Promise<ExecuteResult> {
+        const msg = { rewards: { deposit: { amount } } }
 
     return this.run(msg, "75000");
   }
   async unvote(poll_id: number) {
     const msg = { governance: { poll_id } };
 
-    return this.run(msg, "75000");
-  }
-  async change_vote_choice(choice: VoteType, poll_id: number) {
-    const msg = { governance: { change_vote_choice: { choice, poll_id } } };
+    async withdraw_tokens(amount: Uint128): Promise<ExecuteResult> {
+        const msg = { rewards: { withdraw: { amount } } }
 
     return this.run(msg, "75000");
   }
