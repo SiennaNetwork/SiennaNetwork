@@ -71,6 +71,9 @@ pub trait Overseer {
     fn entered_markets(method: OverseerAuth) -> StdResult<Vec<Market<HumanAddr>>>;
 
     #[query]
+    fn oracle_contract() -> StdResult<ContractLink<HumanAddr>>;
+
+    #[query]
     fn account_liquidity(
         method: OverseerAuth,
         market: Option<HumanAddr>,

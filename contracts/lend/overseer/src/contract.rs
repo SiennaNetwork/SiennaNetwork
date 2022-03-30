@@ -383,6 +383,11 @@ pub trait Overseer {
     }
 
     #[query]
+    fn oracle_contract() -> StdResult<ContractLink<HumanAddr>> {
+        Contracts::load_oracle(deps)
+    }
+
+    #[query]
     fn account_liquidity(
         method: OverseerAuth,
         market: Option<HumanAddr>,
