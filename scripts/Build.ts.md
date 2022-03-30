@@ -82,31 +82,31 @@ and may be deprecated in the future as live mode evolves.
 
 ```typescript
 Fadroma.command('all',
-  buildTge.bind(null, 'HEAD'),
-  buildTokens.bind(null, 'HEAD'),
-  buildTokens.bind(null, refs['AMM_v1']),
-  buildTokens.bind(null, refs['AMM_v2']),
-  buildAmm.bind(null, 'HEAD'),
-  buildAmm.bind(null, refs['AMM_v1']),
-  buildAmm.bind(null, refs['AMM_v2']),
-  buildLaunchpad.bind(null, refs['AMM_v2'])
-  buildIdo.bind(null, refs['AMM_v2']),
-  buildRewards.bind(null, refs['Rewards_v2']),
-  buildRewards.bind(null, refs['Rewards_v3'])
+  () => buildTge('HEAD'),
+  () => buildTokens('HEAD'),
+  () => buildTokens(refs['AMM_v1']),
+  () => buildTokens(refs['AMM_v2']),
+  () => buildAmm('HEAD'),
+  () => buildAmm(refs['AMM_v1']),
+  () => buildAmm(refs['AMM_v2']),
+  () => buildLaunchpad(refs['AMM_v1']),
+  () => buildIdo(refs['AMM_v1']),
+  () => buildRewards(refs['Rewards_v2']),
+  () => buildRewards(refs['Rewards_v3']))
 
 Fadroma.command('router', parallel(
-  buildTokens,
-  buildRouter))
+  () => buildTokens('HEAD'),
+  () => buildRouter('HEAD')))
 
 Fadroma.command('lend', parallel(
-  buildTokens,
-  buildLend))
+  () => buildTokens('HEAD'),
+  () => buildLend('HEAD')))
 
 Fadroma.command('amm_v1',
-  buildAmm.bind(null, refs['AMM_v1']))
+  () => buildAmm(refs['AMM_v1']))
 
 Fadroma.command('amm_v2',
-  buildAmm.bind(null, refs['AMM_v2']))
+  () => buildAmm(refs['AMM_v2']))
 
 export async function buildTge (ref?) {
   const sources = getSources(ref)
