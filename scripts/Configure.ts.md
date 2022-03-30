@@ -45,6 +45,7 @@ export const testers = [
   "secret1xcywp5smmmdxudc7xgnrezt6fnzzvmxqf7ldty",
 ]
 
+import { SiennaSnip20Client } from '@sienna/api'
 async function fundTesters ({ deployment, agent, cmdArgs }) {
   const [ vk = 'q1Y3S7Vq8tjdWXCL9dkh' ] = cmdArgs
   const sienna  = new SiennaSnip20Client({ ...deployment.get('SIENNA'), agent })
@@ -65,6 +66,7 @@ this function set their addresses in the RPT,
 so that they receive funding from the daily vesting.
 
 ```typescript
+import { RPTClient } from '@sienna/api'
 export async function adjustRPTConfig ({
   deployment, chain, agent,
   RPT        = new RPTClient({ ...deployment.get('RPT'), agent }),
