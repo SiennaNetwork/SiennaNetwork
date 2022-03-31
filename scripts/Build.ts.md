@@ -199,9 +199,10 @@ some extra templates that weren't being used)
 export async function buildAMMTemplates (
   uploader: Uploader,
   version:  AMMVersion,
+  ref:      string  = refs[`AMM_${version}`],
   builder:  Builder = Scrt_1_2.getBuilder()
 ): Promise<Record<string, {id:number,code_hash:string}>> {
-  const crates  = getSources(refs[`AMM_${version}`])
+  const crates  = getSources(ref)
   const sources = [crates['exchange'], crates['lp-token']]
   if (version === 'v1') {
     console.info('Building extra (unused) templates required by AMM Factory v1...')

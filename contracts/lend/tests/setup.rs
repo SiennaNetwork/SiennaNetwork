@@ -115,7 +115,7 @@ impl ContractHarness for MockBand {
 
 #[derive(Default)]
 pub struct LendConfig {
-    market: Option<Market>,
+    market: Option<&impl ContractHarness>,
     close_factor: Option<Decimal256>,
     premium: Option<Decimal256>
 }

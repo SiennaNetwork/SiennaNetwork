@@ -496,11 +496,12 @@ import * as Tokens from './Tokens'
 async function deployAMM (
   context: MigrationContext & AMMDeployOptions
 ): Promise<AMMDeployResult> {
-  const { run, ammVersion } = context
+  const { run, ammVersion, ref } = context
+  console.info('deployAMM', { ref })
   const FACTORY =
-    await run(deployAMMFactory, { version: ammVersion })
+    await run(deployAMMFactory, { version: ammVersion, ref })
   const { EXCHANGES, LP_TOKENS } =
-    await run(deployAMMExchanges, { FACTORY, ammVersion })
+    await run(deployAMMExchanges, { FACTORY, ammVersion, ref })
   return { FACTORY, EXCHANGES, LP_TOKENS }
 }
 
@@ -518,15 +519,16 @@ export async function deployAMMFactory (
     builder   = new Scrt_1_2.Builder(),
     artifact  = await builder.build(getSources(ref)['factory'])
     template  = await uploader.upload(artifact),
-    templates = await buildAMMTemplates(uploader, version),
+    templates = await buildAMMTemplates(uploader, version, ref),
     config = {
       admin: agent.address,
       prng_seed: randomHex(36),
       exchange_settings
     }
   } = context
+  console.info('deployAMMFactory', { ref })
   // If the templates are copied from v1, remove the extra templates
-  if (version === 'v2') {
+  if (version !== 'v1') {
     delete templates.snip20_contract
     delete templates.ido_contract
     delete templates.launchpad_contract
