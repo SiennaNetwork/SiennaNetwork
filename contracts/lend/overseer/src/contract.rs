@@ -19,7 +19,9 @@ use lend_shared::{
     interfaces::{
         market::{query_account, query_exchange_rate, InitMsg as MarketInitMsg, MarketAuth},
         oracle::{
-            query_price, Asset, AssetType, HandleMsg as OracleHandleMsg, InitMsg as OracleInitMsg,
+            query_price, Asset, AssetType, OverseerRef,
+            HandleMsg as OracleHandleMsg,
+            InitMsg as OracleInitMsg,
         },
         overseer::{
             AccountLiquidity, Config, HandleMsg, Market, MarketInitConfig, OverseerAuth,
@@ -82,10 +84,10 @@ pub trait Overseer {
                 admin,
                 source: oracle_source,
                 initial_assets: vec![],
-                callback: Callback {
+                overseer: OverseerRef::NewInstance(Callback {
                     contract: self_ref,
                     msg: to_binary(&HandleMsg::RegisterOracle {})?,
-                },
+                }) 
             })?,
         }));
 
@@ -346,6 +348,7 @@ pub trait Overseer {
     fn change_config(
         premium_rate: Option<Decimal256>,
         close_factor: Option<Decimal256>,
+        oracle: Option<ContractLink<HumanAddr>>
     ) -> StdResult<HandleResponse> {
         let mut constants = Constants::load(&deps.storage)?;
 
@@ -358,6 +361,10 @@ pub trait Overseer {
         }
 
         Constants::save(&mut deps.storage, &constants)?;
+
+        if let Some(oracle) = oracle {
+            Contracts::save_oracle(deps, oracle)?;
+        }
 
         Ok(HandleResponse {
             messages: vec![],

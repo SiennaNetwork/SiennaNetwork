@@ -695,7 +695,8 @@ fn premium_rate() {
     lend.ensemble.execute(
         &overseer::HandleMsg::ChangeConfig {
             premium_rate: Some(Decimal256::percent(150)),
-            close_factor: None
+            close_factor: None,
+            oracle: None
         },
         MockEnv::new(ADMIN, lend.overseer.clone())
     ).unwrap();
@@ -715,7 +716,8 @@ fn premium_rate() {
     lend.ensemble.execute(
         &overseer::HandleMsg::ChangeConfig {
             premium_rate: Some(Decimal256::percent(200)),
-            close_factor: None
+            close_factor: None,
+            oracle: None
         },
         MockEnv::new(ADMIN, lend.overseer.clone())
     ).unwrap();

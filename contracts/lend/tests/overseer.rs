@@ -8,9 +8,9 @@ use lend_shared::{
         from_binary,
         snip20_impl::msg::HandleMsg as Snip20HandleMsg,
         to_binary, Binary, Composable, Decimal256, Env, HandleResponse, HumanAddr, InitResponse,
-        Permit, StdError, StdResult, Uint128, Uint256,
+        Permit, StdError, StdResult, Uint128, Uint256, ContractLink
     },
-    interfaces::{market, overseer::*},
+    interfaces::{market, overseer::*, oracle},
 };
 
 use crate::setup::{Lend, LendConfig, ADMIN};
@@ -623,6 +623,7 @@ fn calculate_amount_seize() {
                 &HandleMsg::ChangeConfig {
                     premium_rate: Some(*premium),
                     close_factor: None,
+                    oracle: None
                 },
                 MockEnv::new(ADMIN, lend.overseer.clone()),
             )
@@ -1028,4 +1029,201 @@ fn faulty_oracle_price_causes_liquidity_check_to_error() {
     ).unwrap_err();
 
     assert_eq!(err, StdError::generic_err("Invalid price reported by the oracle."));
+}
+
+struct MockBand;
+
+impl ContractHarness for MockBand {
+    fn init(&self, _deps: &mut MockDeps, _env: Env, _msg: Binary) -> StdResult<InitResponse> {
+        Ok(InitResponse::default())
+    }
+
+    fn handle(&self, _deps: &mut MockDeps, _env: Env, _msg: Binary) -> StdResult<HandleResponse> {
+        Err(StdError::GenericErr {
+            msg: "Not Implemented".to_string(),
+            backtrace: None,
+        })
+    }
+
+    fn query(
+        &self,
+        deps: &MockDeps,
+        msg: Binary
+    ) -> StdResult<Binary> {
+        let msg = from_binary(&msg).unwrap();
+
+        match msg {
+            lend_oracle::SourceQuery::GetReferenceData { base_symbol, .. } => {
+                let key: &[u8] = base_symbol.as_bytes();
+                match deps.get(key).unwrap() {
+                    Some(value) => to_binary(&lend_oracle::BandResponse {
+                        rate: value,
+                        last_updated_base: 1628544285u64,
+                        last_updated_quote: 3377610u64,
+                    }),
+                    None => Err(StdError::generic_err(format!(
+                        "No price for {} found.",
+                        String::from_utf8(key.into()).unwrap()
+                    ))),
+                }
+            }
+            _ => unimplemented!()
+        }
+    }
+}
+
+#[test]
+fn change_oracle() {
+    let mallory = "mallory";
+    let alice = "alice";
+
+    let mut lend = Lend::default();
+
+    let prefund_amount = 200u128;
+    let borrow_amount = 100u128;
+
+    let underlying_1 = lend.new_underlying_token("ATOM", 18).unwrap();
+    let underlying_2 = lend.new_underlying_token("SSCRT", 18).unwrap();
+
+    let market_1 = lend.whitelist_market(
+        underlying_1.clone(),
+        Decimal256::one(),
+        Some(Decimal256::percent(20)),
+        Some(Decimal256::one())
+    ).unwrap();
+
+    let market_2 = lend.whitelist_market(
+        underlying_2,
+        Decimal256::one(),
+        Some(Decimal256::percent(20)),
+        Some(Decimal256::one())
+    ).unwrap();
+
+    lend.set_oracle_price(market_1.symbol.as_bytes(), Uint128(1 * one_token(18))).unwrap();
+    lend.set_oracle_price(market_2.symbol.as_bytes(), Uint128(1 * one_token(18))).unwrap();
+
+    lend.prefund_and_deposit(
+        alice,
+        prefund_amount.into(),
+        market_2.contract.address.clone()
+    );
+
+    lend.prefund_and_deposit(
+        mallory,
+        prefund_amount.into(),
+        market_1.contract.address.clone()
+    );
+
+    lend.ensemble.execute(
+        &HandleMsg::Enter {
+            markets: vec![
+                market_1.contract.address.clone(),
+                market_2.contract.address.clone()
+            ],
+        },
+        MockEnv::new(mallory, lend.overseer.clone()),
+    )
+    .unwrap();
+
+    let liquidity = lend.get_liquidity(
+        mallory,
+        None,
+        Uint256::zero(),
+        Uint256::zero(),
+        None
+    ).unwrap();
+
+    assert_eq!(liquidity.liquidity, prefund_amount.into());
+    assert_eq!(liquidity.shortfall, Uint256::zero());
+
+    lend.ensemble.execute(
+        &market::HandleMsg::Borrow {
+            amount: borrow_amount.into()
+        },
+        MockEnv::new(mallory, market_2.contract.clone())
+    ).unwrap();
+
+    let info = lend.ensemble.register(Box::new(MockBand));
+    lend.mock_band = lend.ensemble.instantiate(
+        info.id,
+        &{},
+        MockEnv::new(
+            ADMIN,
+            ContractLink {
+                address: "mock_band_new".into(),
+                code_hash: info.code_hash.clone(),
+            }
+        )
+    ).unwrap();
+
+    lend.set_oracle_price(market_1.symbol.as_bytes(), Uint128(1 * one_token(18))).unwrap();
+
+    let consumer = lend.ensemble.instantiate(
+        2,
+        &oracle::InitMsg {
+            admin: None,
+            source: lend.mock_band.clone(),
+            initial_assets: vec![],
+            overseer: oracle::OverseerRef::ExistingInstance(lend.overseer.clone())
+        },
+        MockEnv::new(ADMIN, ContractLink {
+            address: "new_oracle".into(),
+            code_hash: info.code_hash
+        })
+    ).unwrap();
+
+    let old: ContractLink<HumanAddr> = lend.ensemble.query(
+        lend.overseer.address.clone(),
+        QueryMsg::OracleContract { }
+    ).unwrap();
+
+    lend.ensemble.execute(
+        &HandleMsg::ChangeConfig {
+            premium_rate: None,
+            close_factor: None,
+            oracle: Some(consumer.clone())
+        },
+        MockEnv::new(ADMIN, lend.overseer.clone())
+    ).unwrap();
+
+    let new: ContractLink<HumanAddr> = lend.ensemble.query(
+        lend.overseer.address.clone(),
+        QueryMsg::OracleContract {  }
+    ).unwrap();
+
+    assert_ne!(old, new);
+    assert_eq!(new, consumer);
+
+    let err = lend.get_liquidity(
+        mallory,
+        None,
+        Uint256::zero(),
+        Uint256::zero(),
+        None
+    ).unwrap_err();
+
+    assert_eq!(
+        err,
+        StdError::generic_err(format!("No price for {} found.", market_2.symbol))
+    );
+
+    let err = lend.ensemble.execute(
+        &market::HandleMsg::Borrow {
+            amount: borrow_amount.into()
+        },
+        MockEnv::new(mallory, market_2.contract)
+    ).unwrap_err();
+
+    assert_eq!(
+        err,
+        StdError::generic_err(format!("No price for {} found.", market_2.symbol))
+    );
+
+    let config: oracle::ConfigResponse = lend.ensemble.query(
+        new.address,
+        oracle::QueryMsg::Config { }
+    ).unwrap();
+
+    assert_eq!(config.overseer, lend.overseer);
+    assert_eq!(config.source, lend.mock_band);
 }

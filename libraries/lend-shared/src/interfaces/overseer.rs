@@ -58,7 +58,8 @@ pub trait Overseer {
     #[handle]
     fn change_config(
         premium_rate: Option<Decimal256>,
-        close_factor: Option<Decimal256>
+        close_factor: Option<Decimal256>,
+        oracle: Option<ContractLink<HumanAddr>>
     ) -> StdResult<HandleResponse>;
 
     #[query]
