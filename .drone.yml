@@ -23,28 +23,16 @@ steps:
     #
     - pwd
     - ls -al
-    - mkdir -p ~/.ssh
-    - printenv DRONE_KEY > ~/.ssh/id_rsa
-    - chmod 0600 ~/.ssh/id_rsa
-    - ssh-keyscan git.sienna.network >> ~/.ssh/known_hosts
+    #- mkdir -p ~/.ssh
+    #- printenv DRONE_KEY > ~/.ssh/id_rsa
+    #- chmod 0600 ~/.ssh/id_rsa
+    #- ssh-keyscan git.sienna.network >> ~/.ssh/known_hosts
     - git submodule update --init
 
-  # Rust part ######################################################################################
-
-  # Restore cache if present.
-  # See http://plugins.drone.io/meltwater/drone-cache/
-  #- name:     get-rust-cache
-    #depends_on:
-      #- submodules
-    #image:    meltwater/drone-cache:dev
-    #volumes:  [ { name: cache, path: /tmp/cache } ]
-    #settings:
-      #backend:   "filesystem"
-      #restore:   true
-      #cache_key: "{{ .Repo.Name }}"
-      #mount:     [ "/drone/src/.cargo-home", "/drone/src/target" ]
+  # Phase 1. Rust. Build smart contracts. ##########################################################
 
   - name: build-and-test
+    depends_on: [ submodules ]
     image: rust:1.59-slim
     environment: 
       COVERAGE_KEY: { from_secret: coverage_key }
@@ -53,98 +41,30 @@ steps:
     - cargo --version
     - rustc --version
     - cargo build
-    - cargo test
+    #- cargo test
     - pwd
     - ls -al
     - echo $HOME
     - ls -al $HOME
     - export
 
-  #- name: coverage
-    ##depends_on:
-      ##- get-rust-cache
-    #image:       xd009642/tarpaulin:0.20.0-nightly-slim
-    ## This container needs to be privileged to generate coverage
-    ## because Tarpaulin relies on disabling ASLR for the process
-    ## in order to perform tracing. Maybe try grcov after all.
-    ## privileged:  true
-    #environment: 
-      #COVERAGE_KEY: { from_secret: coverage_key }
-      #CARGO_HOME: /drone/src/.cargo-home
-    #commands:
-    ## Are these needed or not?
-    ##- rustup toolchain install stable
-    ##- rustup set profile minimal
-    ##- rustup target add wasm32-unknown-unknown
-    ## But we aint doing coverage anyway, just seeing if the contract builds
-    ##- cargo tarpaulin --workspace --ignore-panics --ignore-tests --coveralls $COVERAGE_KEY --report-uri https://cov.sienna.network/api/v1/jobs
-    #- cargo --version
-    #- rustc --version
-    #- cargo build
-    #- cargo test
-    #- pwd
-    #- ls -al
-    #- echo $HOME
-    #- ls -al $HOME
-    #- export
-
-  # Update cache.
-  # See http://plugins.drone.io/meltwater/drone-cache/
-  #- name:     set-rust-cache
-    #depends_on:
-      #- build
-    #image:    meltwater/drone-cache:dev
-    #volumes:  [ { name: cache, path: /tmp/cache } ]
-    #settings:
-      #backend:   "filesystem"
-      #rebuild:   true
-      #cache_key: "{{ .Repo.Name }}"
-      #mount:     [ "/drone/src/.cargo-home", "/drone/src/target" ]
-
-  # Node part ######################################################################################
-
-  # Restore cache if present.
-  #- name:     get-node-cache
-    #depends_on:
-      #- submodules
-    #image:    meltwater/drone-cache:dev
-    #volumes:  [ { name: cache, path: /tmp/cache } ]
-    #settings:
-      #backend:   "filesystem"
-      #restore:   true
-      #cache_key: "{{ .Repo.Name }}"
-      #mount:     [ "/drone/src/.pnpm-store/v3", "/drone/src/node_modules" ]
+  # Phase 2. TypeScript. Contract deployment and operations. #######################################
 
   # Install dependencies and make sure ops scripts work
   - name:  pnpm-deps
-    #depends_on:
-      #- get-node-cache
+    depends_on: [ submodules ]
     image: node:14-slim
     commands:
       - npm i -g pnpm
       - pnpm i --unsafe-perm
 
-  # Update cache.
-  #- name:     set-node-cache
-    #depends_on:
-      #- pnpm-deps
-    #image:    meltwater/drone-cache:dev
-    #volumes:  [ { name: cache, path: /tmp/cache } ]
-    #settings:
-      #backend:   "filesystem"
-      #rebuild:   true
-      #cache_key: "{{ .Repo.Name }}"
-      #mount:     [ "/drone/src/.pnpm-store/v3", "/drone/src/node_modules" ]
-
   # Run tests
   - name:  pnpm-test
-    #depends_on:
-      #- set-node-cache
+    depends_on: [ pnpm-deps ]
     image: node:14-slim
     commands:
       - cat package.json
       - npm i -g pnpm
-      - pnpm -w dev
-      - FADROMA_CHAIN=mocknet pnpm dev test clients
-      - FADROMA_CHAIN=pulsar-2 pnpm ops
-      - FADROMA_CHAIN=secret-3 pnpm ops
+      - pnpm build
+      - pnpm deploy
+      - pnpm test

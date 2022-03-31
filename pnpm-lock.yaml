@@ -629,6 +629,7 @@ importers:
       '@sienna/api': workspace:*
       '@sienna/receipts': workspace:^1.0.0
       '@sienna/settings': workspace:^1.0.0
+      '@waiting/base64': ^4.2.9
       chokidar: ^3.5.3
       cross-spawn: ^7.0.3
       js-yaml: ^4.1.0
@@ -638,6 +639,7 @@ importers:
       '@sienna/api': link:../frontends/api
       '@sienna/receipts': link:../receipts
       '@sienna/settings': link:../settings
+      '@waiting/base64': 4.2.9
       chokidar: 3.5.3
       cross-spawn: 7.0.3
       js-yaml: 4.1.0
