@@ -39,7 +39,7 @@ The `getSources` function takes one optional argument, `ref`
 and returns a mapping from crate name to `Source` object.
 
 ```typescript
-export const getSources = Source.collectCrates(workspace, [
+export const contracts =[
   // TGE
   'snip20-sienna',
   'sienna-mgmt',
@@ -59,13 +59,16 @@ export const getSources = Source.collectCrates(workspace, [
   'lend-mock-oracle',
   'lend-oracle',
   'lend-overseer'
-])
+]
+
+export const getSources = Source.collectCrates(workspace, contracts)
 ```
 
 ### Commits of note
 
 ```typescript
 export const refs = {
+  HEAD: 'HEAD',
   // TGE_v1: TODO find which commit was deployed on mainnet launch
   AMM_v1:     'legacy/amm-v1',
   AMM_v2:     'legacy/amm-v2-rewards-v3',
@@ -82,17 +85,24 @@ and may be deprecated in the future as live mode evolves.
 
 ```typescript
 Fadroma.command('all',
-  () => buildTge('HEAD'),
-  () => buildTokens('HEAD'),
-  () => buildTokens(refs['AMM_v1']),
-  () => buildTokens(refs['AMM_v2']),
-  () => buildAmm('HEAD'),
-  () => buildAmm(refs['AMM_v1']),
-  () => buildAmm(refs['AMM_v2']),
-  () => buildLaunchpad(refs['AMM_v1']),
-  () => buildIdo(refs['AMM_v1']),
-  () => buildRewards(refs['Rewards_v2']),
-  () => buildRewards(refs['Rewards_v3']))
+  function buildTgeLatest       () { buildTge('HEAD') },
+  function buildTokensLatest    () { buildTokens('HEAD') },
+  function buildTokensAMMv1     () { buildTokens('AMM_v1') },
+  function buildTokensAMMv2     () { buildTokens('AMM_v2') },
+  function buildAMMLatest       () { buildAmm('HEAD') },
+  function buildAMMv1           () { buildAmm('AMM_v1') },
+  function buildAMMv1Launchpad  () { buildLaunchpad('AMM_v1') },
+  function buildAMMv1Ido        () { buildIdo('AMM_v1') },
+  function buildAMMv2           () { buildAmm('AMM_v2') },
+  function buildRewardsv2       () { buildRewards('Rewards_v2') },
+  function buildRewardsv3       () { buildRewards('Rewards_v3') }
+)
+
+Fadroma.command('latest',
+  function buildLatest () {
+    const sources = getSources()
+    return Scrt_1_2.getBuilder().buildMany(contracts.map(x=>sources[x]))
+  })
 
 Fadroma.command('router', parallel(
   () => buildTokens('HEAD'),
@@ -109,7 +119,7 @@ Fadroma.command('amm_v2',
   () => buildAmm(refs['AMM_v2']))
 
 export async function buildTge (ref?) {
-  const sources = getSources(ref)
+  const sources = getSources(refs[ref])
   return Scrt_1_2.getBuilder().buildMany([
     'snip20-sienna',
     'sienna-mgmt',
@@ -118,7 +128,7 @@ export async function buildTge (ref?) {
 }
 
 export async function buildTokens (ref?): Promise<Artifact[]> {
-  const sources = getSources(ref)
+  const sources = getSources(refs[ref])
   return Scrt_1_2.getBuilder().buildMany([
     'amm-snip20',
     'lp-token',
@@ -126,7 +136,7 @@ export async function buildTokens (ref?): Promise<Artifact[]> {
 }
 
 export async function buildAmm (ref?): Promise<Artifact[]> {
-  const sources = getSources(ref)
+  const sources = getSources(refs[ref])
   return Scrt_1_2.getBuilder().buildMany([
     'factory',
     'exchange',
@@ -134,28 +144,28 @@ export async function buildAmm (ref?): Promise<Artifact[]> {
 }
 
 export async function buildLaunchpad (ref?): Promise<Artifact[]> {
-  const sources = getSources(ref)
+  const sources = getSources(refs[ref])
   return Scrt_1_2.getBuilder().buildMany([
     'launchpad',
   ].map(x=>sources[x]))
 }
 
 export async function buildIdo (ref?): Promise<Artifact[]> {
-  const sources = getSources(ref)
+  const sources = getSources(refs[ref])
   return Scrt_1_2.getBuilder().buildMany([
     'ido',
   ].map(x=>sources[x]))
 }
 
 export async function buildRouter (ref?): Promise<Artifact[]> {
-  const sources = getSources(ref)
+  const sources = getSources(refs[ref])
   return Scrt_1_2.getBuilder().buildMany([
     'router',
   ].map(x=>sources[x]))
 }
 
 export async function buildRewards (ref?): Promise<Artifact[]> {
-  const sources = getSources(ref)
+  const sources = getSources(refs[ref])
   const builder = Scrt_1_2.getBuilder()
   return Scrt_1_2.getBuilder().buildMany([
     'sienna-rewards',
@@ -163,7 +173,7 @@ export async function buildRewards (ref?): Promise<Artifact[]> {
 }
 
 export async function buildLend (ref?): Promise<Artifact[]> {
-  const sources = getSources(ref)
+  const sources = getSources(refs[ref])
   return Scrt_1_2.getBuilder().buildMany([
     'lend-interest-model',
     'lend-oracle',
