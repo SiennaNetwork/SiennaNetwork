@@ -8,8 +8,8 @@ use fadroma::{
     require_admin,
     schemars::{self, JsonSchema},
     secret_toolkit::snip20,
-    space_pad, to_binary, to_cosmos_msg, Api, Binary, ContractLink, Env, Extern, HumanAddr,
-    LogAttribute, Querier, StdError, Storage, WasmQuery, BLOCK_SIZE,
+    space_pad, to_binary, to_cosmos_msg, Api, ContractLink, Env, Extern, HumanAddr, LogAttribute,
+    Querier, StdError, Storage, WasmQuery, BLOCK_SIZE,
 };
 pub mod state;
 use fadroma::{derive_contract::*, killswitch};
@@ -168,12 +168,6 @@ where
             msg,
         }))?;
     Ok(progress.unlocked.sub(progress.claimed)?)
-}
-
-fn claim_msg() -> StdResult<Binary> {
-    let mut msg = to_binary(&MGMTHandle::Claim {})?;
-    space_pad(&mut msg.0, BLOCK_SIZE);
-    Ok(msg)
 }
 
 fn validate<T>(portion: Uint128, config: &Distribution<T>) -> StdResult<()> {
