@@ -39,7 +39,7 @@ The `getSources` function takes one optional argument, `ref`
 and returns a mapping from crate name to `Source` object.
 
 ```typescript
-export const contracts =[
+export const contracts = [
   // TGE
   'snip20-sienna',
   'sienna-mgmt',
@@ -85,17 +85,17 @@ and may be deprecated in the future as live mode evolves.
 
 ```typescript
 Fadroma.command('all',
-  function buildTgeLatest       () { buildTge('HEAD') },
-  function buildTokensLatest    () { buildTokens('HEAD') },
-  function buildTokensAMMv1     () { buildTokens('AMM_v1') },
-  function buildTokensAMMv2     () { buildTokens('AMM_v2') },
-  function buildAMMLatest       () { buildAmm('HEAD') },
-  function buildAMMv1           () { buildAmm('AMM_v1') },
-  function buildAMMv1Launchpad  () { buildLaunchpad('AMM_v1') },
-  function buildAMMv1Ido        () { buildIdo('AMM_v1') },
-  function buildAMMv2           () { buildAmm('AMM_v2') },
-  function buildRewardsv2       () { buildRewards('Rewards_v2') },
-  function buildRewardsv3       () { buildRewards('Rewards_v3') }
+  function buildTgeLatest       () { return buildTge('HEAD') },
+  function buildTokensLatest    () { return buildTokens('HEAD') },
+  function buildTokensAMMv1     () { return buildTokens('AMM_v1') },
+  function buildTokensAMMv2     () { return buildTokens('AMM_v2') },
+  function buildAMMLatest       () { return buildAmm('HEAD') },
+  function buildAMMv1           () { return buildAmm('AMM_v1') },
+  function buildAMMv1Launchpad  () { return buildLaunchpad('AMM_v1') },
+  function buildAMMv1Ido        () { return buildIdo('AMM_v1') },
+  function buildAMMv2           () { return buildAmm('AMM_v2') },
+  function buildRewardsv2       () { return buildRewards('Rewards_v2') },
+  function buildRewardsv3       () { return buildRewards('Rewards_v3') }
 )
 
 Fadroma.command('latest',

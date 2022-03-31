@@ -157,7 +157,10 @@ Sienna.Deploy = {}
 
 Sienna.Deploy.TGE = deployTGE
 
-Sienna.Deploy.AMM = {}
+Sienna.Deploy.AMM =
+  function deployAMM_HEAD ({run}) {
+    return run(deployAMM, {
+      ammVersion: 'v2', ref: 'HEAD' }) }
 Sienna.Deploy.AMM.v1 =
   function deployAMM_v1 ({run}) {
     return run(deployAMM, {
@@ -169,7 +172,12 @@ Sienna.Deploy.AMM.v2 =
 
 Sienna.Deploy.Router = deployRouter
 
-Sienna.Deploy.Rewards = {}
+Sienna.Deploy.Rewards =
+  function deployRewards_HEAD ({run}) {
+    return run(deployRewards, {
+      version:   'v3',
+      adjustRPT: true,
+      ref:       'HEAD' }) }
 Sienna.Deploy.Rewards.v2 =
   function deployRewards_v2 ({run}) {
     return run(deployRewards, {
@@ -226,6 +234,12 @@ Sienna.Upgrade.Rewards.v2_to_v3 =
 
 > Run with: `pnpm deploy tge`
 
+```typescript
+Fadroma.command('tge',
+  ...inNewDeployment,
+  Sienna.Deploy.TGE)
+```
+
 **The Sienna TGE (Token Generation Event)** is the
 core of the Sienna Platform. It contains a token (SIENNA)
 and two vesting contracts:
@@ -267,10 +281,6 @@ and deploy just the TGE contracts.
 import { buildTge } from './Build'
 import { testers, getRPTAccount } from './Configure'
 import { schedule } from '@sienna/settings'
-
-Fadroma.command('tge',
-  ...inNewDeployment,
-  Sienna.Deploy.TGE)
 
 export async function deployTGE (
   context: MigrationContext & TGEDeployOptions
@@ -389,6 +399,20 @@ export async function deployTGE (
 
 ### Deploying Sienna Swap (Factory + Exchanges)
 
+```typescript
+Fadroma.command('amm',
+  ...inCurrentDeployment,
+  Sienna.Deploy.AMM.v2)
+
+Fadroma.command('amm legacy',
+  ...inCurrentDeployment,
+  Sienna.Deploy.AMM.v1)
+
+Fadroma.command('factory v1',
+  ...inCurrentDeployment,
+  Sienna.Deploy.AMM.v1)
+```
+
 This procedure takes the active TGE deployment,
 attaches a new AMM Factory to it, and uses
 that factory to create the AMM Exchange liquidity pools
@@ -469,18 +493,6 @@ as compared by `TOKEN0` and `TOKEN1`.
 import { buildAMMTemplates, buildRouter } from './Build'
 import * as Tokens from './Tokens'
 
-Fadroma.command('amm',
-  ...inCurrentDeployment,
-  Sienna.Deploy.AMM.v2)
-
-Fadroma.command('amm legacy',
-  ...inCurrentDeployment,
-  Sienna.Deploy.AMM.v1)
-
-Fadroma.command('factory v1',
-  ...inCurrentDeployment,
-  Sienna.Deploy.AMM.v1)
-
 async function deployAMM (
   context: MigrationContext & AMMDeployOptions
 ): Promise<AMMDeployResult> {
@@ -504,9 +516,8 @@ export async function deployAMMFactory (
     version   = 'v2',
     ref       = refs[`AMM_${version}`]
     builder   = new Scrt_1_2.Builder(),
-    template  = await uploader.upload(
-      await builder.build(getSources(ref)['factory'])
-    ),
+    artifact  = await builder.build(getSources(ref)['factory'])
+    template  = await uploader.upload(artifact),
     templates = await buildAMMTemplates(uploader, version),
     config = {
       admin: agent.address,
@@ -627,6 +638,20 @@ export async function deployRouter (
 
 ### Upgrading the AMM
 
+```typescript
+Fadroma.command('amm v1_to_v2_all',
+  ...inCurrentDeployment,
+  Sienna.Upgrade.AMM.v1_to_v2)
+
+Fadroma.command('amm v1_to_v2_factory',
+  ...inCurrentDeployment,
+  Sienna.Upgrade.AMM.Factory.v1_to_v2)
+
+Fadroma.command('amm v1_to_v2_exchanges',
+  ...inCurrentDeployment,
+  Sienna.Upgrade.AMM.Exchanges.v1_to_v2)
+```
+
 This procedure takes an existing AMM and
 creates a new one with the same contract templates. 
 Then, recreate all the exchanges from the
@@ -675,18 +700,6 @@ type RedeployAMMExchangeResult = {
 </td><td valign="top">
 
 ```typescript
-Fadroma.command('amm v1_to_v2_all',
-  ...inCurrentDeployment,
-  Sienna.Upgrade.AMM.v1_to_v2)
-
-Fadroma.command('amm v1_to_v2_factory',
-  ...inCurrentDeployment,
-  Sienna.Upgrade.AMM.Factory.v1_to_v2)
-
-Fadroma.command('amm v1_to_v2_exchanges',
-  ...inCurrentDeployment,
-  Sienna.Upgrade.AMM.Exchanges.v1_to_v2)
-
 import * as Receipts from './Receipts'
 
 async function upgradeAMM (
@@ -846,6 +859,16 @@ async function redeployAMMExchanges (
 ### Deploying Sienna Rewards
 
 ```typescript
+Fadroma.command('rewards v2',
+  ...inCurrentDeployment,
+  Sienna.Deploy.Rewards.v2)
+
+Fadroma.command('rewards v3',
+  ...inCurrentDeployment,
+  Sienna.Deploy.Rewards.v3)
+```
+
+```typescript
 type RewardsDeployOptions = {
   /** Which address will be admin
     * of the new reward pools.
@@ -882,15 +905,6 @@ type RewardsDeployResult = RewardsClient[]
 
 ```typescript
 import { adjustRPTConfig } from './Configure'
-
-Fadroma.command('rewards v2',
-  ...inCurrentDeployment,
-  Sienna.Deploy.Rewards.v2)
-
-Fadroma.command('rewards v3',
-  ...inCurrentDeployment,
-  Sienna.Deploy.Rewards.v3)
-
 async function deployRewards (
   context: MigrationContext & RewardsDeployOptions
 ): Promise<RewardsDeployResult> {
@@ -1010,6 +1024,12 @@ const makeRewardsInitMsg = {
 ## Upgrading Sienna Rewards
 
 ```typescript
+Fadroma.command('rewards v2_to_v3',
+  ...inCurrentDeployment,
+  Sienna.Upgrade.Rewards.v2_to_v3)
+```
+
+```typescript
 type RewardsUpgradeOptions = {
 
   settings: {
@@ -1045,10 +1065,6 @@ type RewardsUpgradeResult = {
 </td><td valign="top">
 
 ```typescript
-Fadroma.command('rewards v2_to_v3',
-  ...inCurrentDeployment,
-  Sienna.Upgrade.Rewards.v2_to_v3)
-
 async function upgradeRewards (
   context: MigrationContext & RewardsUpgradeOptions
 ): Promise<RewardsUpgradeResult> {
@@ -1121,6 +1137,12 @@ async function upgradeRewards (
 > Run with `pnpm deploy lend`
 
 ```typescript
+Fadroma.command("lend",
+  ...inCurrentDeployment,
+  Sienna.Deploy.Lend)
+```
+
+```typescript
 type LendInterestModelOptions = {
   base_rate_year:       string
   blocks_year:          number
@@ -1151,10 +1173,6 @@ type LendContracts = {
 
 ```typescript
 import { buildLend } from './Build'
-
-Fadroma.command("lend",
-  ...inCurrentDeployment,
-  Sienna.Deploy.Lend)
 
 export async function deployLend (
   context: MigrationContext & LendInterestModelOptions & LendOverseerOptions
@@ -1304,8 +1322,8 @@ It deploys the latest development versions of everything.
 Fadroma.command('latest',
   ...inNewDeployment,
   Sienna.Deploy.TGE,
-  Sienna.Deploy.AMM.v2,
-  Sienna.Deploy.Rewards.v3,
+  Sienna.Deploy.AMM,
+  Sienna.Deploy.Rewards,
   Sienna.Deploy.Router,
   Sienna.Deploy.Lend,
   Sienna.Deploy.Status)
