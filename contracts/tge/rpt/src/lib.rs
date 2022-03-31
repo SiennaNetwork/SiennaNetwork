@@ -8,8 +8,8 @@ use fadroma::{
     require_admin,
     schemars::{self, JsonSchema},
     secret_toolkit::snip20,
-    space_pad, to_binary, Api, Binary, ContractLink, CosmosMsg, Env, Extern, HumanAddr,
-    LogAttribute, Querier, StdError, Storage, WasmMsg, WasmQuery, BLOCK_SIZE,
+    space_pad, to_binary, to_cosmos_msg, Api, Binary, ContractLink, Env, Extern, HumanAddr,
+    LogAttribute, Querier, StdError, Storage, WasmQuery, BLOCK_SIZE,
 };
 pub mod state;
 use fadroma::{derive_contract::*, killswitch};
@@ -74,11 +74,7 @@ pub trait RPT {
     fn guard(msg: &HandleMsg) -> StdResult<()> {
         let operational = killswitch::is_operational(deps);
 
-        if operational.is_err() && matches!(
-            msg,
-            HandleMsg::Killswitch(_) |
-            HandleMsg::Admin(_)
-        ) {
+        if operational.is_err() && matches!(msg, HandleMsg::Killswitch(_) | HandleMsg::Admin(_)) {
             Ok(())
         } else {
             operational
@@ -100,29 +96,35 @@ pub trait RPT {
         let token = State::load_token(deps)?;
         let portion = State::load_portion(deps)?.u128();
         let distribution = State::load_distribution(deps)?;
-        let mut msgs = vec![CosmosMsg::Wasm(WasmMsg::Execute {
-            contract_addr: mgmt.address.clone(),
-            callback_code_hash: mgmt.code_hash.clone(),
-            send: vec![],
-            msg: claim_msg()?,
-        })];
-
         let claimable = query_claimable(&deps, &env, &mgmt)?.u128();
         let portions = claimable / portion;
         let remainder = claimable % portion;
 
-        for (addr, amount) in distribution.0.iter() {
-            let msg = snip20::transfer_msg(
-                addr.clone(),
-                Uint128(amount.u128() * portions),
-                None,
-                None,
-                BLOCK_SIZE,
-                token.code_hash.clone(),
-                token.address.clone(),
-            )?;
-            msgs.push(msg);
-        }
+        let transfers = distribution
+            .0
+            .iter()
+            .map(|(addr, amount)| {
+                snip20::batch::TransferAction::new(
+                    addr.clone(),
+                    Uint128(amount.u128() * portions),
+                    None,
+                )
+            })
+            .collect::<Vec<_>>();
+
+        let batch_transfer_msg = snip20::batch_transfer_msg(
+            transfers,
+            None,
+            BLOCK_SIZE,
+            token.code_hash.clone(),
+            token.address.clone(),
+        )?;
+
+        let claim_msg = to_cosmos_msg(
+            mgmt.address.clone(),
+            mgmt.code_hash.clone(),
+            &MGMTHandle::Claim {},
+        )?;
 
         let mut logs = vec![];
         if remainder > 0 {
@@ -136,7 +138,7 @@ pub trait RPT {
         Ok(HandleResponse {
             data: None,
             log: logs,
-            messages: msgs,
+            messages: vec![claim_msg, batch_transfer_msg],
         })
     }
 }
