@@ -1,7 +1,7 @@
 mod migration;
 mod state;
 
-pub use state::{Pagination, Claim};
+pub use state::{Claim, Pagination};
 
 use fadroma::{
     admin,
@@ -96,11 +96,7 @@ pub trait Mgmt {
     fn guard(msg: &HandleMsg) -> StdResult<()> {
         let operational = killswitch::is_operational(deps);
 
-        if operational.is_err() && matches!(
-            msg,
-            HandleMsg::Killswitch(_) |
-            HandleMsg::Admin(_)
-        ) {
+        if operational.is_err() && matches!(msg, HandleMsg::Killswitch(_) | HandleMsg::Admin(_)) {
             Ok(())
         } else {
             operational
@@ -166,7 +162,7 @@ pub trait Mgmt {
                 token.address,
             )?
             .amount;
-            
+
             if balance < schedule.total {
                 return Err(StdError::generic_err(MGMTError!(
                     PREFUND,
@@ -210,31 +206,31 @@ pub trait Mgmt {
 
         let (unlocked, claimable) = portion(&schedule, &claimant, elapsed);
 
-        if claimable > 0 {
-            claimant.set_claimed(&mut deps.storage, unlocked.into())?;
-            History::push(
-                &mut deps.storage,
-                Claim::new(claimant, &env.block, claimable.into()),
-            )?;
-
-            let token = Config::load_token(deps)?;
-
-            Ok(HandleResponse {
-                messages: vec![snip20::transfer_msg(
-                    env.message.sender,
-                    claimable.into(),
-                    None,
-                    None,
-                    BLOCK_SIZE,
-                    token.code_hash,
-                    token.address,
-                )?],
-                log: vec![log("action", "claim"), log("claimed", claimable)],
-                data: None,
-            })
-        } else {
-            Err(StdError::generic_err(MGMTError!(NOTHING)))
+        if claimable.eq(&u128::MIN) {
+            return Err(StdError::generic_err(MGMTError!(NOTHING)));
         }
+
+        claimant.set_claimed(&mut deps.storage, unlocked.into())?;
+        History::push(
+            &mut deps.storage,
+            Claim::new(claimant, &env.block, claimable.into()),
+        )?;
+
+        let token = Config::load_token(deps)?;
+
+        Ok(HandleResponse {
+            messages: vec![snip20::transfer_msg(
+                env.message.sender,
+                claimable.into(),
+                None,
+                None,
+                BLOCK_SIZE,
+                token.code_hash,
+                token.address,
+            )?],
+            log: vec![log("action", "claim"), log("claimed", claimable)],
+            data: None,
+        })
     }
 
     #[query]
