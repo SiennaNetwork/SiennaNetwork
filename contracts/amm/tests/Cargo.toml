@@ -17,4 +17,5 @@ sienna-rewards = { path = "../rewards" }
 router = { path = "../router" }
 
 [features]
+default=["gov"]
 gov = []

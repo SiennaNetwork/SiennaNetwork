@@ -25,9 +25,9 @@ pub mod config;
 pub mod errors;
 pub mod gov; // use crate::gov::*;
 pub mod handle;
+pub mod permit;
 pub mod query;
 pub mod time_utils;
-pub mod permit;
 pub mod total;
 
 #[cfg(test)]
@@ -92,9 +92,7 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
     to_binary(&Contract::query(deps, msg)?)
 }
 
-
-
-#[cfg(not(feature="gov"))]
+#[cfg(not(feature = "gov"))]
 pub trait Contract<S: Storage, A: Api, Q: Querier>:
     Composable<S, A, Q>
     + Auth<S, A, Q>
@@ -104,20 +102,19 @@ pub trait Contract<S: Storage, A: Api, Q: Querier>:
     + KeplrCompat<S, A, Q>
     + Drain<S, A, Q>
     + Sized
-    {
-        fn init(&mut self, env: Env, msg: Init) -> StdResult<InitResponse> {
-            msg.init(self, env)
-        }
-        fn handle(&mut self, env: Env, msg: Handle) -> StdResult<HandleResponse> {
-            msg.dispatch_handle(self, env)
-        }
-        fn query(&self, msg: Query) -> StdResult<Response> {
-            msg.dispatch_query(self)
-        }
+{
+    fn init(&mut self, env: Env, msg: Init) -> StdResult<InitResponse> {
+        msg.init(self, env)
     }
+    fn handle(&mut self, env: Env, msg: Handle) -> StdResult<HandleResponse> {
+        msg.dispatch_handle(self, env)
+    }
+    fn query(&self, msg: Query) -> StdResult<Response> {
+        msg.dispatch_query(self)
+    }
+}
 
-    
-#[cfg(feature="gov")]    
+#[cfg(feature = "gov")]
 pub trait Contract<S: Storage, A: Api, Q: Querier>:
     Composable<S, A, Q>
     + Auth<S, A, Q>
@@ -128,18 +125,17 @@ pub trait Contract<S: Storage, A: Api, Q: Querier>:
     + KeplrCompat<S, A, Q>
     + Drain<S, A, Q>
     + Sized
-    {
-        fn init(&mut self, env: Env, msg: Init) -> StdResult<InitResponse> {
-            msg.init(self, env)
-        }
-        fn handle(&mut self, env: Env, msg: Handle) -> StdResult<HandleResponse> {
-            msg.dispatch_handle(self, env)
-        }
-        fn query(&self, msg: Query) -> StdResult<Response> {
-            msg.dispatch_query(self)
-        }
+{
+    fn init(&mut self, env: Env, msg: Init) -> StdResult<InitResponse> {
+        msg.init(self, env)
     }
-
+    fn handle(&mut self, env: Env, msg: Handle) -> StdResult<HandleResponse> {
+        msg.dispatch_handle(self, env)
+    }
+    fn query(&self, msg: Query) -> StdResult<Response> {
+        msg.dispatch_query(self)
+    }
+}
 
 pub trait Rewards<S: Storage, A: Api, Q: Querier>:
 Composable<S, A, Q> // to compose with other modules
@@ -163,9 +159,9 @@ fn query (&self, msg: RewardsQuery) -> StdResult<RewardsResponse> {
 #[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct Init {
-    admin: Option<HumanAddr>,
-    config: RewardsConfig,
-    governance_config: Option<GovernanceConfig>,
+    pub admin: Option<HumanAddr>,
+    pub config: RewardsConfig,
+    pub governance_config: Option<GovernanceConfig>,
 }
 impl Init {
     fn init<S, A, Q, C>(self, core: &mut C, env: Env) -> StdResult<InitResponse>
@@ -176,7 +172,7 @@ impl Init {
         C: Contract<S, A, Q>,
     {
         Auth::init(core, &env, &self.admin, &env.contract.address)?;
-        #[cfg(feature="gov")]
+        #[cfg(feature = "gov")]
         Governance::init(core, &env, self.governance_config.unwrap_or_default())?;
         Ok(InitResponse {
             messages: Rewards::init(core, &env, self.config)?,
@@ -205,7 +201,7 @@ pub enum Handle {
         recipient: Option<HumanAddr>,
         key: String,
     },
-    #[cfg(feature="gov")]
+    #[cfg(feature = "gov")]
     Governance(GovernanceHandle),
 }
 impl<S, A, Q, C> HandleDispatch<S, A, Q, C> for Handle
@@ -232,8 +228,8 @@ where
                 recipient,
                 key,
             } => Drain::drain(core, env, snip20, recipient, key),
-            #[cfg(feature="gov")]
-            Handle::Governance(msg) => Governance::handle(core, env, msg)
+            #[cfg(feature = "gov")]
+            Handle::Governance(msg) => Governance::handle(core, env, msg),
         }
     }
 }
@@ -243,7 +239,7 @@ where
 pub enum Query {
     Auth(AuthQuery),
     Rewards(RewardsQuery),
-    #[cfg(feature="gov")]
+    #[cfg(feature = "gov")]
     Governance(GovernanceQuery),
     /// For Keplr integration
     TokenInfo {},
@@ -264,7 +260,7 @@ where
         Ok(match self {
             Query::Auth(msg) => Response::Auth(Auth::query(core, msg)?),
             Query::Rewards(msg) => Response::Rewards(Rewards::query(core, msg)?),
-            #[cfg(feature="gov")]
+            #[cfg(feature = "gov")]
             Query::Governance(msg) => Response::Governance(Governance::query(core, msg)?),
             Query::TokenInfo {} => KeplrCompat::token_info(core)?,
             Query::Balance { address, key } => {

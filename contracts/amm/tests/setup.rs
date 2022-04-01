@@ -22,19 +22,13 @@ use amm_shared::{
 use exchange::contract as exchange;
 use factory::contract as factory;
 use lp_token;
-use rewards::{
-    auth::AuthHandle,
-    handle::RewardsHandle,
-    Response
-};
+use rewards::{auth::AuthHandle, handle::RewardsHandle, Response};
 
-#[cfg(feature="gov")]
-use rewards::{
-    gov::{
-        poll::{Poll, PollInfo},
-        query::GovernanceQuery,
-        response::GovernanceResponse,
-    },
+#[cfg(feature = "gov")]
+use rewards::gov::{
+    poll::{Poll, PollInfo},
+    query::GovernanceQuery,
+    response::GovernanceResponse,
 };
 
 use router::contract as router;
@@ -137,9 +131,9 @@ impl Amm {
         let rewards = ensemble
             .instantiate(
                 rewards.id,
-                &msg::rewards::Init {
+                &sienna_rewards::Init {
                     admin: Some(ADMIN.into()),
-                    config: msg::rewards::RewardsConfig {
+                    config: sienna_rewards::config::RewardsConfig {
                         bonding: None,
                         lp_token: Some(ContractLink {
                             address: tokens[0].address.clone(),
@@ -312,7 +306,7 @@ impl Amm {
         }
     }
 
-    #[cfg(feature="gov")]
+    #[cfg(feature = "gov")]
     pub fn get_poll(&self, id: u64, now: u64) -> PollInfo {
         let result = self
             .ensemble
@@ -327,7 +321,7 @@ impl Amm {
         }
     }
 
-    #[cfg(feature="gov")]
+    #[cfg(feature = "gov")]
     pub fn get_polls(&self, page: u64, take: u64, asc: bool, now: u64) -> Vec<Poll> {
         let result = self
             .ensemble
