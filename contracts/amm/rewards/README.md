@@ -211,3 +211,5 @@ To migrate:
     from a closed pool one last time.
     Afterwards, their LP tokens will be returned
     and their liquidity share reset to 0.
+## Governance
+See [README](gov/README.md)

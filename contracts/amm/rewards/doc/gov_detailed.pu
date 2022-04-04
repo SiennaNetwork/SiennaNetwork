@@ -1,0 +1,100 @@
+@startuml
+actor FE 
+participant GovernanceHandle as GE
+collections User as U
+collections Poll as P
+collections Vote as V
+collections PollResult as PR
+
+== Create Poll ==
+
+FE -> GE: create poll
+activate GE
+GE -> GE: check threshold
+GE -> P: new
+activate P
+note right 
+  save quorum value at 
+  the time of creation
+end note
+return P
+GE -> U : create poll
+activate U
+U -> PR: new
+activate PR
+return
+U -> U: add to created polls
+return
+
+return
+
+
+== Vote ==
+
+FE -> GE: vote
+activate GE
+GE -> P: check expiration
+activate P
+return not expired
+GE -> U: add vote
+activate U
+U -> V : new
+activate V
+return vote
+U -> U: add to active polls
+U -> P: update result
+activate P
+P -> PR: change vote power
+activate PR
+return
+return
+return
+return
+
+== Change Vote Choice ==
+
+FE -> GE: change vote choice
+activate GE
+GE -> P: check expiration
+activate P
+return not expired
+GE -> U: change choice
+activate U
+U -> V : get existing
+activate V
+return vote
+U -> P: update result
+activate P
+P -> PR: transfer vote
+activate PR
+return
+return
+U -> V: update
+activate V
+return
+return
+
+
+== Unvote ==
+
+FE -> GE: unvote
+activate GE
+GE -> P: check expiration
+activate P
+return not expired
+GE -> U: remove vote
+activate U
+U -> V : remove existing
+activate V
+return 
+U -> U: remove from active polls
+U -> P: update result
+activate P
+P -> PR: change vote power
+activate PR
+return
+return
+return
+return
+
+@enduml

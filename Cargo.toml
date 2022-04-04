@@ -23,7 +23,6 @@ members = [
   # Launchpad
   "contracts/launchpad/launchpad",  # Launchpad contract
   "contracts/launchpad/ido",        # Sienna IDO
-  "contracts/launchpad/tests",      # Launchpad integration tests
 
   # Lend
   "libraries/lend-shared",         # definitions that are shared across the lending contracts

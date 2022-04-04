@@ -11,12 +11,12 @@ export type Duration = number;
  * Reward pool configuration
  */
 export interface RewardsConfig {
-  lp_token?:     ContractInfo;
+  lp_token?: ContractInfo;
   reward_token?: ContractInfo;
-  reward_vk?:    string;
-  bonding?:      number;
-  timekeeper?:   Address;
-};
+  reward_vk?: string;
+  bonding?: number;
+  timekeeper?: Address;
+}
 
 export interface RewardsClock {
   /** "For what point in time do the reported values hold true?" */
@@ -94,48 +94,80 @@ class RewardsV3Executor extends ViewingKeyExecutor {
     async claim(): Promise<ExecuteResult> {
         const msg = { rewards: { claim: { } } }
 
-        return this.run(msg, '80000')
-    }
+  async create_poll(meta: PollMetadata) {
+    const msg = { governance: { create_poll: { meta } } };
 
     async deposit_tokens(amount: Uint128): Promise<ExecuteResult> {
         const msg = { rewards: { deposit: { amount } } }
 
-        return this.run(msg, '75000')
-    }
+    return this.run(msg, "75000");
+  }
+  async unvote(poll_id: number) {
+    const msg = { governance: { poll_id } };
 
     async withdraw_tokens(amount: Uint128): Promise<ExecuteResult> {
         const msg = { rewards: { withdraw: { amount } } }
 
-        return this.run(msg, '75000')
-    }
+    return this.run(msg, "75000");
+  }
 }
 
 class RewardsV3Querier extends Querier {
-    async get_pool(
-        at: number
-    ): Promise<RewardsTotal> {
-        const msg = { rewards: { pool_info: { at } } }
+  async get_pool(at: number): Promise<RewardsTotal> {
+    const msg = { rewards: { pool_info: { at } } };
 
-        const result = await this.run(msg) as GetPoolResponse;
-        return result.rewards.pool_info;
-    }
+    const result = (await this.run(msg)) as GetPoolResponse;
+    return result.rewards.pool_info;
+  }
 
-    async get_account(
-        address: Address,
-        key:     ViewingKey,
-        at:      number
-    ): Promise<RewardsAccount> {
-        const msg = { rewards: { user_info: { address, key, at } } }
+  async get_account(
+    address: Address,
+    key: ViewingKey,
+    at: number
+  ): Promise<RewardsAccount> {
+    const msg = { rewards: { user_info: { address, key, at } } };
 
-        const result = await this.run(msg) as GetAccountResponse;
-        return result.rewards.user_info;
-    }
+    const result = (await this.run(msg)) as GetAccountResponse;
+    return result.rewards.user_info;
+  }
+
+  async get_poll(poll_id: number, now: number): Promise<PollInfo> {
+    const msg = { governance: { poll: { poll_id, now } } }; 
+    const result = await this.run(msg) as GetPollResponse;
+    return result.poll;
+  }
+
+  async get_polls(
+    now: number,
+    page: number,
+    take: number,
+    sort: SortingDirection
+  ): Promise<PollsCollection> {
+    const msg = { governance: { polls: { now, page, take, asc: !!sort } } };
+    return this.run(msg);
+  }
+  async get_vote_status(
+    address: Address,
+    key: string,
+    poll_id: number
+  ): Promise<VoteStatus> {
+    const msg = { governance: { vote_status: { address, key, poll_id } } };
+
+    const result = (await this.run(msg)) as GetVoteStatusResponse;
+    return result.vote_status;
+  }
+  async get_governance_config(): Promise<GovernanceConfig> {
+    const msg = { governance: { config: {} } };
+    const result = (await this.run(msg)) as GetGovernanceConfigResponse;
+
+    return result.config;
+  }
 }
 
 interface GetAccountResponse {
-    rewards: { user_info: RewardsAccount; }
+  rewards: { user_info: RewardsAccount };
 }
 
 interface GetPoolResponse {
-    rewards: { pool_info: RewardsTotal; };
+  rewards: { pool_info: RewardsTotal };
 }

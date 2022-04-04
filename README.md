@@ -35,10 +35,11 @@ and [scripts/Ops.ts.md](./scripts/Ops.ts.md)
 for the available workflow commands.
 
 See also:
-* **[Git submodules](https://git-scm.com/book/en/v2/Git-Tools-Submodules)** documentation,
-  and most importantly the `git submodule update --init --recursive` command.
-* THe **[pnpm](https://pnpm.io/)** package manager, and most importantly
-  its [Workspaces feature](https://pnpm.io/workspaces).
+
+-   **[Git submodules](https://git-scm.com/book/en/v2/Git-Tools-Submodules)** documentation,
+    and most importantly the `git submodule update --init --recursive` command.
+-   THe **[pnpm](https://pnpm.io/)** package manager, and most importantly
+    its [Workspaces feature](https://pnpm.io/workspaces).
 
 ## Repository content
 

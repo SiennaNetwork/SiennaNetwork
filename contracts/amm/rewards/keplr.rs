@@ -1,9 +1,6 @@
-use fadroma::*;
-use crate::{*, Auth};
+use crate::{Auth, *};
 
-pub trait KeplrCompat <S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
-    + Auth<S, A, Q>
-{
-    fn token_info (&self) -> StdResult<Response>;
-    fn balance (&self, address: HumanAddr, key: ViewingKey) -> StdResult<Response>;
+pub trait KeplrCompat<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q> + Auth<S, A, Q> {
+    fn token_info(&self) -> StdResult<Response>;
+    fn balance(&self, address: HumanAddr, key: ViewingKey) -> StdResult<Response>;
 }

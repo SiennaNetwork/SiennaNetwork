@@ -1,6 +1,6 @@
 [package]
 name = "amm-tests"
-version = "0.1.0"
+version = "0.1.0"   
 edition = "2018"
 
 [lib]
@@ -13,4 +13,9 @@ amm-shared = { path = "../../../libraries/amm-shared" }
 lp-token = { path = "../lp-token" }
 factory = { path = "../factory" }
 exchange = { path = "../exchange" }
+sienna-rewards = { path = "../rewards" }
 router = { path = "../router" }
+
+[features]
+default=["gov"]
+gov = []
