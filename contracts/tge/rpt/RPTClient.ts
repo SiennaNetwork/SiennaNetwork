@@ -1,5 +1,9 @@
 import { Client, Snip20Client } from '@hackbg/fadroma'
 
+export type RPTRecipient = string
+export type RPTAmount    = string
+export type RPTConfig    = [RPTRecipient, RPTAmount][]
+
 export class RPTClient extends Client {
 
   /** query contract status */

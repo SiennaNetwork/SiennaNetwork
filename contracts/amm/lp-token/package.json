@@ -1,7 +1,7 @@
 {
   "name":    "@sienna/lp-token",
   "version": "1.0.0",
-  "main":    "./LPTokenContract.ts",
+  "main":    "./LPToken.ts",
   "type":    "module",
   "dependencies": {
     "@hackbg/fadroma":  "workspace:../../../deps/fadroma",

@@ -1,7 +1,7 @@
 {
   "name":    "@sienna/lend-mock-oracle",
   "version": "0.0.1",
-  "main":    "./MockOracleContract.ts",
+  "main":    "./MockOracle.ts",
   "type":    "module",
   "dependencies": {
     "@hackbg/fadroma": "workspace:../../../deps/fadroma"
