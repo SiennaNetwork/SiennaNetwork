@@ -1,15 +1,4 @@
-import {
-  MigrationContext,
-  print,
-  Deployment,
-  Chain,
-  Agent,
-  bold,
-  Console,
-  randomHex,
-  timestamp,
-  Template,
-} from "@hackbg/fadroma";
+import { MigrationContext, Deployment, bold, randomHex } from "@hackbg/fadroma";
 
 import {
   InterestModelContract,
@@ -17,10 +6,16 @@ import {
   LendMarketContract,
   LendOverseerContract,
   MockOracleContract,
-  AMMSNIP20Contract,
 } from "@sienna/api";
 
-import { workspace } from "@sienna/settings";
+const OVERSEER_CLOSE_FACTOR = "0.5";
+const OVERSEER_PREMIUM = "1.08";
+
+const INTEREST_MODEL_BASE_RATE = "0.2";
+const INTEREST_MODEL_BLOCK_YEAR = 6311520;
+const INTEREST_MODEL_JUMP_MULTIPLIER = "0";
+const INTEREST_MODEL_JUMP_THRESHOLD = "0";
+const INTEREST_MODEL_MULTIPLIER_YEAR = "0.9";
 
 export async function deployLend({
   agent,
@@ -32,82 +27,64 @@ export async function deployLend({
   INTEREST_MODEL: InterestModelContract;
   ORACLE: LendOracleContract;
   MOCK_ORACLE: MockOracleContract;
-  TOKEN1: AMMSNIP20Contract;
-  TOKEN2: AMMSNIP20Contract;
 }> {
   const INTEREST_MODEL = new InterestModelContract();
   const ORACLE = new LendOracleContract();
   const MARKET = new LendMarketContract();
   const OVERSEER = new LendOverseerContract();
   const MOCK_ORACLE = new MockOracleContract();
-  const TOKEN1 = new AMMSNIP20Contract({ name: "SLATOM", suffix: "SLATOM" });
-  const TOKEN2 = new AMMSNIP20Contract({ name: "SLSCRT", suffix: "SLSCRT" });
 
-  for (const contract of [
-    INTEREST_MODEL,
-    ORACLE,
-    MARKET,
-    OVERSEER,
-    MOCK_ORACLE,
-    TOKEN1,
-    TOKEN2,
-  ]) {
+  const isLocal = agent.chain.isLocalnet;
+  const isTest = agent.chain.isTestnet;
+  const isMain = agent.chain.isMainnet;
+
+  for (const contract of [INTEREST_MODEL, ORACLE, MARKET, OVERSEER]) {
     await agent.buildAndUpload([contract]);
   }
 
-  await deployment.instantiate(agent, [
-    TOKEN1,
-    {
-      name: "slToken1",
-      symbol: "SLATOM",
-      decimals: 18,
-      prng_seed: randomHex(36),
-      config: {
-        enable_burn: true,
-        enable_deposit: true,
-        enable_mint: true,
-        enable_redeem: true,
-        public_total_supply: true,
-      },
-    },
-  ]);
+  if (isLocal) {
+    await agent.buildAndUpload([MOCK_ORACLE]);
+    await deployment.instantiate(agent, [MOCK_ORACLE, {}]);
+  }
 
-  await deployment.instantiate(agent, [
-    TOKEN2,
-    {
-      name: "slToken2",
-      symbol: "SLSCRT",
-      decimals: 18,
-      prng_seed: randomHex(36),
-      config: {
-        enable_burn: true,
-        enable_deposit: true,
-        enable_mint: true,
-        enable_redeem: true,
-        public_total_supply: true,
-      },
-    },
-  ]);
+  let mockOracle = isLocal ? deployment.get(MOCK_ORACLE.name) : null;
+
+  const bandTest = {
+    address: "secret1ulxxh6erkmk4p6cjehz58cqspw3qjuedrsxp8f",
+    codeHash:
+      "dc6ff596e1cd83b84a6ffbd857576d7693d89a826471d58e16349015e412a3d3",
+  };
+
+  // TODO: replace with mainnet Band oracle
+  const bandMain = {
+    address: "secret1ulxxh6erkmk4p6cjehz58cqspw3qjuedrsxp8f",
+    codeHash:
+      "dc6ff596e1cd83b84a6ffbd857576d7693d89a826471d58e16349015e412a3d3",
+  };
+
+  let oracleContract: any;
+
+  if (isTest) {
+    oracleContract = bandTest;
+  } else if (isMain) {
+    oracleContract = bandMain;
+  }
 
   await deployment.instantiate(agent, [
     INTEREST_MODEL,
     {
-      base_rate_year: "0",
-      blocks_year: 6311520,
-      jump_multiplier_year: "0",
-      jump_threshold: "0",
-      multiplier_year: "1",
+      base_rate_year: INTEREST_MODEL_BASE_RATE,
+      blocks_year: INTEREST_MODEL_BLOCK_YEAR,
+      jump_multiplier_year: INTEREST_MODEL_JUMP_MULTIPLIER,
+      jump_threshold: INTEREST_MODEL_JUMP_THRESHOLD,
+      multiplier_year: INTEREST_MODEL_MULTIPLIER_YEAR,
     },
   ]);
-
-  await deployment.instantiate(agent, [MOCK_ORACLE, {}]);
-
-  let mock_oracle = deployment.get(MOCK_ORACLE.name);
 
   await deployment.instantiate(agent, [
     OVERSEER,
     {
-      close_factor: "0.5",
+      close_factor: OVERSEER_CLOSE_FACTOR,
       entropy: randomHex(36),
       market_contract: {
         code_hash: MARKET.template.codeHash,
@@ -118,10 +95,10 @@ export async function deployLend({
         id: Number(ORACLE.template.codeId),
       },
       oracle_source: {
-        address: mock_oracle.address,
-        code_hash: mock_oracle.codeHash,
+        address: isLocal ? mockOracle.address : oracleContract.address,
+        code_hash: isLocal ? mockOracle.codeHash : oracleContract.codeHash,
       },
-      premium: "1",
+      premium: OVERSEER_PREMIUM,
       prng_seed: randomHex(36),
     },
   ]);
@@ -132,7 +109,5 @@ export async function deployLend({
     INTEREST_MODEL,
     ORACLE,
     MOCK_ORACLE,
-    TOKEN1,
-    TOKEN2,
   };
 }

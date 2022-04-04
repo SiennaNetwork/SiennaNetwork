@@ -2,6 +2,7 @@ import { SmartContract, Querier } from '../contract'
 import { Fee, Address, Pagination, ContractInfo, Decimal256, Uint256 } from '../core'
 import { ViewingKeyComponentExecutor } from '../executors/viewing_key_executor'
 import { LendAuth } from './auth'
+import { PaginatedResponse } from '.'
 
 import { ExecuteResult } from 'secretjs'
 
@@ -9,7 +10,7 @@ export interface Market {
     contract: ContractInfo,
     /**
      * The symbol of the underlying asset. Note that this is the same as the symbol
-     * that the oracle expects, not what the actual token has in it's storage.
+     * that the oracle expects, not what the actual token has in its storage.
      */
     symbol: string,
     /**
@@ -88,7 +89,7 @@ class OverseerQuerier extends Querier {
     /**
      * Max limit per page is `30`.
      */
-    async markets(pagination: Pagination): Promise<Market[]> {
+    async markets(pagination: Pagination): Promise<PaginatedResponse<Market>> {
         const msg = {
             markets: {
                 pagination
