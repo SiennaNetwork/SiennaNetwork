@@ -1,0 +1,53 @@
+@startuml
+participant Account as A
+participant GovernanceHandle as GE
+collections User as U
+collections Poll as P
+collections Vote as V
+collections PollResult as PR
+
+== Deposit ==
+
+activate A
+A -> U: get active polls
+activate U
+return active polls
+loop acitve polls
+  A -> U : increase vote power
+    activate U
+    U -> V : increase
+    activate V
+    return
+    U -> V : get current
+    activate V
+    return vote
+    U -> P : update result
+      activate P
+      P -> PR : get current
+      activate PR
+      return poll result
+      P -> PR : change vote power
+      activate PR
+      return
+      P -> P : update status
+    return 
+  return
+end
+A -> A: exec deposit
+
+== Withdraw ==
+
+activate A
+A -> U: get 
+activate U
+return
+A -> U: can unstake?
+activate U
+  U -> U : check active polls
+  U -> U : check created polls
+  U -> U : balance - amount > threshold ?
+return yes
+A -> A: exec withdraw
+
+
+@enduml
