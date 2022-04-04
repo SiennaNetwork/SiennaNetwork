@@ -44,6 +44,7 @@ dependencies = [
  "lp-token",
  "router",
  "serde",
+ "sienna-rewards",
 ]
 
 [[package]]
@@ -1949,6 +1950,7 @@ dependencies = [
 name = "sienna-rewards"
 version = "3.0.0"
 dependencies = [
+ "amm-shared",
  "backtrace",
  "color-backtrace",
  "fadroma 22.1.0",
@@ -1957,10 +1959,14 @@ dependencies = [
  "kukumba 1.0.1",
  "prettytable-rs",
  "rand 0.8.4",
+ "remain",
+ "ripemd160",
  "schemars",
+ "secp256k1",
  "serde",
  "serde_json",
  "serde_yaml",
+ "sha2 0.9.8",
  "tabwriter",
  "wasm-bindgen",
  "yansi",

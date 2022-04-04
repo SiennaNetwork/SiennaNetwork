@@ -10,17 +10,19 @@ members = [
   "contracts/tge/mgmt",          # mints and vests tokens according to schedule
   "contracts/tge/rpt",           # claims from mgmt and splits the portion between recipients
 
-  # Swap + IDO
+  # Swap
   "libraries/amm-shared",     # definitions that are shared between AMM and IDO
   "contracts/amm/exchange",   # uniswap exchange contract implementation
   "contracts/amm/factory",    # factory contract for creating exchanges
-  "contracts/amm/launchpad",  # Launchpad contract
-  "contracts/amm/ido",        # Sienna IDO
   "contracts/amm/lp-token",   # snip20 liquidity provider token,
   "contracts/amm/amm-snip20", # vanilla snip20 token, used when creating an IDO
   "contracts/amm/router",     # Copy and modifications of secretswap_router
   "contracts/amm/rewards",    # liquidity provision rewards
   "contracts/amm/tests",      # AMM integration tests
+
+  # Launchpad
+  "contracts/launchpad/launchpad",  # Launchpad contract
+  "contracts/launchpad/ido",        # Sienna IDO
 
   # Lend
   "libraries/lend-shared",         # definitions that are shared across the lending contracts

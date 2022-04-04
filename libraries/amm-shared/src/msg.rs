@@ -1,9 +1,9 @@
 pub use crate::snip20_impl::msg as snip20;
 
 use fadroma::{
-    platform::{Binary, HumanAddr, Uint128, Callback, ContractInstantiationInfo, ContractLink},
     killswitch::ContractStatusLevel,
-    Decimal256
+    platform::{Binary, Callback, ContractInstantiationInfo, ContractLink, HumanAddr, Uint128},
+    Decimal256,
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -307,7 +307,7 @@ pub mod launchpad {
     #[serde(deny_unknown_fields)]
     pub enum ReceiverCallbackMsg {
         /// Perform locking of the funds into the launchpad contract
-        /// Amount sent through the snip20 will be floored to closest
+        /// Uint256 sent through the snip20 will be floored to closest
         /// segment and the rest will be sent back to sender.
         Lock {},
 
@@ -351,8 +351,8 @@ pub mod ido {
     use super::*;
 
     use fadroma::{
+        auth::admin::{HandleMsg as AdminHandleMsg, QueryMsg as AdminQueryMsg},
         platform::ContractLink,
-        auth::admin::{HandleMsg as AdminHandleMsg, QueryMsg as AdminQueryMsg}
     };
 
     #[derive(Serialize, Deserialize, JsonSchema)]
@@ -665,3 +665,4 @@ pub mod router {
         },
     }
 }
+

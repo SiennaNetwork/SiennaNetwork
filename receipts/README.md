@@ -11,7 +11,7 @@ Several types of things are kept around as JSON documents:
 * `$CHAIN_ID/identities/` - private keys for service accounts
   (no need to recreate wallets)
 
-* `$CHAIN_ID/uploades/` - outputs of code upload transactions
+* `$CHAIN_ID/uploads/` - outputs of code upload transactions
   (no need to reupload contracts)
 
 * `$CHAIN_ID/instances/$DATE` - outputs of contract instantiations
