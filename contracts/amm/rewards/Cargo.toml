@@ -15,8 +15,14 @@ schemars = "0.7"
 serde    = { version = "1.0.103", default-features = false, features = ["derive"] }
 
 fadroma-bind-js = { optional = true, path = "../../../deps/fadroma/crates/fadroma-bind-js" }
+amm-shared = { path = "../../../libraries/amm-shared" }
 wasm-bindgen    = { optional = true, version = "0.2" }
 js-sys          = { optional = true, version = "0.3.55" }
+
+remain    = { version = "0.2.2"  }
+ripemd160 = { version = "0.9.1"  }
+secp256k1 = { version = "0.20.3" }
+sha2      = { version = "0.9.1", default-features = false }
 
 [dev-dependencies]
 fadroma = { path = "../../../deps/fadroma/crates/fadroma", features = ["scrt", "harness", "backtraces"] }
@@ -31,9 +37,12 @@ rand = "0.8.4"
 prettytable-rs = "^0.8"
 serde_yaml = "0.8"
 
+
 [features]
+default=["gov"]
 browser = [
   "fadroma/browser", "fadroma-bind-js",
   "wasm-bindgen", "wasm-bindgen/serde-serialize",
   "js-sys"
 ]
+gov = []

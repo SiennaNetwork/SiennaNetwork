@@ -114,6 +114,39 @@ export abstract class AMMFactoryClient extends Client {
     return newPairs
   }
 
+  /** Creates multiple exchanges in the same transaction. */
+  async createExchanges (input: {
+    templates: AMMFactoryTemplates
+    pairs: { name?: string, TOKEN_0: Snip20Client, TOKEN_1: Snip20Client }[]
+  }): Promise<{ name?: string, TOKEN_0: Snip20Client, TOKEN_1: Snip20Client }[]> {
+
+    const {
+      templates = await this.getContracts(),
+      pairs,
+    } = input
+
+    if (pairs.length === 0) {
+      console.warn('Creating 0 exchanges.')
+      return []
+    }
+
+    const newPairs = []
+
+    await this.agent.bundle().wrap(async bundle=>{
+      const bundledThis = this.client(bundle)
+      console.log(this, bundledThis)
+      for (const { name, TOKEN_0, TOKEN_1 } of pairs) {
+        const exchange = await bundledThis.createExchange(
+          TOKEN_0.asCustomToken,
+          TOKEN_1.asCustomToken
+        )
+        newPairs.push({name, TOKEN_0, TOKEN_1})
+      }
+    })
+
+    return newPairs
+  }
+
   /** Get info about an exchange. */
   async getExchange (
     token_0: TokenType,
