@@ -23,8 +23,8 @@ cd sienna-contracts
 git submodule update --init --recursive
 nix-shell # optional, or bring your own Cargo and PNPM
 pnpm i
-pnpm -w dev build all
-FADROMA_CHAIN=localnet-1.2 pnpm -w ops deploy all
+pnpm build latest
+FADROMA_CHAIN=Scrt_1_2_Devnet pnpm deploy latest
 ```
 
 The smart contracts are written in Rust, targeting SecretNetwork's fork of `cosmwasm-std 0.10`
