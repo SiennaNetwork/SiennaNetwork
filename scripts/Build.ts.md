@@ -98,6 +98,9 @@ Fadroma.command('all',
   function buildRewardsv3       () { return buildRewards('Rewards_v3') }
 )
 
+Fadroma.command('mgmt', () => Scrt_1_2.getBuilder().build(getSources()['sienna-mgmt']))
+Fadroma.command('rpt',  () => Scrt_1_2.getBuilder().build(getSources()['sienna-rpt']))
+
 Fadroma.command('latest',
   function buildLatest () {
     const sources = getSources()
