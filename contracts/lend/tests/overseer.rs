@@ -542,7 +542,7 @@ fn liquidity_entering_markets() {
 
 #[test]
 fn calculate_amount_seize() {
-    let config = LendConfig::new().market(MarketImpl);
+    let config = LendConfig::new().market(Box::new(MarketImpl));
     let mut lend = Lend::new(config);
 
     let underlying_1 = lend.new_underlying_token("ONE", 6).unwrap();
