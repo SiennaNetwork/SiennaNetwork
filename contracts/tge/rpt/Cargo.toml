@@ -34,6 +34,4 @@ browser = [
   "wasm-bindgen",
   "wasm-bindgen/serde-serialize",
   "js-sys",
-  "sienna-mgmt/browser",
-  "sienna-mgmt/apionly",
 ]

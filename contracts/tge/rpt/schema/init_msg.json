@@ -1,48 +1,56 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Init",
+  "title": "InitMsg",
   "type": "object",
   "required": [
-    "config",
+    "distribution",
     "mgmt",
     "portion",
     "token"
   ],
   "properties": {
-    "config": {
-      "$ref": "#/definitions/LinearMap_and_Uint128"
-    },
-    "mgmt": {
-      "type": "array",
-      "items": [
+    "admin": {
+      "anyOf": [
         {
           "$ref": "#/definitions/HumanAddr"
         },
         {
-          "type": "string"
+          "type": "null"
         }
-      ],
-      "maxItems": 2,
-      "minItems": 2
+      ]
+    },
+    "distribution": {
+      "$ref": "#/definitions/LinearMap_and_Uint128"
+    },
+    "mgmt": {
+      "$ref": "#/definitions/ContractLink"
     },
     "portion": {
       "$ref": "#/definitions/Uint128"
     },
     "token": {
-      "type": "array",
-      "items": [
-        {
-          "$ref": "#/definitions/HumanAddr"
-        },
-        {
-          "type": "string"
-        }
-      ],
-      "maxItems": 2,
-      "minItems": 2
+      "$ref": "#/definitions/ContractLink"
     }
   },
+  "additionalProperties": false,
   "definitions": {
+    "ContractLink": {
+      "description": "Info needed to talk to a contract instance.",
+      "type": "object",
+      "required": [
+        "address",
+        "code_hash"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "code_hash": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
     "HumanAddr": {
       "type": "string"
     },

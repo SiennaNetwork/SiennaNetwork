@@ -281,6 +281,7 @@ and deploy just the TGE contracts.
 import { buildTge } from './Build'
 import { testers, getRPTAccount } from './Configure'
 import { schedule } from '@sienna/settings'
+import { MultisigScrtBundle } from '@hackbg/fadroma'
 
 export async function deployTGE (
   context: MigrationContext & TGEDeployOptions
@@ -293,6 +294,7 @@ export async function deployTGE (
     admin = agent.address,
   } = context
 
+  agent.Bundle = MultisigScrtBundle
   // 1. Build and upload the three TGE contracts:
   const [tokenTemplate, mgmtTemplate, rptTemplate] =
     await uploader.uploadMany(await buildTge())
@@ -311,7 +313,7 @@ export async function deployTGE (
   // 3. Mutate the vesting schedule to use
   // the admin address as a temporary RPT address
   const tokenLink =
-    [tokenInstance.address, tokenInstance.codeHash]
+    { address: tokenInstance.address, code_hash: tokenInstance.codeHash } 
   const rptAccount =
     Object.assign(getRPTAccount(schedule), { address: admin })
   const portion =
@@ -324,10 +326,13 @@ export async function deployTGE (
     prefund: false,
     schedule
   }
+
+  console.log(rptTemplate)
+
   const mgmtInstance = await deployment.init(
     agent, mgmtTemplate, 'MGMT', mgmtInitMsg)
   const mgmtLink =
-    [mgmtInstance.address, mgmtInstance.codeHash]
+     { address: mgmtInstance.address, code_hash: mgmtInstance.codeHash }
 
   // 5. Instantiate the RPT contract
   const rptInstance = await deployment.init(
