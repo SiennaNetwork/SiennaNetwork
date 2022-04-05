@@ -37,59 +37,6 @@ of previous build steps.
 
 </td></tr><tr><!--spacer--></tr><tr><td valign="top">
 
-## Deployment system overview
-
-The Sienna platform consists of multiple smart contracts that
-depend on each other's existence and configuration. A group of
-such contracts is called a **Deployment**.
-
-The `Deployment` is represented by a `.yml` file
-under `receipts/$FADROMA_CHAIN/deployments/`.
-The deployment file contains **Receipts** -
-snippets of YAML containing info about each contract.
-
-> See also: [@fadroma/ops/Deploy.ts](https://github.com/hackbg/fadroma/blob/v100/packages/ops/Deploy.ts)
-
-</td><td valign="top">
-
-</td></tr><tr><!--spacer--></tr><tr><td valign="top">
-
-### Deployment command contexts
-
-Each deploy command may either start a new Deployment, or
-append to the one that is currently selected. This is represented by the
-`Fadroma.Deploy.New` and `Fadroma.Deploy.Append` pre-defined build steps.
-Invoking either of them populates the `deployment` and `prefix` keys
-in the `MigrationContext` for subsequent steps.
-
-* Use `Fadroma.Deploy.New` when you want to start from a clean slate.
-  It will create a new deployment under `/receipts/$FADROMA_CHAIN/$TIMESTAMP`.
-
-* Use `Fadroma.Deploy.Append` when you want to add contracts to an
-  existing deployment.
-
-</td><td valign="top">
-
-```typescript
-Fadroma.command('new',
-  Fadroma.Deploy.New)
-
-const inNewDeployment = [
-  ...canBuildAndUpload,
-  Fadroma.Deploy.New
-]
-
-Fadroma.command('select',
-  Fadroma.Deploy.Select)
-
-const inCurrentDeployment = [
-  ...canBuildAndUpload,
-  Fadroma.Deploy.Append
-]
-```
-
-</td></tr><tr><!--spacer--></tr><tr><td valign="top">
-
 ### Building and uploading
 
 Each deploy command in this file begins by invoking
@@ -126,8 +73,8 @@ for the corresponding contract, the upload becomes a no-op.
 
 </td><td valign="top">
 
-Prefixing a command with the following steps enables building and uploading
-smart contracts from locally hosted sources for Secret Network 1.2.
+Adding `...canBuildAndUpload` to the start of a command
+enables building and uploading contracts from local sources for Secret Network 1.2.
 
 The connection variant (mainnet, testnet or devnet) is set via the
 `FADROMA_CHAIN` enviornment variable.
@@ -139,6 +86,52 @@ const canBuildAndUpload = [
   Fadroma.Upload.FromFile,
 ]
 ```
+</td></tr><tr><!--spacer--></tr><tr><td valign="top">
+
+### Deploying
+
+> See also: [@fadroma/ops/Deploy.ts](https://github.com/hackbg/fadroma/blob/v100/packages/ops/Deploy.ts)
+
+The Sienna platform consists of multiple smart contracts that
+depend on each other's existence and configuration. A group of
+such contracts is called a **Deployment**.
+
+The `Deployment` is represented by a `.yml` file
+under `receipts/$FADROMA_CHAIN/deployments/`.
+The deployment file contains **Receipts** -
+snippets of YAML containing info about each contract.
+
+Each command may start a new Deployment, or append to the one that is currently selected.
+This is represented by the `Fadroma.Deploy.New` and `Fadroma.Deploy.Append` steps which
+you can add to the start of your command. Invoking either of them populates the
+`deployment` and `prefix` keys in the `MigrationContext` for subsequent steps.
+
+* Use `Fadroma.Deploy.New` when you want to start from a clean slate.
+  It will create a new deployment under `/receipts/$FADROMA_CHAIN/$TIMESTAMP`.
+
+* Use `Fadroma.Deploy.Append` when you want to add contracts to an
+  existing deployment.
+
+</td><td valign="top">
+
+```typescript
+Fadroma.command('new',
+  Fadroma.Deploy.New)
+
+const inNewDeployment = [
+  ...canBuildAndUpload,
+  Fadroma.Deploy.New
+]
+
+Fadroma.command('select',
+  Fadroma.Deploy.Select)
+
+const inCurrentDeployment = [
+  ...canBuildAndUpload,
+  Fadroma.Deploy.Append
+]
+```
+
 </td></tr></table>
 
 ## Pre-confiured command steps
