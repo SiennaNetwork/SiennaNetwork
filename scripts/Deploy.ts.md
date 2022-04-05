@@ -321,6 +321,7 @@ export async function deployTGE (
   const mgmtInitMsg = {
     admin: admin,
     token: tokenLink,
+    prefund: false,
     schedule
   }
   const mgmtInstance = await deployment.init(
@@ -332,7 +333,7 @@ export async function deployTGE (
   const rptInstance = await deployment.init(
     agent, rptTemplate, 'RPT', {
       portion,
-      config: [[admin, portion]]
+      distribution: [[admin, portion]]
       token:  tokenLink,
       mgmt:   mgmtLink,
     })

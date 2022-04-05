@@ -40,7 +40,7 @@ macro_rules! RPTError {
     };
 }
 
-#[contract(component(path = "admin"), component(path = "killswitch"))]
+#[contract(entry, component(path = "admin"), component(path = "killswitch"))]
 pub trait RPT {
     #[init]
     fn new(

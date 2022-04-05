@@ -1401,7 +1401,7 @@ dependencies = [
 [[package]]
 name = "secret-toolkit"
 version = "0.1.0"
-source = "git+https://github.com/hackbg/secret-toolkit?tag=legacy-mgmt#714d302a0df28b0318bc977f515c9a8cdecccb7e"
+source = "git+https://github.com/hackbg/secret-toolkit?rev=legacy-snip20#ce4b2b0ba512d401989bac8f6e8e86ff1966661d"
 dependencies = [
  "secret-toolkit-serialization 0.1.0",
  "secret-toolkit-storage 0.1.0",
@@ -1423,7 +1423,7 @@ dependencies = [
 [[package]]
 name = "secret-toolkit-serialization"
 version = "0.1.0"
-source = "git+https://github.com/hackbg/secret-toolkit?tag=legacy-mgmt#714d302a0df28b0318bc977f515c9a8cdecccb7e"
+source = "git+https://github.com/hackbg/secret-toolkit?rev=legacy-snip20#ce4b2b0ba512d401989bac8f6e8e86ff1966661d"
 dependencies = [
  "bincode2",
  "cosmwasm-std 0.10.0 (git+https://github.com/hackbg/SecretNetwork?tag=v1.0.0)",
@@ -1469,10 +1469,10 @@ dependencies = [
 [[package]]
 name = "secret-toolkit-storage"
 version = "0.1.0"
-source = "git+https://github.com/hackbg/secret-toolkit?tag=legacy-mgmt#714d302a0df28b0318bc977f515c9a8cdecccb7e"
+source = "git+https://github.com/hackbg/secret-toolkit?rev=legacy-snip20#ce4b2b0ba512d401989bac8f6e8e86ff1966661d"
 dependencies = [
- "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.0)",
- "cosmwasm-storage 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.0)",
+ "cosmwasm-std 0.10.0 (git+https://github.com/hackbg/SecretNetwork?tag=v1.0.0)",
+ "cosmwasm-storage 0.10.0 (git+https://github.com/hackbg/SecretNetwork?tag=v1.0.0)",
  "secret-toolkit-serialization 0.1.0",
  "serde",
 ]
@@ -1632,12 +1632,14 @@ dependencies = [
  "kukumba 1.0.1",
  "prettytable-rs",
  "rand",
+ "remain",
+ "ripemd160",
  "schemars",
  "secp256k1",
  "serde",
  "serde_json",
  "serde_yaml",
- "sha2 0.9.8",
+ "sha2",
  "tabwriter",
  "wasm-bindgen",
  "yansi",
