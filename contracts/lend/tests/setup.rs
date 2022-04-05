@@ -151,7 +151,7 @@ pub struct Lend {
 
 impl Lend {
     pub fn new(config: LendConfig) -> Self {
-        let mut ensemble = ContractEnsemble::new(50);
+        let mut ensemble = ContractEnsemble::new(60);
 
         let overseer = ensemble.register(Box::new(Overseer));
         let market = ensemble.register(config.market.unwrap_or(Box::new(Market)));
@@ -254,7 +254,7 @@ impl Lend {
     }
 
     pub fn get_markets(&self) -> StdResult<Vec<overseer::Market<HumanAddr>>> {
-        self.ensemble.query(
+        let markets: overseer::MarketsResponse = self.ensemble.query(
             self.overseer.address.clone(),
             overseer::QueryMsg::Markets {
                 pagination: Pagination {
@@ -262,7 +262,10 @@ impl Lend {
                     limit: 30,
                 }
             },
-        )
+        )?;
+        assert_eq!(markets.entries.len(), markets.total as usize);
+
+        Ok(markets.entries)
     }
 
     pub fn whitelist_market(

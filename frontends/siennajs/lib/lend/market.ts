@@ -7,6 +7,7 @@ import {
 } from '../core'
 import { ViewingKeyExecutor } from '../executors/viewing_key_executor'
 import { LendAuth } from './auth'
+import { PaginatedResponse } from '.'
 
 import { ExecuteResult, SigningCosmWasmClient } from 'secretjs'
 
@@ -335,7 +336,7 @@ class MarketQuerier extends Querier {
     /**
      * Max limit is 10.
      */
-    async borrowers(pagination: Pagination): Promise<MarketBorrower[]> {
+    async borrowers(pagination: Pagination): Promise<PaginatedResponse<MarketBorrower>> {
         const msg = {
             borrowers: {
                 block: (await this.client.getBlock()).header.height,

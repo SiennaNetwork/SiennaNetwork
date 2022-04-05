@@ -5,7 +5,6 @@ use lend_shared::fadroma::{
     schemars, schemars::JsonSchema,
     admin,
     admin::{Admin, assert_admin},
-    Callback,
     cosmwasm_std,
     derive_contract::*,
     HumanAddr, InitResponse, HandleResponse,
@@ -14,7 +13,8 @@ use lend_shared::fadroma::{
     ContractLink, Decimal256
 };
 use lend_shared::interfaces::oracle::{
-    PriceResponse, PricesResponse, Asset, AssetType
+    PriceResponse, PricesResponse, Asset,
+    AssetType, OverseerRef, ConfigResponse
 };
 
 use state::{Contracts, SymbolTable, get_symbol};
@@ -50,22 +50,31 @@ pub trait BandOracleConsumer {
         admin: Option<HumanAddr>,
         source: ContractLink<HumanAddr>,
         initial_assets: Vec<Asset>,
-        callback: Callback<HumanAddr>
+        overseer: OverseerRef
     ) -> StdResult<InitResponse> {
         Contracts::save_source(deps, source)?;
-        Contracts::save_overseer(deps, callback.contract.clone())?;
 
         for asset in initial_assets {
             SymbolTable::save(deps, &asset)?;
         }
 
         let mut result = admin::DefaultImpl.new(admin, deps, env)?;
-        result.messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
-            contract_addr: callback.contract.address,
-            callback_code_hash: callback.contract.code_hash,
-            send: vec![],
-            msg: callback.msg
-        }));
+
+        match overseer {
+            OverseerRef::NewInstance(callback) => {
+                Contracts::save_overseer(deps, callback.contract.clone())?;
+
+                result.messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
+                    contract_addr: callback.contract.address,
+                    callback_code_hash: callback.contract.code_hash,
+                    send: vec![],
+                    msg: callback.msg
+                }));
+            },
+            OverseerRef::ExistingInstance(contract) => {
+                Contracts::save_overseer(deps, contract)?;
+            }
+        }
 
         Ok(result)
     }
@@ -84,6 +93,14 @@ pub trait BandOracleConsumer {
             messages: vec![],
             log: vec![log("action", "update_asset")],
             data: None
+        })
+    }
+
+    #[query]
+    fn config() -> StdResult<ConfigResponse> {
+        Ok(ConfigResponse {
+            overseer: Contracts::load_overseer(deps)?,
+            source: Contracts::load_source(deps)?
         })
     }
 

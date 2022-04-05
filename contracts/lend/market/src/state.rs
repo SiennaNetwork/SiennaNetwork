@@ -345,12 +345,12 @@ impl AuthenticatedUser for Account {
 pub fn load_borrowers<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     pagination: Pagination
-) -> StdResult<Vec<BorrowerRecord>> {
+) -> StdResult<(u64, Vec<BorrowerRecord>)> {
     let borrowers = IterableStorage::<BorrowSnapshot>::new(Account::NS_BORROWERS);
 
     let limit = pagination.limit.min(PAGINATION_LIMIT) as usize;
 
-    borrowers
+    let result = borrowers
         .iter(&deps.storage)?
         .skip(pagination.start as usize)
         .take(limit)
@@ -366,7 +366,9 @@ pub fn load_borrowers<S: Storage, A: Api, Q: Querier>(
                 snapshot
             })
         })
-        .collect()
+        .collect::<StdResult<Vec<BorrowerRecord>>>()?;
+
+    Ok((borrowers.len(&deps.storage)?, result))
 }
 
 impl BorrowerId {
