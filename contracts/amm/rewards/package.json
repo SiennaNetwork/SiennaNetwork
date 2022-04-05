@@ -1,7 +1,7 @@
 {
   "name": "@sienna/rewards",
   "version": "3.0.0",
-  "main": "./RewardsContract.ts",
+  "main": "./Rewards.ts",
   "dependencies": {
     "@hackbg/fadroma": "workspace:../../../deps/fadroma",
 
