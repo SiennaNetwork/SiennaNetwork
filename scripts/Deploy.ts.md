@@ -27,6 +27,12 @@ implemented in `@fadroma/cli`.
 
 > See also: [@fadroma/cli/index.ts](https://github.com/hackbg/fadroma/blob/v100/packages/cli/index.ts)
 
+Each call to `Fadroma.command('name', ...steps)` binds
+one or more build steps to a command accessible from the terminal.
+The steps are async functions that are run sequentially.
+The paramerer, `context`, is populated from the return values
+of previous build steps.
+
 </td><td valign="top">
 
 </td></tr><tr><!--spacer--></tr><tr><td valign="top">
@@ -45,6 +51,42 @@ snippets of YAML containing info about each contract.
 > See also: [@fadroma/ops/Deploy.ts](https://github.com/hackbg/fadroma/blob/v100/packages/ops/Deploy.ts)
 
 </td><td valign="top">
+
+</td></tr><tr><!--spacer--></tr><tr><td valign="top">
+
+### Deployment command contexts
+
+Each deploy command may either start a new Deployment, or
+append to the one that is currently selected. This is represented by the
+`Fadroma.Deploy.New` and `Fadroma.Deploy.Append` pre-defined build steps.
+Invoking either of them populates the `deployment` and `prefix` keys
+in the `MigrationContext` for subsequent steps.
+
+* Use `Fadroma.Deploy.New` when you want to start from a clean slate.
+  It will create a new deployment under `/receipts/$FADROMA_CHAIN/$TIMESTAMP`.
+
+* Use `Fadroma.Deploy.Append` when you want to add contracts to an
+  existing deployment.
+
+</td><td valign="top">
+
+```typescript
+Fadroma.command('new',
+  Fadroma.Deploy.New)
+
+const inNewDeployment = [
+  ...canBuildAndUpload,
+  Fadroma.Deploy.New
+]
+
+Fadroma.command('select',
+  Fadroma.Deploy.Select)
+
+const inCurrentDeployment = [
+  ...canBuildAndUpload,
+  Fadroma.Deploy.Append
+]
+```
 
 </td></tr><tr><!--spacer--></tr><tr><td valign="top">
 
@@ -84,6 +126,12 @@ for the corresponding contract, the upload becomes a no-op.
 
 </td><td valign="top">
 
+Prefixing a command with the following steps enables building and uploading
+smart contracts from locally hosted sources for Secret Network 1.2.
+
+The connection variant (mainnet, testnet or devnet) is set via the
+`FADROMA_CHAIN` enviornment variable.
+
 ```typescript
 const canBuildAndUpload = [
   Fadroma.Chain.FromEnv,
@@ -91,43 +139,6 @@ const canBuildAndUpload = [
   Fadroma.Upload.FromFile,
 ]
 ```
-
-</td></tr><tr><!--spacer--></tr><tr><td valign="top">
-
-### Deployment command contexts
-
-Each deploy command may either start a new Deployment, or
-append to the one that is currently selected. This is represented by the
-`Fadroma.Deploy.New` and `Fadroma.Deploy.Append` pre-defined build steps.
-Invoking either of them populates the `deployment` and `prefix` keys
-in the `MigrationContext` for subsequent steps.
-
-* Use `Fadroma.Deploy.New` when you want to start from a clean slate.
-  It will create a new deployment under `/receipts/$FADROMA_CHAIN/$TIMESTAMP`.
-
-* Use `Fadroma.Deploy.Append` when you want to add contracts to an
-  existing deployment.
-
-</td><td valign="top">
-
-```typescript
-Fadroma.command('new',
-  Fadroma.Deploy.New)
-
-const inNewDeployment = [
-  ...canBuildAndUpload,
-  Fadroma.Deploy.New
-]
-
-Fadroma.command('select',
-  Fadroma.Deploy.Select)
-
-const inCurrentDeployment = [
-  ...canBuildAndUpload,
-  Fadroma.Deploy.Append
-]
-```
-
 </td></tr></table>
 
 ## Pre-confiured command steps
