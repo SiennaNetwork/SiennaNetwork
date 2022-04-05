@@ -117,7 +117,7 @@ impl ContractHarness for MockBand {
 pub struct LendConfig {
     market: Option<Box<dyn ContractHarness>>,
     close_factor: Option<Decimal256>,
-    premium: Option<Decimal256>
+    premium: Option<Decimal256>,
 }
 
 impl LendConfig {

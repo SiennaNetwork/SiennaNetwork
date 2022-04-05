@@ -1,7 +1,7 @@
 {
   "name":    "@sienna/lend-overseer",
   "version": "0.0.1",
-  "main":    "./LendOverseerContract.ts",
+  "main":    "./LendOverseer.ts",
   "type":    "module",
   "dependencies": {
     "@hackbg/fadroma": "workspace:../../../deps/fadroma"

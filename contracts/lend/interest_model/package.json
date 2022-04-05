@@ -1,7 +1,7 @@
 {
   "name":    "@sienna/lend-interest-model",
   "version": "0.0.1",
-  "main":    "./InterestModelContract.ts",
+  "main":    "./InterestModel.ts",
   "type":    "module",
   "dependencies": {
     "@hackbg/fadroma": "workspace:../../../deps/fadroma"

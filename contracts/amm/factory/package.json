@@ -1,7 +1,7 @@
 {
   "name":    "@sienna/factory",
   "version": "2.0.0",
-  "main":    "./FactoryContract.ts",
+  "main":    "./Factory.ts",
   "dependencies": {
     "@hackbg/fadroma": "workspace:../../../deps/fadroma",
 

@@ -4,16 +4,13 @@
   "type": "module",
   "dependencies": {
     "@hackbg/fadroma": "workspace:../deps/fadroma",
-
     "@sienna/api": "workspace:*",
-
-    "@sienna/tge":  "workspace:*",
-    "@sienna/amm":  "workspace:*",
-    "@sienna/lend": "workspace:*",
-
-    "@sienna/settings": "workspace:^1.0.0",
     "@sienna/receipts": "workspace:^1.0.0",
-
-    "js-yaml": "^4.1.0"
+    "@sienna/settings": "workspace:^1.0.0",
+    "@waiting/base64": "^4.2.9",
+    "chokidar": "^3.5.3",
+    "cross-spawn": "^7.0.3",
+    "js-yaml": "^4.1.0",
+    "toml": "^3.0.0"
   }
 }
