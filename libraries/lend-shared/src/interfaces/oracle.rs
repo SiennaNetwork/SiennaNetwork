@@ -18,11 +18,14 @@ pub trait Oracle {
         admin: Option<HumanAddr>,
         source: ContractLink<HumanAddr>,
         initial_assets: Vec<Asset>,
-        callback: Callback<HumanAddr>
+        overseer: OverseerRef
     ) -> StdResult<InitResponse>;
 
     #[handle]
     fn update_assets(assets: Vec<Asset>) -> StdResult<HandleResponse>;
+
+    #[query]
+    fn config() -> StdResult<ConfigResponse>;
 
     #[query]
     fn price(
@@ -35,6 +38,14 @@ pub trait Oracle {
         base: Vec<AssetType>,
         quote: Vec<AssetType>
     ) -> StdResult<PricesResponse>;
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, schemars::JsonSchema)]
+#[serde(rename_all = "snake_case")]
+#[serde(deny_unknown_fields)]
+pub enum OverseerRef {
+    NewInstance(Callback<HumanAddr>),
+    ExistingInstance(ContractLink<HumanAddr>)
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, schemars::JsonSchema)]
@@ -72,6 +83,13 @@ pub struct PricesResponse {
 pub struct TimeConstraints {
     pub block_time: u64,
     pub valid_timeframe: u64,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, schemars::JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ConfigResponse {
+    pub overseer: ContractLink<HumanAddr>,
+    pub source: ContractLink<HumanAddr>
 }
 
 impl From<HumanAddr> for AssetType {

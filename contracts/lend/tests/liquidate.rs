@@ -310,7 +310,7 @@ fn borrower_accrues_interest_and_goes_underwater() {
     assert!(liquidity.liquidity < topup_amount.into());
     assert_eq!(liquidity.shortfall, Uint256::zero());
 
-    let borrowers: Vec<market::Borrower> = lend.ensemble.query(
+    let borrowers: market::BorrowersResponse = lend.ensemble.query(
         market_2.contract.address.clone(),
         market::QueryMsg::Borrowers {
             block: current_block,
@@ -321,7 +321,8 @@ fn borrower_accrues_interest_and_goes_underwater() {
         }
     ).unwrap();
 
-    assert_eq!(borrowers.len(), 1);
+    assert_eq!(borrowers.total, 1);
+    assert_eq!(borrowers.entries.len(), 1);
 
     lend.prefund_user(ALICE, Uint128(100 * one_token(18)), underlying_2.clone());
     let err = lend.ensemble.execute(
@@ -331,7 +332,7 @@ fn borrower_accrues_interest_and_goes_underwater() {
             amount: borrow_amount,
             msg: Some(
                 to_binary(&market::ReceiverCallbackMsg::Liquidate {
-                    borrower: borrowers[0].id.clone(),
+                    borrower: borrowers.entries[0].id.clone(),
                     collateral: market_1.contract.address.clone(),
                 })
                 .unwrap(),
@@ -360,7 +361,7 @@ fn borrower_accrues_interest_and_goes_underwater() {
     assert_eq!(liquidity.liquidity, Uint256::zero());
     assert_ne!(liquidity.shortfall, Uint256::zero());
 
-    let borrowers: Vec<market::Borrower> = lend.ensemble.query(
+    let borrowers: market::BorrowersResponse = lend.ensemble.query(
         market_2.contract.address.clone(),
         market::QueryMsg::Borrowers {
             block: current_block,
@@ -371,9 +372,10 @@ fn borrower_accrues_interest_and_goes_underwater() {
         }
     ).unwrap();
 
-    assert_eq!(borrowers.len(), 1);
+    assert_eq!(borrowers.total, 1);
+    assert_eq!(borrowers.entries.len(), 1);
 
-    let interest = (borrowers[0].actual_balance - borrowers[0].principal_balance).unwrap();
+    let interest = (borrowers.entries[0].actual_balance - borrowers.entries[0].principal_balance).unwrap();
 
     lend.ensemble.execute(
         &Snip20HandleMsg::Send {
@@ -382,7 +384,7 @@ fn borrower_accrues_interest_and_goes_underwater() {
             amount: borrow_amount,
             msg: Some(
                 to_binary(&market::ReceiverCallbackMsg::Liquidate {
-                    borrower: borrowers[0].id.clone(),
+                    borrower: borrowers.entries[0].id.clone(),
                     collateral: market_1.contract.address.clone(),
                 })
                 .unwrap(),
@@ -394,7 +396,7 @@ fn borrower_accrues_interest_and_goes_underwater() {
     )
     .unwrap();
 
-    let borrowers: Vec<market::Borrower> = lend.ensemble.query(
+    let borrowers: market::BorrowersResponse = lend.ensemble.query(
         market_2.contract.address.clone(),
         market::QueryMsg::Borrowers {
             block: current_block,
@@ -405,7 +407,8 @@ fn borrower_accrues_interest_and_goes_underwater() {
         }
     ).unwrap();
 
-    assert_eq!(borrowers[0].principal_balance, interest);
+    assert_eq!(borrowers.total, 1);
+    assert_eq!(borrowers.entries[0].principal_balance, interest);
 }
 
 #[test]
@@ -565,7 +568,7 @@ fn close_factor() {
     let seized_amount = Uint256::from(liquidate_amount.0 * 2);
     assert_eq!(alice_acc.sl_token_balance, (seized_amount - state.total_reserves).unwrap());
 
-    let borrowers: Vec<market::Borrower> = lend.ensemble.query(
+    let borrowers: market::BorrowersResponse = lend.ensemble.query(
         market_2.contract.address.clone(),
         market::QueryMsg::Borrowers {
             block: 12345,
@@ -576,8 +579,9 @@ fn close_factor() {
         }
     ).unwrap();
 
-    assert_eq!(borrowers.len(), 1);
-    assert_eq!(borrowers[0].actual_balance, liquidate_amount.into());
+    assert_eq!(borrowers.total, 1);
+    assert_eq!(borrowers.entries.len(), 1);
+    assert_eq!(borrowers.entries[0].actual_balance, liquidate_amount.into());
 
     let info = lend.account_info(BOB, market_1.contract.address);
     assert_eq!(info.borrow_balance, Uint256::zero());
@@ -691,7 +695,8 @@ fn premium_rate() {
     lend.ensemble.execute(
         &overseer::HandleMsg::ChangeConfig {
             premium_rate: Some(Decimal256::percent(150)),
-            close_factor: None
+            close_factor: None,
+            oracle: None
         },
         MockEnv::new(ADMIN, lend.overseer.clone())
     ).unwrap();
@@ -711,7 +716,8 @@ fn premium_rate() {
     lend.ensemble.execute(
         &overseer::HandleMsg::ChangeConfig {
             premium_rate: Some(Decimal256::percent(200)),
-            close_factor: None
+            close_factor: None,
+            oracle: None
         },
         MockEnv::new(ADMIN, lend.overseer.clone())
     ).unwrap();

@@ -58,17 +58,21 @@ pub trait Overseer {
     #[handle]
     fn change_config(
         premium_rate: Option<Decimal256>,
-        close_factor: Option<Decimal256>
+        close_factor: Option<Decimal256>,
+        oracle: Option<ContractLink<HumanAddr>>
     ) -> StdResult<HandleResponse>;
 
     #[query]
-    fn markets(pagination: Pagination) -> StdResult<Vec<Market<HumanAddr>>>;
+    fn markets(pagination: Pagination) -> StdResult<MarketsResponse>;
 
     #[query]
     fn market(address: HumanAddr) -> StdResult<Market<HumanAddr>>;
 
     #[query]
     fn entered_markets(method: OverseerAuth) -> StdResult<Vec<Market<HumanAddr>>>;
+
+    #[query]
+    fn oracle_contract() -> StdResult<ContractLink<HumanAddr>>;
 
     #[query]
     fn account_liquidity(
@@ -128,6 +132,14 @@ pub struct Config {
     /// If a user has multiple borrowed assets, the close factor applies to any single borrowed asset,
     /// not the aggregated value of a user’s outstanding borrowing.
     close_factor: Decimal256
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct MarketsResponse {
+    pub entries: Vec<Market<HumanAddr>>,
+    /// The total number of entries stored by the contract.
+    pub total: u64
 }
 
 #[derive(Serialize, Deserialize, schemars::JsonSchema, Debug)]

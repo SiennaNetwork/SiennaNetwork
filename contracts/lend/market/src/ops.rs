@@ -136,10 +136,10 @@ fn calc_accrued_interest<S: Storage, A: Api, Q: Querier>(
         Decimal256::from_uint256(reserves_prior)?,
     )?;
 
-    if borrow_rate >= MAX_BORROW_RATE {
-        // TODO: Should this be capped instead of returning an error?
-        return Err(StdError::generic_err("Borrow rate is absurdly high"));
-    }
+    // MAX_BORROW_RATE should never be reached but if it is, we want to cap it
+    // instead of throwing and error because that would freeze all operations
+    // on the contract, locking any funds inside it forever.
+    let borrow_rate = borrow_rate.min(Decimal256(MAX_BORROW_RATE.into()));
 
     // Calculate the number of blocks elapsed since last accrual
     let block_delta = current_block

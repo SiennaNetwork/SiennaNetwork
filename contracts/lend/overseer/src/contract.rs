@@ -1,8 +1,8 @@
 mod state;
-
 use std::borrow::Borrow;
 
 use lend_shared::{
+    core::Pagination,
     core::{AuthenticatedUser, MasterKey},
     fadroma::{
         admin,
@@ -13,20 +13,21 @@ use lend_shared::{
             InitResponse, Querier, StdError, StdResult, Storage, WasmMsg,
         },
         derive_contract::*,
-        require_admin,
-        Callback, ContractInstantiationInfo, ContractLink, Decimal256, Humanize, Uint256,
+        require_admin, Callback, ContractInstantiationInfo, ContractLink, Decimal256, Humanize,
+        Uint256,
     },
     interfaces::{
         market::{query_account, query_exchange_rate, InitMsg as MarketInitMsg, MarketAuth},
         oracle::{
-            query_price, Asset, AssetType, HandleMsg as OracleHandleMsg, InitMsg as OracleInitMsg,
+            query_price, Asset, AssetType, OverseerRef,
+            HandleMsg as OracleHandleMsg,
+            InitMsg as OracleInitMsg,
         },
         overseer::{
-            AccountLiquidity, Config, HandleMsg, Market,
-            MarketInitConfig, OverseerAuth, OverseerPermissions
+            AccountLiquidity, Config, HandleMsg, Market, MarketInitConfig, OverseerAuth,
+            OverseerPermissions, MarketsResponse
         },
     },
-    core::Pagination
 };
 
 use state::{Account, Constants, Contracts, Markets, Whitelisting};
@@ -83,10 +84,10 @@ pub trait Overseer {
                 admin,
                 source: oracle_source,
                 initial_assets: vec![],
-                callback: Callback {
+                overseer: OverseerRef::NewInstance(Callback {
                     contract: self_ref,
                     msg: to_binary(&HandleMsg::RegisterOracle {})?,
-                },
+                }) 
             })?,
         }));
 
@@ -102,13 +103,13 @@ pub trait Overseer {
         }
 
         oracle.address = env.message.sender.clone();
-        Contracts::save_oracle(deps, oracle)?;
+        Contracts::save_oracle(deps, oracle.clone())?;
 
         Ok(HandleResponse {
             messages: vec![],
             log: vec![
-                log("action", "register_interest_token"),
-                log("oracle_address", env.message.sender),
+                log("action", "register_oracle"),
+                log("oracle_address", oracle.address),
             ],
             data: None,
         })
@@ -117,10 +118,26 @@ pub trait Overseer {
     #[handle]
     #[require_admin]
     fn whitelist(config: MarketInitConfig) -> StdResult<HandleResponse> {
+        let price = query_price(
+            &deps.querier,
+            Contracts::load_oracle(deps)?,
+            config.token_symbol.clone().into(),
+            QUOTE_SYMBOL.into(),
+            None,
+        )?;
+
+        if price.rate == Decimal256::zero() {
+            return Err(StdError::generic_err(
+                "Cannot whitelist market if the price is 0.",
+            ));
+        }
+
         let info = Whitelisting::load_market_contract(&deps.storage)?;
         let label = format!(
-            "Sienna Lend {} market with overseer: {}",
-            config.token_symbol, env.contract.address
+            "Sienna Lend {}({}) market with overseer: {}",
+            config.underlying_asset.address,
+            config.token_symbol,
+            env.contract.address
         );
 
         let market = Market {
@@ -182,10 +199,7 @@ pub trait Overseer {
                 callback_code_hash: oracle.code_hash,
                 send: vec![],
                 msg: to_binary(&OracleHandleMsg::UpdateAssets {
-                    assets: vec![Asset {
-                        address,
-                        symbol,
-                    }],
+                    assets: vec![Asset { address, symbol }],
                 })?,
             })],
             log: vec![
@@ -200,10 +214,11 @@ pub trait Overseer {
     fn enter(markets: Vec<HumanAddr>) -> StdResult<HandleResponse> {
         let account = Account::new(&deps.api, &env.message.sender)?;
 
-        let ids = markets.iter()
+        let ids = markets
+            .iter()
             .map(|x| Markets::get_id(deps, x))
             .collect::<StdResult<Vec<u64>>>()?;
-            
+
         account.add_markets(&mut deps.storage, ids)?;
 
         Ok(HandleResponse {
@@ -265,9 +280,9 @@ pub trait Overseer {
     #[require_admin]
     fn change_market(
         market: HumanAddr,
-        ltv_ratio:  Option<Decimal256>,
-        symbol: Option<String>
-    ) -> StdResult<HandleResponse>{
+        ltv_ratio: Option<Decimal256>,
+        symbol: Option<String>,
+    ) -> StdResult<HandleResponse> {
         let (_, stored_market) = Markets::get_by_addr(deps, &market)?;
 
         let update_oracle = symbol.is_some();
@@ -281,14 +296,14 @@ pub trait Overseer {
                 QUOTE_SYMBOL.into(),
                 None,
             )?;
-    
+
             // Can't set collateral factor if the price is 0
             if price.rate == Decimal256::zero() {
                 return Err(StdError::generic_err(
-                    "Cannot set LTV ratio if the price is 0",
+                    "Cannot set LTV ratio if the price is 0.",
                 ));
             }
-            
+
             ltv_ratio
         } else {
             stored_market.ltv_ratio
@@ -324,7 +339,7 @@ pub trait Overseer {
         Ok(HandleResponse {
             messages,
             log: vec![],
-            data: None
+            data: None,
         })
     }
 
@@ -332,7 +347,8 @@ pub trait Overseer {
     #[require_admin]
     fn change_config(
         premium_rate: Option<Decimal256>,
-        close_factor: Option<Decimal256>
+        close_factor: Option<Decimal256>,
+        oracle: Option<ContractLink<HumanAddr>>
     ) -> StdResult<HandleResponse> {
         let mut constants = Constants::load(&deps.storage)?;
 
@@ -346,14 +362,18 @@ pub trait Overseer {
 
         Constants::save(&mut deps.storage, &constants)?;
 
+        if let Some(oracle) = oracle {
+            Contracts::save_oracle(deps, oracle)?;
+        }
+
         Ok(HandleResponse {
             messages: vec![],
             log: vec![
                 log("action", "change_config"),
                 log("premium_rate", constants.premium()),
-                log("close_factor", constants.close_factor())
+                log("close_factor", constants.close_factor()),
             ],
-            data: None
+            data: None,
         })
     }
 
@@ -367,6 +387,11 @@ pub trait Overseer {
         )?;
 
         account.list_markets(deps)
+    }
+
+    #[query]
+    fn oracle_contract() -> StdResult<ContractLink<HumanAddr>> {
+        Contracts::load_oracle(deps)
     }
 
     #[query]
@@ -457,18 +482,23 @@ pub trait Overseer {
             QUOTE_SYMBOL.into(),
             None,
         )?;
-    
+
         // Get the exchange rate and calculate the number of collateral tokens to seize
         let (_, market) = Markets::get_by_addr(deps, &collateral)?;
         let exchange_rate = query_exchange_rate(&deps.querier, market.contract, None)?;
         let ratio = ((premium * price_borrowed.rate)? / (price_collateral.rate * exchange_rate)?)?;
-    
+
         repay_amount.decimal_mul(ratio)
     }
 
     #[query]
-    fn markets(pagination: Pagination) -> StdResult<Vec<Market<HumanAddr>>> {
-        Markets::list(deps, pagination)
+    fn markets(pagination: Pagination) -> StdResult<MarketsResponse> {
+        let (total, markets) = Markets::list(deps, pagination)?;
+
+        Ok(MarketsResponse {
+            total,
+            entries: markets
+        })
     }
 
     #[query]
@@ -494,20 +524,25 @@ fn calc_liquidity<S: Storage, A: Api, Q: Querier>(
     redeem_amount: Uint256,
     borrow_amount: Uint256,
 ) -> StdResult<AccountLiquidity> {
+    const INVALID_PRICE_ERR: &str = "Invalid price reported by the oracle.";
+
     let oracle = Contracts::load_oracle(deps)?;
 
     let mut total_collateral = Uint256::zero();
     let mut total_borrowed = Uint256::zero();
 
     let markets = account.list_markets(deps)?;
-    
+
     if markets.len() == 0 {
         return Err(StdError::generic_err("Not entered in any markets."));
     }
 
     let target_asset = if let Some(asset) = target_asset {
         if !markets.iter().any(|x| x.contract.address == asset) {
-            return Err(StdError::generic_err(format!("Not entered in market: {}", asset)));
+            return Err(StdError::generic_err(format!(
+                "Not entered in market: {}",
+                asset
+            )));
         }
 
         asset
@@ -517,9 +552,9 @@ fn calc_liquidity<S: Storage, A: Api, Q: Querier>(
 
     for market in markets {
         let is_target_asset = target_asset == market.contract.address;
+        let is_zero_ltv = market.ltv_ratio.is_zero();
 
         let snapshot = query_account(&deps.querier, market.contract, method.clone(), block)?;
-
         let price = query_price(
             &deps.querier,
             oracle.clone(),
@@ -530,15 +565,36 @@ fn calc_liquidity<S: Storage, A: Api, Q: Querier>(
 
         let conversion_factor = ((market.ltv_ratio * snapshot.exchange_rate)? * price.rate)?;
 
-        total_collateral = (Uint256::from(snapshot.sl_token_balance)
-            .decimal_mul(conversion_factor)?
-            + total_collateral)?;
-        total_borrowed =
-            (Uint256::from(snapshot.borrow_balance).decimal_mul(price.rate)? + total_borrowed)?;
+        // Precalculate, so we can check if the price is valid.
+        let redeem_amount_validated = redeem_amount.decimal_mul(conversion_factor)?;
+        let borrow_amount_validated = borrow_amount.decimal_mul(price.rate)?;
+        let sl_token_conversion = snapshot.sl_token_balance.decimal_mul(conversion_factor)?;
+        let borrow_conversion = snapshot.borrow_balance.decimal_mul(price.rate)?;
+
+        // This check is needed to check validity of price 
+        // in case `redeem_amount` and `borrow_amount` are both 0.
+        if !is_zero_ltv && !snapshot.sl_token_balance.is_zero() && sl_token_conversion.is_zero() {
+            return Err(StdError::generic_err(INVALID_PRICE_ERR));
+        }
+        if !is_zero_ltv && !snapshot.borrow_balance.is_zero() && borrow_conversion.is_zero() {
+            return Err(StdError::generic_err(INVALID_PRICE_ERR));
+        }
+
+        total_collateral = (sl_token_conversion + total_collateral)?;
+        total_borrowed = (borrow_conversion + total_borrowed)?;
 
         if is_target_asset {
-            total_borrowed = (redeem_amount.decimal_mul(conversion_factor)? + total_borrowed)?;
-            total_borrowed = (borrow_amount.decimal_mul(price.rate)? + total_borrowed)?;
+            if !is_zero_ltv {
+                if !redeem_amount.is_zero() && redeem_amount_validated.is_zero() {
+                    return Err(StdError::generic_err(INVALID_PRICE_ERR));
+                }
+
+                if !borrow_amount.is_zero() && borrow_amount_validated.is_zero() {
+                    return Err(StdError::generic_err(INVALID_PRICE_ERR));
+                }
+            }
+            total_borrowed = (redeem_amount_validated + total_borrowed)?;
+            total_borrowed = (borrow_amount_validated + total_borrowed)?;
         }
     }
 
