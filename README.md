@@ -12,8 +12,8 @@
 
 ## Mainnet addresses
 
-MOVED: See [receipts/README.md](./receipts/README.md#mainnet-addresses) for the up-to-date
-mainnet addresses of all production contracts.
+MOVED: See [**`receipts/secret-4/deployments/prod.yml`**](./receipts/secret-4/deployments.prod.yml)
+for the up-to-date mainnet addresses of all production contracts.
 
 ## Development quickstart
 
@@ -30,8 +30,7 @@ FADROMA_CHAIN=Scrt_1_2_Devnet pnpm deploy latest
 The smart contracts are written in Rust, targeting SecretNetwork's fork of `cosmwasm-std 0.10`
 on `wasm32-unknown-unknown`.
 
-See [scripts/Dev.ts.md](./scripts/Dev.ts.md)
-and [scripts/Ops.ts.md](./scripts/Ops.ts.md)
+See [**`package.json`**](package.json) and [**`scripts/`**](./scripts/)
 for the available workflow commands.
 
 See also:
