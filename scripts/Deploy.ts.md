@@ -411,7 +411,7 @@ export async function deployTGE (
       // 8. MGMT becomes admin and sole minter of token,
       //    takes the final vesting config, and launches
       const mgmt = new API.MGMTClient[version]({
-        ...deployment.get(`MGMT_v${version}`), agent: bundle
+        ...deployment.get(`MGMT_${version}`), agent: bundle
       })
       await mgmt.acquire(token)
       await mgmt.configure(schedule)
@@ -430,10 +430,10 @@ export async function deployTGE (
       ...deployment.get('SIENNA'), agent
     }),
     [`MGMT_${version}`]:   new API.MGMTClient[version]({
-      ...deployment.get(`MGMT_v${version}`),   agent
+      ...deployment.get(`MGMT_${version}`),   agent
     }),
     [`RPT_${version}`]:    new API.RPTClient[version]({
-      ...deployment.get(`MGMT_v${version}`),    agent
+      ...deployment.get(`MGMT_${version}`),    agent
     })
   }
 }
