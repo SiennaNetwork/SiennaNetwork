@@ -11,6 +11,7 @@
     "./contracts/lend/*",
     "./contracts/tge/*",
     "./deps/*",
+    "./deps/fadroma/deps/*",
     "./frontends/*",
     "./libraries/schedule",
     "./receipts",

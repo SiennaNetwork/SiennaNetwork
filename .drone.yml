@@ -27,7 +27,7 @@ steps:
     #- printenv DRONE_KEY > ~/.ssh/id_rsa
     #- chmod 0600 ~/.ssh/id_rsa
     #- ssh-keyscan git.sienna.network >> ~/.ssh/known_hosts
-    - git submodule update --init
+    - git submodule update --init --recursive
 
   # Phase 1. Rust. Build smart contracts. ##########################################################
 
