@@ -20,7 +20,7 @@
 
   "dependencies": {
     "@hackbg/fadroma": "workspace:./deps/fadroma",
-    "@hackbg/ganesha": "workspace:./deps/ganesha",
+    "@hackbg/ganesha": "workspace:./deps/fadroma/deps/ganesha",
     "typescript":      "^4.4.4",
     "open":            "^8.4.0"
   },
