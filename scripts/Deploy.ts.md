@@ -166,7 +166,7 @@ Sienna.Deploy.TGE.tge =
   }
 Sienna.Deploy.TGE.vested = 
   function deployTGE_vested ({run}) {
-    return run(deployTGE, { version: 'vgtested' })
+    return run(deployTGE, { version: 'vested' })
   }
 
 
@@ -318,14 +318,11 @@ export async function deployTGE (
     settings: { schedule } = getSettings(agent.chain.mode)
     admin = agent.address,
   } = context
-  console.log(`DEPLOYING TGE ${version}`)
 
   agent.Bundle = MultisigScrtBundle
   // 1. Build and upload the three TGE contracts:
   const [tokenTemplate, mgmtTemplate, rptTemplate] = await uploader.uploadMany(await buildTge(`TGE_${version}`))
 
-  console.log(mgmtTemplate)
-  console.log(rptTemplate)
 
   // 2. Instantiate the main token
   const tokenInitMsg = {
@@ -363,7 +360,7 @@ export async function deployTGE (
 
   console.log(mgmtInitMsgs[version])
 
-  const mgmtInstance = await deployment.init(agent, mgmtTemplate, `MGMT_v${version}`, mgmtInitMsgs[version])
+  const mgmtInstance = await deployment.init(agent, mgmtTemplate, `MGMT_${version}`, mgmtInitMsgs[version])
   const mgmtLink = { address: mgmtInstance.address, code_hash: mgmtInstance.codeHash }
 
   const rptInitMsgs = {
@@ -381,7 +378,7 @@ export async function deployTGE (
     }
   }
  
-  const rptInstance = await deployment.init(agent, rptTemplate, `RPT_v${version}`, rptInitMsgs[version])
+  const rptInstance = await deployment.init(agent, rptTemplate, `RPT_${version}`, rptInitMsgs[version])
 
 
   

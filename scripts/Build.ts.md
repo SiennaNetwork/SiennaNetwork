@@ -126,9 +126,6 @@ Fadroma.command('amm_v2',
 
 export async function buildTge (ref?) {
   const sources = getSources(refs[ref])
-  console.log(ref)
-
-  console.log(refs[ref])
   return Scrt_1_2.getBuilder().buildMany([
     'snip20-sienna',
     'sienna-mgmt',
