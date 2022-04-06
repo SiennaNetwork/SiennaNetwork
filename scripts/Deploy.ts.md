@@ -304,8 +304,6 @@ and deploy just the TGE contracts.
 import { buildTge } from './Build'
 import { testers, getRPTAccount } from './Configure'
 import { schedule } from '@sienna/settings'
-import { MultisigScrtBundle } from '@hackbg/fadroma'
-
 
 export async function deployTGE (
   context: MigrationContext & TGEDeployOptions
@@ -319,10 +317,8 @@ export async function deployTGE (
     admin = agent.address,
   } = context
 
-  agent.Bundle = MultisigScrtBundle
   // 1. Build and upload the three TGE contracts:
   const [tokenTemplate, mgmtTemplate, rptTemplate] = await uploader.uploadMany(await buildTge(`TGE_${version}`))
-
 
   // 2. Instantiate the main token
   const tokenInitMsg = {
