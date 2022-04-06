@@ -5,12 +5,12 @@ importers:
   .:
     specifiers:
       '@hackbg/fadroma': workspace:./deps/fadroma
-      '@hackbg/ganesha': workspace:./deps/ganesha
+      '@hackbg/ganesha': workspace:./deps/fadroma/deps/ganesha
       open: ^8.4.0
       typescript: ^4.4.4
     dependencies:
       '@hackbg/fadroma': link:deps/fadroma
-      '@hackbg/ganesha': link:deps/ganesha
+      '@hackbg/ganesha': link:deps/fadroma/deps/ganesha
       open: 8.4.0
       typescript: 4.6.3
 
