@@ -155,7 +155,20 @@ const Sienna = {}
 ```typescript
 Sienna.Deploy = {}
 
-Sienna.Deploy.TGE = deployTGE
+Sienna.Deploy.TGE = 
+  function deployTGE_HEAD ({run}) {
+    return run(deployTGE, { version: 'vested' })
+  }
+
+Sienna.Deploy.TGE.tge = 
+  function deployTGE_legacy ({run}) {
+    return run(deployTGE, { version: 'legacy' })
+  }
+Sienna.Deploy.TGE.vested = 
+  function deployTGE_vested ({run}) {
+    return run(deployTGE, { version: 'vgtested' })
+  }
+
 
 Sienna.Deploy.AMM =
   function deployAMM_HEAD ({run}) {
@@ -235,9 +248,13 @@ Sienna.Upgrade.Rewards.v2_to_v3 =
 > Run with: `pnpm deploy tge`
 
 ```typescript
-Fadroma.command('tge',
+Fadroma.command('tge legacy',
   ...inNewDeployment,
-  Sienna.Deploy.TGE)
+  Sienna.Deploy.TGE.tge)
+Fadroma.command('tge vested',
+  ...inNewDeployment,
+  Sienna.Deploy.TGE.vested
+)
 ```
 
 **The Sienna TGE (Token Generation Event)** is the
@@ -249,7 +266,7 @@ and two vesting contracts:
 Its deployment procedure takes the following parameters:
 
 ```typescript
-type TGEAPIVersion = "TGE" | "Vested"
+type TGEAPIVersion = "legacy" | "vested"
 
 export type TGEDeployOptions = {
   /** Address of the admin. */
@@ -289,37 +306,6 @@ import { testers, getRPTAccount } from './Configure'
 import { schedule } from '@sienna/settings'
 import { MultisigScrtBundle } from '@hackbg/fadroma'
 
-const makeMgmtInitMsg { 
-  "Vested" (schedule, admin?: string, token) {
-    return { 
-      admin, 
-      prefund: true,
-      schedule, 
-      token 
-    }
-  }
-  "TGE" (token, schedule, history?: any) {
-    return {
-      token,
-      schedule,
-      history
-    }
-  }
-}
-
-
-const makeRptInitMsg {
-  "TGE" (portion, config, token, mgmt) {
-    return { 
-      portion, config, token, mgmt
-    }
-  }
-  "Vested" (admin, distribution, portion, token, mgmt) {
-    return {
-      admin, distribution, portion, token, mgmt
-    }
-  }
-}
 
 export async function deployTGE (
   context: MigrationContext & TGEDeployOptions
@@ -327,23 +313,19 @@ export async function deployTGE (
 
   const {
     agent, uploader, 
-    version = 'TGE' as TGEAPIVersion,
+    version,
     deployment, prefix,
     settings: { schedule } = getSettings(agent.chain.mode)
     admin = agent.address,
   } = context
-
-  const {
-    agent, uploader,
-    deployment, prefix,
-    settings: { schedule } = getSettings(agent.chain.mode)
-    admin = agent.address,
-  } = context
+  console.log(`DEPLOYING TGE ${version}`)
 
   agent.Bundle = MultisigScrtBundle
   // 1. Build and upload the three TGE contracts:
-  const [tokenTemplate, mgmtTemplate, rptTemplate] =
-    await uploader.uploadMany(await buildTge())
+  const [tokenTemplate, mgmtTemplate, rptTemplate] = await uploader.uploadMany(await buildTge(`TGE_${version}`))
+
+  console.log(mgmtTemplate)
+  console.log(rptTemplate)
 
   // 2. Instantiate the main token
   const tokenInitMsg = {
@@ -365,31 +347,44 @@ export async function deployTGE (
   const portion =
     rptAccount.portion_size
 
-  // 4. Instantiate the vesting contract (MGMT)
-  const mgmtInitMsg = {
-    admin: admin,
-    token: tokenLink,
-    prefund: false,
-    schedule
+
+  const mgmtInitMsgs =  {
+    "vested": {
+      admin, 
+      token: tokenLink 
+      prefund: true,
+      schedule, 
+    }
+    "legacy": {
+      token: tokenLink,
+      schedule,
+    }
   }
 
-  const mgmtInstance = await deployment.init(
-    agent, mgmtTemplate, 'MGMT', mgmtInitMsg)
-  const mgmtLink =
-     { address: mgmtInstance.address, code_hash: mgmtInstance.codeHash }
+  console.log(mgmtInitMsgs[version])
 
-  // 5. Instantiate the RPT contract
-  const rptInstance = await deployment.init(
-    agent, rptTemplate, 'RPT', {
+  const mgmtInstance = await deployment.init(agent, mgmtTemplate, `MGMT_v${version}`, mgmtInitMsgs[version])
+  const mgmtLink = { address: mgmtInstance.address, code_hash: mgmtInstance.codeHash }
+
+  const rptInitMsgs = {
+    "legacy": {
       portion,
-      distribution: [[admin, portion]]
-      token:  tokenLink,
-      mgmt:   mgmtLink,
-    })
-
+      config: [[admin, portion]]
+      token: tokenLink,
+      mgmt: mgmtLink
+    },
+    "vested": {
+      portion,
+      distribution: [[admin,portion]]
+      token: tokenLink,
+      mgmt: mgmtLink,
+    }
+  }
  
+  const rptInstance = await deployment.init(agent, rptTemplate, `RPT_v${version}`, rptInitMsgs[version])
 
 
+  
   // 6. Set the RPT contract's account in schedule
   rptAccount.address = rptInstance.address
   const { isTestnet, isDevnet } = agent.chain
@@ -418,14 +413,17 @@ export async function deployTGE (
       }
     }
 
-    // 8. MGMT becomes admin and sole minter of token,
-    //    takes the final vesting config, and launches
-    const mgmt = new API.MGMTClient({
-      ...deployment.get('MGMT'), agent: bundle
-    })
-    await mgmt.acquire(token)
-    await mgmt.configure(schedule)
-    await mgmt.launch()
+    if(version === "TGE") {
+
+      // 8. MGMT becomes admin and sole minter of token,
+      //    takes the final vesting config, and launches
+      const mgmt = new API.MGMTClient[version]({
+        ...deployment.get(`MGMT_v${version}`), agent: bundle
+      })
+      await mgmt.acquire(token)
+      await mgmt.configure(schedule)
+      await mgmt.launch()
+    }
 
   })
 
@@ -438,11 +436,11 @@ export async function deployTGE (
     SIENNA: new API.SiennaSnip20Client({
       ...deployment.get('SIENNA'), agent
     }),
-    MGMT:   new API.MGMTClient({
-      ...deployment.get('MGMT'),   agent
+    [`MGMT_${version}`]:   new API.MGMTClient[version]({
+      ...deployment.get(`MGMT_v${version}`),   agent
     }),
-    RPT:    new API.RPTClient({
-      ...deployment.get('RPT'),    agent
+    [`RPT_${version}`]:    new API.RPTClient[version]({
+      ...deployment.get(`MGMT_v${version}`),    agent
     })
   }
 }
