@@ -229,7 +229,6 @@ importers:
       '@fadroma/cli': workspace:*
       '@fadroma/ops': workspace:*
       '@fadroma/scrt': workspace:*
-      '@fadroma/scrt-1.2': workspace:*
       '@fadroma/snip20': workspace:*
       '@hackbg/ganesha': workspace:*
       '@hackbg/komandi': ^2
@@ -242,7 +241,6 @@ importers:
       '@fadroma/cli': link:packages/cli
       '@fadroma/ops': link:packages/ops
       '@fadroma/scrt': link:packages/scrt
-      '@fadroma/scrt-1.2': link:packages/scrt-1.2
       '@fadroma/snip20': link:crates/fadroma-snip20-impl
       '@hackbg/komandi': 2.0.0
       '@types/node': 16.11.26
@@ -261,6 +259,145 @@ importers:
       '@fadroma/ops': link:../../packages/ops
       '@hackbg/tools': 1.0.0
 
+  deps/fadroma/deps/ganesha:
+    specifiers:
+      '@ganesha/core': workspace:^1.0.0
+      '@ganesha/node': workspace:^2.0.0
+      '@ganesha/node-legacy': workspace:^1.0.0
+      '@hackbg/komandi': ^2.0.0
+      '@types/node': latest
+      chokidar: ^3.5.3
+      cross-spawn: ^7.0.3
+      tap: ^15.1.6
+      vite: ^2.8.4
+      vsce: latest
+    dependencies:
+      '@ganesha/core': link:../../../ganesha/src/core
+      '@ganesha/node': link:../../../ganesha/src/node
+      '@ganesha/node-legacy': link:../../../ganesha/src/node-legacy
+      '@types/node': 17.0.23
+      chokidar: 3.5.3
+      cross-spawn: 7.0.3
+    devDependencies:
+      '@hackbg/komandi': 2.0.0
+      tap: 15.2.3_typescript@4.6.3
+      vite: 2.9.1
+      vsce: 2.7.0
+
+  deps/fadroma/deps/ganesha/src/core:
+    specifiers:
+      joycon: ^3.0.1
+      jsonc-parser: ^3.0.0
+    dependencies:
+      joycon: 3.1.1
+      jsonc-parser: 3.0.0
+
+  deps/fadroma/deps/ganesha/src/node:
+    specifiers:
+      '@ganesha/core': workspace:*
+      front-matter: ^4.0.2
+      joycon: ^3.0.1
+      jsonc-parser: ^3.0.0
+      source-map-support: ^0.5.20
+    dependencies:
+      '@ganesha/core': link:../../../../../ganesha/src/core
+      front-matter: 4.0.2
+      joycon: 3.1.1
+      jsonc-parser: 3.0.0
+      source-map-support: 0.5.21
+
+  deps/fadroma/deps/ganesha/src/node-legacy:
+    specifiers:
+      '@ganesha/core': workspace:*
+      front-matter: ^4.0.2
+      joycon: ^3.0.1
+      jsonc-parser: ^3.0.0
+      pirates: ^4.0.1
+      source-map-support: ^0.5.20
+    dependencies:
+      '@ganesha/core': link:../../../../../ganesha/src/core
+      front-matter: 4.0.2
+      joycon: 3.1.1
+      jsonc-parser: 3.0.0
+      pirates: 4.0.5
+      source-map-support: 0.5.21
+
+  deps/fadroma/deps/ganesha/src/rollup:
+    specifiers:
+      '@ganesha/core': workspace:*
+    dependencies:
+      '@ganesha/core': link:../../../../../ganesha/src/core
+
+  deps/fadroma/deps/ganesha/src/tsc:
+    specifiers:
+      '@ganesha/core': workspace:*
+      '@ganesha/node': workspace:*
+    dependencies:
+      '@ganesha/core': link:../../../../../ganesha/src/core
+      '@ganesha/node': link:../../../../../ganesha/src/node
+
+  deps/fadroma/deps/ganesha/src/vsc:
+    specifiers:
+      typescript: latest
+      vsce: latest
+    devDependencies:
+      typescript: 4.6.3
+      vsce: 2.7.0
+
+  deps/fadroma/deps/ganesha/src/vsc/client:
+    specifiers:
+      '@ganesha/vscode-shared': workspace:*
+      '@types/vscode': latest
+      vscode-languageclient: ^7.1.0-next.4
+    dependencies:
+      '@ganesha/vscode-shared': link:../../../../../../ganesha/src/vsc/shared
+      vscode-languageclient: 7.1.0-next.5
+    devDependencies:
+      '@types/vscode': 1.66.0
+
+  deps/fadroma/deps/ganesha/src/vsc/server:
+    specifiers:
+      '@ganesha/core': workspace:*
+      '@ganesha/vscode-shared': workspace:*
+      fast-glob: ^3.2.7
+      vscode-languageserver: ^8.0.0-next.1
+      vscode-languageserver-textdocument: ^1.0.1
+      vscode-typescript-languageservice: ^0.27.7
+      vscode-uri: ^3.0.2
+    dependencies:
+      '@ganesha/core': link:../../../../../../ganesha/src/core
+      '@ganesha/vscode-shared': link:../../../../../../ganesha/src/vsc/shared
+      fast-glob: 3.2.11
+      vscode-languageserver: 8.0.0-next.10
+      vscode-languageserver-textdocument: 1.0.4
+      vscode-typescript-languageservice: 0.27.25
+      vscode-uri: 3.0.3
+
+  deps/fadroma/deps/ganesha/src/vsc/shared:
+    specifiers:
+      typescript: latest
+    devDependencies:
+      typescript: 4.6.3
+
+  deps/fadroma/deps/ganesha/test:
+    specifiers:
+      '@ganesha/core': workspace:*
+      '@ganesha/node': workspace:*
+      '@ganesha/rollup': workspace:*
+      mkdirp: ^1.0.4
+      tap: ^15.0.9
+      vite: ^2.7.6
+    devDependencies:
+      '@ganesha/core': link:../../../../ganesha/src/core
+      '@ganesha/node': link:../../../../ganesha/src/node
+      '@ganesha/rollup': link:../../../../ganesha/src/rollup
+      mkdirp: 1.0.4
+      tap: 15.2.3_typescript@4.6.3
+      vite: 2.9.1
+
+  deps/fadroma/deps/ganesha/test/examples/example:
+    specifiers: {}
+
   deps/fadroma/doc/example:
     specifiers: {}
 
@@ -268,7 +405,6 @@ importers:
     specifiers:
       '@fadroma/ops': workspace:*
       '@fadroma/scrt': workspace:*
-      '@fadroma/scrt-1.2': workspace:*
       '@fadroma/snip20': workspace:*
       '@hackbg/ganesha': ^1
       '@hackbg/komandi': ^2
@@ -279,7 +415,6 @@ importers:
     dependencies:
       '@fadroma/ops': link:../ops
       '@fadroma/scrt': link:../scrt
-      '@fadroma/scrt-1.2': link:../scrt-1.2
       '@fadroma/snip20': link:../../crates/fadroma-snip20-impl
       '@hackbg/ganesha': 1.0.0
       '@hackbg/komandi': 2.0.0
@@ -333,6 +468,10 @@ importers:
       '@cosmjs/crypto': ^0.20.0
       '@fadroma/ops': workspace:*
       '@hackbg/tools': ^1
+      axios: ^0.26.0
+      body-parser: ^1.19.0
+      express: ^4.17.1
+      freeport-async: ^2.0.0
       pako: ^1
       secretjs: 0.17.5
     dependencies:
@@ -341,25 +480,18 @@ importers:
       '@hackbg/tools': 1.0.0
       pako: 1.0.11
       secretjs: 0.17.5
-
-  deps/fadroma/packages/scrt-1.2:
-    specifiers:
-      '@fadroma/scrt': workspace:*
-      '@hackbg/tools': ^1
-      axios: ^0.26.0
-      secretjs: 0.17.5
-    dependencies:
-      '@fadroma/scrt': link:../scrt
-      '@hackbg/tools': 1.0.0
-      secretjs: 0.17.5
     optionalDependencies:
       axios: 0.26.1
+    devDependencies:
+      body-parser: 1.20.0
+      express: 4.17.3
+      freeport-async: 2.0.0
 
   deps/fadroma/packages/shim:
     specifiers:
-      '@hackbg/fadroma': hackbg/fadroma#v100
+      '@hackbg/fadroma': hackbg/fadroma#test/ops
     dependencies:
-      '@hackbg/fadroma': github.com/hackbg/fadroma/b63b9f760de90f3fa700a3850e4c6683cd927a7a
+      '@hackbg/fadroma': github.com/hackbg/fadroma/a6b8d7bee2196af87821437781483f00313c0f89
 
   deps/fadroma/test:
     specifiers:
@@ -7521,6 +7653,7 @@ packages:
 
   /file-uri-to-path/1.0.0:
     resolution: {integrity: sha512-0Zt+s3L7Vf1biwWZ29aARiVYLx7iMGnEUl9x33fbB/j3jR81u/O2LbqK+Bm1CDSNDKVtJ/YjwY7TUd5SkeLQLw==}
+    requiresBuild: true
 
   /fill-range/4.0.0:
     resolution: {integrity: sha1-1USBHUKPmOsGpj3EAtJAPDKMOPc=}
@@ -7710,7 +7843,6 @@ packages:
   /freeport-async/2.0.0:
     resolution: {integrity: sha512-K7od3Uw45AJg00XUmy15+Hae2hOcgKcmN3/EF6Y7i01O0gaqiRx8sUSpsb9+BRNL8RPBrhzPsVfy8q9ADlJuWQ==}
     engines: {node: '>=8'}
-    dev: false
 
   /fresh/0.5.2:
     resolution: {integrity: sha1-PYyt2Q2XZWn6g1qx+OSyOhBWBac=}
@@ -16692,7 +16824,7 @@ packages:
   /wide-align/1.1.5:
     resolution: {integrity: sha512-eDMORYaPNZ4sQIuuYPDHdQvf4gyCF9rEEV/yPxGfwPkRodwEgiMUUXTx/dex+Me0wxx53S+NgUHaP7y3MGlDmg==}
     dependencies:
-      string-width: 1.0.2
+      string-width: 4.2.3
     dev: true
 
   /wif/2.0.6:
@@ -17159,15 +17291,14 @@ packages:
       ethereumjs-util: 6.2.1
     dev: true
 
-  github.com/hackbg/fadroma/b63b9f760de90f3fa700a3850e4c6683cd927a7a:
-    resolution: {tarball: https://codeload.github.com/hackbg/fadroma/tar.gz/b63b9f760de90f3fa700a3850e4c6683cd927a7a}
+  github.com/hackbg/fadroma/a6b8d7bee2196af87821437781483f00313c0f89:
+    resolution: {tarball: https://codeload.github.com/hackbg/fadroma/tar.gz/a6b8d7bee2196af87821437781483f00313c0f89}
     name: '@hackbg/fadroma'
     version: 100.0.0-pre
     dependencies:
       '@fadroma/cli': link:deps/fadroma/packages/cli
       '@fadroma/ops': link:deps/fadroma/packages/ops
       '@fadroma/scrt': link:deps/fadroma/packages/scrt
-      '@fadroma/scrt-1.2': link:deps/fadroma/packages/scrt-1.2
       '@fadroma/snip20': link:deps/fadroma/crates/fadroma-snip20-impl
       '@hackbg/komandi': 2.0.0
       '@types/node': 16.11.26
