@@ -74,6 +74,8 @@ export const refs = {
   AMM_v2:     'legacy/amm-v2-rewards-v3',
   Rewards_v2: 'legacy/rewards-v2',
   Rewards_v3: 'legacy/amm-v2-rewards-v3'
+  TGE_tge:    'dev',
+  TGE_Vested: 'HEAD',
 }
 ```
 

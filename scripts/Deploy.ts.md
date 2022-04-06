@@ -249,9 +249,13 @@ and two vesting contracts:
 Its deployment procedure takes the following parameters:
 
 ```typescript
+type TGEAPIVersion = "TGE" | "Vested"
+
 export type TGEDeployOptions = {
   /** Address of the admin. */
   admin: string,
+  /** Which version/type to deploy **/
+  version: TGEAPIVersion,
   /** The schedule for the new MGMT.
     * Defaults to production schedule. */
   settings?: { schedule?: typeof settings.schedule },
@@ -264,6 +268,8 @@ And adds the following items to the migration context:
 export type TGEDeployResult = {
   /** The deployed SIENNA SNIP20 token contract. */
   SIENNA:     API.Snip20Client
+
+
   /** The deployed MGMT contract. */
   MGMT:       API.MGMTClient
   /** The deployed RPT contract. */
@@ -283,9 +289,49 @@ import { testers, getRPTAccount } from './Configure'
 import { schedule } from '@sienna/settings'
 import { MultisigScrtBundle } from '@hackbg/fadroma'
 
+const makeMgmtInitMsg { 
+  "Vested" (schedule, admin?: string, token) {
+    return { 
+      admin, 
+      prefund: true,
+      schedule, 
+      token 
+    }
+  }
+  "TGE" (token, schedule, history?: any) {
+    return {
+      token,
+      schedule,
+      history
+    }
+  }
+}
+
+
+const makeRptInitMsg {
+  "TGE" (portion, config, token, mgmt) {
+    return { 
+      portion, config, token, mgmt
+    }
+  }
+  "Vested" (admin, distribution, portion, token, mgmt) {
+    return {
+      admin, distribution, portion, token, mgmt
+    }
+  }
+}
+
 export async function deployTGE (
   context: MigrationContext & TGEDeployOptions
 ): Promise<TGEDeployResult> {
+
+  const {
+    agent, uploader, 
+    version = 'TGE' as TGEAPIVersion,
+    deployment, prefix,
+    settings: { schedule } = getSettings(agent.chain.mode)
+    admin = agent.address,
+  } = context
 
   const {
     agent, uploader,
@@ -327,8 +373,6 @@ export async function deployTGE (
     schedule
   }
 
-  console.log(rptTemplate)
-
   const mgmtInstance = await deployment.init(
     agent, mgmtTemplate, 'MGMT', mgmtInitMsg)
   const mgmtLink =
@@ -342,6 +386,9 @@ export async function deployTGE (
       token:  tokenLink,
       mgmt:   mgmtLink,
     })
+
+ 
+
 
   // 6. Set the RPT contract's account in schedule
   rptAccount.address = rptInstance.address
