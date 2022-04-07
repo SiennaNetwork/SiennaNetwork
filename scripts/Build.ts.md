@@ -75,7 +75,7 @@ export const refs = {
   Rewards_v2: 'legacy/rewards-v2',
   Rewards_v3: 'legacy/amm-v2-rewards-v3'
   TGE_legacy: 'dev',
-  TGE_vested: 'HEAD',
+  TGE_vested: 'feature/alter-mgmt',
 }
 ```
 
@@ -87,8 +87,8 @@ and may be deprecated in the future as live mode evolves.
 
 ```typescript
 Fadroma.command('all',
-  function buildTgeLatest       () { return buildTge('HEAD') },
   function buildTGELegacy       () { return buildTge('TGE_legacy') },
+  function buildTgeLatest       () { return buildTge('HEAD') },
   function buildTokensLatest    () { return buildTokens('HEAD') },
   function buildTokensAMMv1     () { return buildTokens('AMM_v1') },
   function buildTokensAMMv2     () { return buildTokens('AMM_v2') },
@@ -101,8 +101,13 @@ Fadroma.command('all',
   function buildRewardsv3       () { return buildRewards('Rewards_v3') }
 )
 
-Fadroma.command('mgmt', () => Scrt_1_2.getBuilder().build(getSources()['sienna-mgmt']))
-Fadroma.command('rpt',  () => Scrt_1_2.getBuilder().build(getSources()['sienna-rpt']))
+Fadroma.command('tge legacy', 
+  () => buildTge('TGE_legacy')
+)
+
+Fadroma.command('tge vested', 
+  () => buildTge('TGE_vested')
+)
   
 Fadroma.command('latest',
   function buildLatest () {
