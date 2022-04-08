@@ -198,12 +198,3 @@ pub struct ConfigResponse {
     pub token: ContractLink<HumanAddr>,
     pub mgmt: ContractLink<HumanAddr>,
 }
-
-#[cfg(all(feature = "browser", target_arch = "wasm32"))]
-#[macro_use]
-extern crate wasm_bindgen;
-
-#[cfg(all(feature = "browser", target_arch = "wasm32"))]
-mod wasm {
-    fadroma_bind_js::bind_js!(cosmwasm_std, crate);
-}

@@ -75,7 +75,7 @@ export const refs = {
   Rewards_v2: 'legacy/rewards-v2',
   Rewards_v3: 'legacy/amm-v2-rewards-v3'
   TGE_legacy: 'dev',
-  TGE_vested: 'feature/alter-mgmt',
+  TGE_vested: 'HEAD',
 }
 ```
 
@@ -128,6 +128,9 @@ Fadroma.command('amm_v1',
 
 Fadroma.command('amm_v2',
   () => buildAmm(refs['AMM_v2']))
+
+
+
 
 export async function buildTge (ref?) {
   const sources = getSources(refs[ref])

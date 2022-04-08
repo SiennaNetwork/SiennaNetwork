@@ -305,6 +305,26 @@ import { buildTge } from './Build'
 import { testers, getRPTAccount } from './Configure'
 import { schedule } from '@sienna/settings'
 
+async function initMockTokens(deployment, agent, tokenTemplate,vesting) {
+
+  return deployment.initMany(agent, tokenTemplate, vesting.map((contract) => {
+    console.log(`Initing mock token: ${contract.name}`)
+
+    const initMsg = {
+      name: `Mock_${contract.name}`,
+      symbol: contract.name.toUpperCase(),
+      decimals: 18,
+      config: {
+        public_total_supply: true
+      },
+      prng_seed: randomHex(36)
+    }
+    return [contract.name, initMsg]
+  }))
+}
+
+
+
 export async function deployTGE (
   context: MigrationContext & TGEDeployOptions
 ): Promise<TGEDeployResult> {
@@ -313,129 +333,121 @@ export async function deployTGE (
     agent, uploader, 
     version,
     deployment, prefix,
-    settings: { schedule } = getSettings(agent.chain.mode)
+    settings: { schedule, vesting } = getSettings(agent.chain.mode)
     admin = agent.address,
   } = context
+  const { isTestnet, isDevnet, isMainnet } = agent.chain
+  console.log(vesting)
 
-  // 1. Build and upload the three TGE contracts:
-  const [tokenTemplate, mgmtTemplate, rptTemplate] = await uploader.uploadMany(await buildTge(`TGE_${version}`))
-
-  // 2. Instantiate the main token
-  const tokenInitMsg = {
-    name:      "Sienna",
-    symbol:    "SIENNA",
-    decimals:  18,
-    config:    { public_total_supply: true },
-    prng_seed: randomHex(36)
-  }
-  const tokenInstance = await deployment.init(
-    agent, tokenTemplate, 'SIENNA', tokenInitMsg)
-
-  // 3. Mutate the vesting schedule to use
-  // the admin address as a temporary RPT address
-  const tokenLink =
-    { address: tokenInstance.address, code_hash: tokenInstance.codeHash } 
-  const rptAccount =
-    Object.assign(getRPTAccount(schedule), { address: admin })
-  const portion =
-    rptAccount.portion_size
-
-
-  const mgmtInitMsgs =  {
-    "vested": {
-      admin, 
-      token: tokenLink 
-      prefund: true,
-      schedule, 
-    }
-    "legacy": {
-      token: tokenLink,
-      schedule,
-    }
-  }
-
-  console.log(mgmtInitMsgs[version])
-
-  const mgmtInstance = await deployment.init(agent, mgmtTemplate, `MGMT_${version}`, mgmtInitMsgs[version])
-  const mgmtLink = { address: mgmtInstance.address, code_hash: mgmtInstance.codeHash }
-
-  const rptInitMsgs = {
-    "legacy": {
-      portion,
-      config: [[admin, portion]]
-      token: tokenLink,
-      mgmt: mgmtLink
-    },
-    "vested": {
-      portion,
-      distribution: [[admin,portion]]
-      token: tokenLink,
-      mgmt: mgmtLink,
-    }
-  }
- 
-  const rptInstance = await deployment.init(agent, rptTemplate, `RPT_${version}`, rptInitMsgs[version])
-
+  const [tokenBuild, mgmtBuild, rptBuild] = await buildTge(`TGE_${version}`)
+  console.log(tokenBuild)
 
   
-  // 6. Set the RPT contract's account in schedule
-  rptAccount.address = rptInstance.address
-  const { isTestnet, isDevnet } = agent.chain
-  await agent.bundle().wrap(async bundle=>{
+  const isVestedProduction = isMainnet && version == 'vested'
 
-    // 7. In non-production modes, mint some test tokens
-    //    for the admin and other pre-defined accounts
-    const token = new API.SiennaSnip20Client({
-      ...deployment.get('SIENNA'), agent: bundle
-    })
+  const uploads = 
+        await uploader.uploadMany(isVestedProduction ? [mgmtBuild,rptBuild] : [tokenBuild, mgmtBuild, rptBuild])
 
-    if (isTestnet||isDevnet) {
-      console.warn(
-        'Minting some test tokens '         +
-        'for the admin and other testers. ' +
-        '(Only for testnet and devnet!)'
-      )
-      await token.setMinters([admin])
-      for (const addr of [ admin, ...testers ]) {
-        const amount = "5000000000000000000000"
-        console.warn(
-          bold('Minting'), amount, bold('SIENNA'),
-          'to', bold(addr)
-        )
-        await token.mint(amount, admin)
+    console.log(schedule)
+
+  if(version == 'vested' && !isMainnet) {    
+    const [tokenTemplate, mgmtTemplate, rptTemplate] = uploads;
+    
+    const tokens = await initMockTokens(deployment,agent, tokenTemplate, vesting);
+
+    const mgmtInstances = await deployment.initMany(agent, mgmtTemplate, vesting.map(({ name, }, i) => {
+      const tokenInstance = tokens[i];
+
+      const tokenLink = { address: tokenInstance.address, code_hash: tokenInstance.codeHash.toUpperCase() }
+
+      console.log(tokenLink)
+      console.log(admin)
+      name = `${name}.Mgmt[vested]`
+
+      //TODO: schedule should be set along with the vesting configuration for the token. 
+      // How to handle testnet/dev schedule? 
+      const initMsg = {
+            admin,
+            token: tokenLink,
+            prefund: true, 
+            schedule: { 
+              total: "10",
+               "pools": [
+    {
+      "name": "test",
+      "total": "10",
+      "partial": true,
+      "accounts": [
+        {
+          "name": "978",
+          "amount": "10",
+          "address": "secret1leulrux3emu7c34jux0n8x0v6y9cfhl4k8xk08",
+          "start_at": 7776000,
+          "interval": 86400,
+          "duration": 41472000,
+          "cliff": "0",
+          "portion_size": "2",
+          "remainder": "0"
+        },]}}
+            },
+    
+
+      return [name, initMsg]
+    }))
+
+    const rptInstances = await deployment.initMany(agent, rptTemplate, vesting.map(({ name, }, i) => {
+      const mgmtInstance = mgmtInstances[i];
+      const tokenInstance = tokens[i];
+
+      const tokenLink = { address: tokenInstance.address, code_hash: tokenInstance.codeHash }
+      const mgmtLink = { address: mgmtInstance.address, code_hash: mgmtInstance.codeHash }
+
+      // TODO: use the schedule relative to the vesting configuration
+      const rptAccount = Object.assign(getRPTAccount(schedule), { address: admin })
+      const portion = rptAccount.portion_size
+
+      const initMsg = {
+        portion, 
+        distribution: [[admin, portion]]
+        token: tokenLink,
+        mgmt: mgmtLink
       }
+
+      name = `${name}.Rpt.[vested]`
+
+      return [name, initMsg]
+    }))
+
+    const mgmtClients = mgmtInstances.map(result => new API.MGMTClient[version]({...result, agent }))
+    const rptClients = rptInstances.map(result => new API.RPTClient[version]({...result, agent }))
+    const tokenClients = tokens.map(result => new API.SiennaSnip20Client({...result, agent }))
+
+    return { ...mgmtClients, ...rptClients, ...tokenClients }
+
+  } else if(version == 'legacy' && !isMainnet) {
+    const tokenInitMsg = {
+      name:      "Sienna",
+      symbol:    "SIENNA",
+      decimals:  18,
+      config:    { public_total_supply: true },
+      prng_seed: randomHex(36)
     }
-
-    if(version === "TGE") {
-
-      // 8. MGMT becomes admin and sole minter of token,
-      //    takes the final vesting config, and launches
-      const mgmt = new API.MGMTClient[version]({
-        ...deployment.get(`MGMT_${version}`), agent: bundle
-      })
-      await mgmt.acquire(token)
-      await mgmt.configure(schedule)
-      await mgmt.launch()
-    }
-
-  })
-
-  // 9. Return interfaces to the three contracts.
-  //    This will add them to the context for
-  //    subsequent steps. (Retrieves them through
-  //    the Deployment to make sure the receipts
-  //    were saved.)
-  return {
-    SIENNA: new API.SiennaSnip20Client({
-      ...deployment.get('SIENNA'), agent
-    }),
-    [`MGMT_${version}`]:   new API.MGMTClient[version]({
-      ...deployment.get(`MGMT_${version}`),   agent
-    }),
-    [`RPT_${version}`]:    new API.RPTClient[version]({
-      ...deployment.get(`MGMT_${version}`),    agent
-    })
+    const tokenInstance = await deployment.init(
+      agent, tokenTemplate, 'SIENNA', tokenInitMsg)
   }
+  
+
+
+
+
+}
+
+async function deployMgmt (
+  context: MigrationContext & TGEDeployOptions
+): Promise<TGEDeployResult> {
+
+
+
 }
 ```
 
