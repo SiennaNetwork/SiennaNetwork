@@ -1,12 +1,58 @@
 [
-        {
-            "name": "Silk",
-            "address": "secret1leulrux3emu7c34jux0n8x0v6y9cfhl4k8xk08",
-            "code_hash": "3c0dc12b15f22d0793f13f1f6a551e7dc0f0c113cc50f41eb8131f90517f385b"
-        },
-        {
-            "name": "Shade",
-            "address": "secret1leulrux3emu7c34jux0n8x0v6y9cfhl4k8xk08",
-            "code_hash": "3c0dc12b15f22d0793f13f1f6a551e7dc0f0c113cc50f41eb8131f90517f385b"
+    {
+        "name": "Silk",
+        "address": "secret1leulrux3emu7c34jux0n8x0v6y9cfhl4k8xk08",
+        "code_hash": "3c0dc12b15f22d0793f13f1f6a551e7dc0f0c113cc50f41eb8131f90517f385b",
+        "schedule": {
+            "total": "200",
+            "pools": [
+                {
+                    "name": "Test",
+                    "total": "200",
+                    "partial": true,
+                    "accounts": [
+                        {
+                            "name": "testing_vested",
+                            "amount": "200",
+                            "address": "secret1leulrux3emu7c34jux0n8x0v6y9cfhl4k8xk08",
+                            "start_at": 7776000,
+                            "interval": 86400,
+                            "duration": 41472000,
+                            "cliff": "0",
+                            "portion_size": "200",
+                            "remainder": "0"
+                        }
+                    ]
+                }
+            ]
         }
+    },
+    {
+        "name": "Shade",
+        "address": "secret1leulrux3emu7c34jux0n8x0v6y9cfhl4k8xk08",
+        "code_hash": "3c0dc12b15f22d0793f13f1f6a551e7dc0f0c113cc50f41eb8131f90517f385b",
+        "schedule": {
+            "total": "200",
+            "pools": [
+                {
+                    "name": "Test",
+                    "total": "200",
+                    "partial": true,
+                    "accounts": [
+                        {
+                            "name": "testing_vested",
+                            "amount": "200",
+                            "address": "secret1leulrux3emu7c34jux0n8x0v6y9cfhl4k8xk08",
+                            "start_at": 7776000,
+                            "interval": 86400,
+                            "duration": 41472000,
+                            "cliff": "0",
+                            "portion_size": "200",
+                            "remainder": "0"
+                        }
+                    ]
+                }
+            ]
+        }
+    }
 ]

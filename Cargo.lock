@@ -607,7 +607,6 @@ version = "0.1.0"
 dependencies = [
  "fadroma-platform-scrt",
  "fadroma-storage",
- "rand",
  "serde",
 ]
 
@@ -1592,14 +1591,9 @@ name = "sienna-mgmt"
 version = "2.0.0"
 dependencies = [
  "fadroma",
- "fadroma-bind-js",
- "js-sys",
- "kukumba 1.0.1 (git+https://github.com/hackbg/kukumba?branch=21.04)",
  "linear-map",
  "serde",
- "serde_json",
  "sienna-schedule",
- "wasm-bindgen",
 ]
 
 [[package]]
@@ -1641,14 +1635,11 @@ name = "sienna-rpt"
 version = "1.0.0"
 dependencies = [
  "fadroma",
- "fadroma-bind-js",
- "js-sys",
  "kukumba 1.0.1 (git+https://github.com/hackbg/kukumba?branch=21.04)",
  "linear-map",
  "serde",
  "sienna-mgmt",
  "snip20-sienna",
- "wasm-bindgen",
 ]
 
 [[package]]
