@@ -301,22 +301,30 @@ import { buildTge } from './Build'
 import { testers, getRPTAccount } from './Configure'
 import { schedule } from '@sienna/settings'
 
-async function initMockTokens(deployment, agent, tokenTemplate,vesting) {
+async function initMockTokens(deployment, agent, tokenTemplate, vesting) {
+  const labels = [];
+  const prefix = Date.now();
+  const mgmtInst = await agent.instantiateMany(
+      vesting.map((contract) => {
+        console.log(`Initing mock token: ${contract.name}`)
 
-  return deployment.initMany(agent, tokenTemplate, vesting.map((contract) => {
-    console.log(`Initing mock token: ${contract.name}`)
+        const initMsg = {
+          name: `Mock_${contract.name}`,
+          symbol: contract.name.toUpperCase(),
+          decimals: 18,
+          config: {
+            public_total_supply: true
+          },
+          prng_seed: randomHex(36)
+        }
+        labels.push(contract.name);
+        return [tokenTemplate, contract.name, initMsg];
+      }),
+      prefix
+  );
+  return labels.map(label => mgmtInst[label]);
+}
 
-    const initMsg = {
-      name: `Mock_${contract.name}`,
-      symbol: contract.name.toUpperCase(),
-      decimals: 18,
-      config: {
-        public_total_supply: true
-      },
-      prng_seed: randomHex(36)
-    }
-    return [contract.name, initMsg]
-  }))
 }
 
 
