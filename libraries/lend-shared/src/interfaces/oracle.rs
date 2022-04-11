@@ -30,14 +30,9 @@ pub trait Oracle {
     #[query]
     fn price(
         base: AssetType,
-        quote: AssetType
+        quote: AssetType,
+        decimals: u8,
     ) -> StdResult<PriceResponse>;
-
-    #[query]
-    fn prices(
-        base: Vec<AssetType>,
-        quote: Vec<AssetType>
-    ) -> StdResult<PricesResponse>;
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, schemars::JsonSchema)]
@@ -115,12 +110,13 @@ pub fn query_price(
     oracle: ContractLink<HumanAddr>,
     base: AssetType,
     quote: AssetType,
+    decimals: u8,
     time_contraints: Option<TimeConstraints>,
 ) -> StdResult<PriceResponse> {
     let price: PriceResponse = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
         contract_addr: oracle.address,
         callback_code_hash: oracle.code_hash,
-        msg: to_binary(&QueryMsg::Price { base, quote })?,
+        msg: to_binary(&QueryMsg::Price { base, quote, decimals })?,
     }))?;
 
     if let Some(time_contraints) = time_contraints {

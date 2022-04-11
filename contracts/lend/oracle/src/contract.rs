@@ -13,7 +13,7 @@ use lend_shared::fadroma::{
     ContractLink, Decimal256
 };
 use lend_shared::interfaces::oracle::{
-    PriceResponse, PricesResponse, Asset,
+    PriceResponse, Asset,
     AssetType, OverseerRef, ConfigResponse
 };
 
@@ -105,7 +105,7 @@ pub trait BandOracleConsumer {
     }
 
     #[query]
-    fn price(base: AssetType, quote: AssetType) -> StdResult<PriceResponse> {
+    fn price(base: AssetType, quote: AssetType, decimals: u8) -> StdResult<PriceResponse> {
         let source = Contracts::load_source(deps)?;
 
         let res: BandResponse = deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
@@ -118,39 +118,9 @@ pub trait BandOracleConsumer {
         }))?;
 
         Ok(PriceResponse {
-            rate: Decimal256(res.rate.u128().into()),
+            rate: Decimal256((res.rate.u128() * 10u128.pow(18 - decimals as u32)).into()),
             last_updated_base: res.last_updated_base,
             last_updated_quote: res.last_updated_quote,
         })
-    }
-
-    #[query]
-    fn prices(base: Vec<AssetType>, quote: Vec<AssetType>) -> StdResult<PricesResponse> {
-        let source = Contracts::load_source(deps)?;
-
-        let prices: Vec<BandResponse> = deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
-            contract_addr: source.address,
-            callback_code_hash: source.code_hash,
-            msg: to_binary(&SourceQuery::GetReferenceDataBulk {
-                base_symbols: base.into_iter()
-                    .map(|x| get_symbol(deps, x))
-                    .collect::<StdResult<Vec<String>>>()?,
-                quote_symbols: quote.into_iter()
-                    .map(|x| get_symbol(deps, x))
-                    .collect::<StdResult<Vec<String>>>()?,
-            })?,
-        }))?;
-
-        let prices: StdResult<Vec<PriceResponse>> = prices.into_iter().map(|price| 
-            Ok(PriceResponse{
-                rate: Decimal256::from_uint256(price.rate)?,
-                last_updated_base: price.last_updated_base,
-                last_updated_quote: price.last_updated_quote,
-            })
-        ).collect();
-
-        let prices = prices?;
-
-        Ok(PricesResponse { prices })
     }
 }
