@@ -22,7 +22,7 @@ use amm_shared::{
 use exchange::contract as exchange;
 use factory::contract as factory;
 use lp_token;
-use rewards::{auth::AuthHandle, handle::RewardsHandle, Response};
+use rewards::{auth::AuthHandle, Response};
 
 #[cfg(feature = "gov")]
 use rewards::gov::{
@@ -346,13 +346,34 @@ impl Amm {
     }
 
     pub fn deposit_lp_into_rewards(&mut self, address: HumanAddr, amount: Uint128) {
+        let resp: sienna_rewards::Response = self.ensemble.query(
+            self.rewards.address.clone(),
+            sienna_rewards::Query::Rewards(sienna_rewards::query::RewardsQuery::Config)
+        ).unwrap();
+
+        let lp_token = match resp {
+            sienna_rewards::Response::Rewards(resp) => match resp {
+                sienna_rewards::query::RewardsResponse::Config(config) => config.lp_token.unwrap(),
+                _ => panic!("Expecting rewards::query::RewardsResponse::Config")
+            },
+            _ => panic!("sienna_rewards::Response::Rewards")
+        };
+
         self.ensemble
             .execute(
-                &sienna_rewards::Handle::Rewards(RewardsHandle::Deposit { amount }),
-                MockEnv::new(address, self.rewards.to_owned().try_into().unwrap()),
+                &sienna_rewards::fadroma::snip20_impl::msg::HandleMsg::Send {
+                    recipient: self.rewards.address.clone(),
+                    recipient_code_hash: None,
+                    amount,
+                    msg: None,
+                    memo: None,
+                    padding: None
+                },
+                MockEnv::new(address, lp_token),
             )
             .unwrap();
     }
+
     pub fn set_rewards_viewing_key(&mut self, address: HumanAddr, key: String) {
         self.ensemble
             .execute(
@@ -361,6 +382,7 @@ impl Amm {
             )
             .unwrap();
     }
+
     pub fn get_rewards_staked(&mut self, address: HumanAddr, key: String) -> Uint128 {
         let response: Response = self
             .ensemble

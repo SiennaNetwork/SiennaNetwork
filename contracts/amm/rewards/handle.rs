@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "snake_case")]
 pub enum RewardsHandle {
     // Public transactions
-    Deposit { amount: Amount },
+    Deposit { from: HumanAddr, amount: Amount },
     Withdraw { amount: Amount },
     Claim {},
     // Authorized transactions
@@ -32,8 +32,15 @@ where
     fn dispatch_handle(self, core: &mut C, env: Env) -> StdResult<HandleResponse> {
         match self {
             // Public transactions
-            RewardsHandle::Deposit { amount } => {
-                Account::from_env(core, &env)?.deposit(core, amount)
+            RewardsHandle::Deposit { from, amount } => {
+                let lp_token = RewardsConfig::lp_token(core)?;
+
+                if lp_token.link.address == env.message.sender {
+                    Account::from_addr(core, &from, env.block.time)?
+                        .deposit(core, amount)
+                } else {
+                    Err(StdError::unauthorized())                    
+                }
             }
             RewardsHandle::Withdraw { amount } => {
                 Account::from_env(core, &env)?.withdraw(core, amount)
@@ -46,7 +53,7 @@ where
                 Auth::assert_admin(core, &env)?;
                 match self {
                     RewardsHandle::Configure(config) => Ok(HandleResponse {
-                        messages: config.store(core)?,
+                        messages: config.store(core, env)?,
                         log: vec![],
                         data: None,
                     }),

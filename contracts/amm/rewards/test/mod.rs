@@ -16,8 +16,12 @@ use prettytable::{/*Row, Cell,*/ format, Table};
 use crate::time_utils::{Duration, Moment, DAY};
 use crate::total::Total;
 use crate::*;
-use fadroma::composability::{ClonableMemoryStorage, MockExtern};
-use fadroma::secret_toolkit::snip20;
+use fadroma::{
+    secret_toolkit::snip20,
+    composability::{ClonableMemoryStorage, MockExtern},
+    testing::{MockApi, mock_env},
+    ISnip20, BLOCK_SIZE
+};
 
 pub use rand::Rng;
 use rand::{rngs::StdRng, SeedableRng};
@@ -265,16 +269,25 @@ impl Context {
                     }
                 }
             ),
-            InitResponse::default().msg(
-                snip20::set_viewing_key_msg(
-                    self.reward_vk.clone(),
-                    None,
-                    BLOCK_SIZE,
-                    self.reward_token.link.code_hash.clone(),
-                    self.reward_token.link.address.clone()
+            InitResponse::default()
+                .msg(snip20::register_receive_msg(
+                        self.env.contract_code_hash.clone(),
+                        None,
+                        BLOCK_SIZE,
+                        self.lp_token.link.code_hash.clone(),
+                        self.lp_token.link.address.clone()
+                    ).unwrap()
                 )
                 .unwrap()
-            )
+                .msg(snip20::set_viewing_key_msg(
+                        self.reward_vk.clone(),
+                        None,
+                        BLOCK_SIZE,
+                        self.reward_token.link.code_hash.clone(),
+                        self.reward_token.link.address.clone()
+                    )
+                    .unwrap()
+                )
         );
 
         assert_eq!(
@@ -304,7 +317,7 @@ impl Context {
             bonding: None,
             timekeeper: None,
         };
-        assert!(Rewards::init(&mut self.deps, &self.env, invalid_config).is_err());
+        assert!(Rewards::init(&mut self.deps, self.env.clone(), invalid_config).is_err());
         self
     }
     pub fn configures(&mut self, config: RewardsConfig) -> &mut Self {
@@ -437,23 +450,25 @@ impl Context {
         self
     }
     pub fn deposits(&mut self, amount: u128) -> &mut Self {
+        // YES, THIS IS A HACK - DEAL WITH IT
+        let old_sender = self.env.message.sender.clone();
+        self.env.message.sender = self.lp_token.link.address.clone();
+
         self.test_handle(
             Handle::Rewards(RewardsHandle::Deposit {
-                amount: amount.into(),
+                from: self.initiator.clone(),
+                amount: amount.into()
             }),
-            HandleResponse::default().msg(
-                self.lp_token
-                    .transfer_from(
-                        &self.env.message.sender,
-                        &self.env.contract.address,
-                        amount.into(),
-                    )
-                    .unwrap(),
-            ),
+            HandleResponse::default()
+                .log("deposit", &amount.to_string())
         );
+
+        self.env.message.sender = old_sender;
+
         self.deps
             .querier
             .increment_balance(&self.lp_token.link.address, amount);
+
         self
     }
     pub fn withdraws(&mut self, amount: u128) -> &mut Self {

@@ -1,10 +1,13 @@
 use std::convert::TryInto;
 
 use sienna_rewards::{
-    ensemble::MockEnv,
+    fadroma::{
+        ensemble::MockEnv,
+        cosmwasm_std::{HumanAddr, Uint128, StdError}
+    },
     handle::RewardsHandle,
     query::RewardsQuery,
-    Handle, HumanAddr, Query, Response, Uint128,
+    Handle, Query, Response,
 };
 
 #[cfg(feature="gov")]
@@ -278,7 +281,7 @@ fn should_remove_vote() {
         )
         .unwrap();
 
-    let vote: Result<Response, sienna_rewards::StdError> = amm.ensemble.query(
+    let vote: Result<Response, StdError> = amm.ensemble.query(
         amm.rewards.address.clone(),
         &Query::Governance(GovernanceQuery::VoteStatus {
             address: sender,

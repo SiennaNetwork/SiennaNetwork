@@ -209,16 +209,13 @@ where
         if let Some((ref when, ref why)) = self.total.closed {
             let when = *when;
             let why = why.clone();
-            return self.force_exit(core, when, why);
+
+            self.force_exit(core, when, why)
         } else {
             self.commit_deposit(core, amount)?;
-            let lp_token = RewardsConfig::lp_token(core)?;
-            let self_link = RewardsConfig::self_link(core)?;
-            HandleResponse::default().msg(lp_token.transfer_from(
-                &self.address,
-                &self_link.address,
-                amount,
-            )?)
+
+            HandleResponse::default()
+                .log("deposit", &amount.to_string())
         }
     }
     fn withdraw(&mut self, core: &mut C, amount: Uint128) -> StdResult<HandleResponse> {
@@ -299,7 +296,7 @@ where
         Ok(())
     }
     fn commit_deposit(&mut self, core: &mut C, amount: Amount) -> StdResult<()> {
-        let sender = Sender::from_human( &self.address, core.api())?;
+        let sender = Sender::from_human(&self.address, core.api())?;
         let user = User::get(core, &sender, self.total.clock.now)?;
         user.active_polls.into_iter().for_each(|poll_id| {
             User::increase_vote_power(core, poll_id, &sender, amount, self.total.clock.now).unwrap()
