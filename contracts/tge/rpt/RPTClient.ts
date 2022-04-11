@@ -28,6 +28,18 @@ export abstract class RPTClient extends Client {
     }
   }
   static "vested" = class RPTClient_Vested extends RPTClient {
+    configuration() {
+      return this.query({ configuration: {} });
+    }
+
+    set_distribution(distribution) {
+      return this.execute({ set_distribution: { distribution }});
+    }
+
+    vest() {
+      return this.execute({ vest: {} });
+    }
+    
   }
 }
 
