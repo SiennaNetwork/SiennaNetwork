@@ -6,7 +6,7 @@ use lend_shared::{
         ensemble::MockEnv,
         snip20_impl::msg as snip20,
         permit::Permit,
-        Decimal256, Uint256,
+        Decimal256, Uint256, one_token
     },
     interfaces::{market, overseer},
 };
@@ -32,12 +32,13 @@ fn borrow() {
         .unwrap()
         .contract;
 
-    let prefund_amount = Uint128(500);
-    let borrow_amount = Uint128(100);
+    let prefund_amount = Uint128(500 * one_token(6));
+    let chester_prefund_amount = Uint128(100 * one_token(18));
+    let borrow_amount = Uint128(100 * one_token(6));
 
     lend.prefund_and_deposit(BOB, prefund_amount, market_one.address.clone());
     lend.prefund_and_deposit(ALICE, prefund_amount, market_one.address.clone());
-    lend.prefund_and_deposit(CHESTER, borrow_amount, market_two.address.clone());
+    lend.prefund_and_deposit(CHESTER, chester_prefund_amount, market_two.address.clone());
 
     lend.ensemble
         .execute(
@@ -52,6 +53,9 @@ fn borrow() {
     // With LTV ratio of 90%, if Chester wants to borrow a 100 tokens, he'd have to deposit
     // 10% more as collateral - 100 + 10% = 110
 
+    // conv_factor = 0.9 * 1 * 1 = 0.9
+    // Chester's liquidity = 100 * 0.9 = 90
+
     let liquidity = lend
         .get_liquidity(
             CHESTER,
@@ -62,8 +66,10 @@ fn borrow() {
         )
         .unwrap();
 
-    assert_eq!(liquidity.liquidity, Uint256::zero());
-    assert_eq!(liquidity.shortfall, Uint256::from(10));
+    println!("{:#?}", liquidity);
+
+    // assert_eq!(liquidity.liquidity, Uint256::zero());
+    // assert_eq!(liquidity.shortfall, Uint256::from(10));
 
     let err = lend
         .ensemble
@@ -77,11 +83,11 @@ fn borrow() {
 
     assert_eq!(
         err,
-        StdError::generic_err("Insufficient liquidity. Shortfall: 10")
+        StdError::generic_err("Insufficient liquidity. Shortfall: 10000000000000000000")
     );
 
     // 12 instead of 10 because of rounding during exchange rate divison
-    lend.prefund_and_deposit(CHESTER, Uint128(12), market_two.address.clone());
+    lend.prefund_and_deposit(CHESTER, Uint128(12 * one_token(18)), market_two.address.clone());
 
     lend.ensemble
         .execute(
@@ -96,7 +102,8 @@ fn borrow() {
         .get_liquidity(CHESTER, None, Uint256::zero(), Uint256::zero(), None)
         .unwrap();
 
-    assert_eq!(liquidity.liquidity, Uint256::zero());
+    // 0.8 liquidity
+    assert_eq!(liquidity.liquidity, Uint256::from(800000000000000000u128));
     assert_eq!(liquidity.shortfall, Uint256::zero());
 
     let state: market::State = lend
@@ -107,8 +114,8 @@ fn borrow() {
         )
         .unwrap();
 
-    assert_eq!(state.total_borrows, 100.into());
-    assert_eq!(state.total_supply, 1000.into());
+    assert_eq!(state.total_borrows, 100000000.into());
+    assert_eq!(state.total_supply, 1000000000.into());
 
     let utilization_rate = utilization_rate(
         Decimal256::from_uint256(state.underlying_balance).unwrap(),
@@ -138,7 +145,7 @@ fn borrow() {
 
     let chester = info.entries.first().unwrap();
 
-    assert_eq!(chester.liquidity.liquidity, Uint256::zero());
+    assert_eq!(chester.liquidity.liquidity, Uint256::from(800000000000000000u128));
     assert_eq!(chester.liquidity.shortfall, Uint256::zero());
 
     assert_eq!(chester.markets.len(), 2);
@@ -173,10 +180,10 @@ fn cannot_increase_collateral_value_by_entering_the_same_market_multiple_times()
         None
     ).unwrap();
 
-    let prefund_alice_atom = Uint128(1000);
-    let prefund_alice_scrt = Uint128(10000);
-    let prefund_bob_atom = Uint128(1000);
-    let borrow_bob_scrt = Uint256::from(2000);
+    let prefund_alice_atom = Uint128(1000 * one_token(9));
+    let prefund_alice_scrt = Uint128(10000 * one_token(6));
+    let prefund_bob_atom = Uint128(1000 * one_token(9));
+    let borrow_bob_scrt = Uint256::from(2000 * one_token(6));
 
     lend.prefund_and_deposit(ALICE, prefund_alice_atom, market_1.contract.address.clone());
     lend.prefund_and_deposit(BOB, prefund_bob_atom, market_1.contract.address.clone());
@@ -243,10 +250,10 @@ fn cannot_increase_collateral_value_by_entering_the_same_market_multiple_times()
         None
     ).unwrap();
 
-    assert_eq!(liquidity.liquidity, Uint256::from(500));
+    assert_eq!(liquidity.liquidity, Uint256::from(500_000_000_000_000_000_000u128));
     assert_eq!(liquidity.shortfall, Uint256::zero());
 
-    assert_eq!(err, StdError::generic_err(format!("Insufficient liquidity. Shortfall: {}", 1500)));
+    assert_eq!(err, StdError::generic_err(format!("Insufficient liquidity. Shortfall: {}", 1500_000_000_000_000_000_000u128)));
 }
 
 #[test]
@@ -275,9 +282,9 @@ fn do_repay(self_repay: bool) {
         .unwrap()
         .contract;
 
-    let prefund_amount = Uint128(500);
-    let borrow_amount = Uint128(100);
-    let collateral_amount = Uint128(112);
+    let prefund_amount = Uint128(500 * one_token(6));
+    let borrow_amount = Uint128(100 * one_token(6));
+    let collateral_amount = Uint128(112 * one_token(18));
 
     lend.prefund_and_deposit(BOB, prefund_amount, market_one.address.clone());
     lend.prefund_and_deposit(ALICE, prefund_amount, market_one.address.clone());
