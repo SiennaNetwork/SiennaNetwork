@@ -128,7 +128,7 @@ const inCurrentDeployment = [...canBuildAndUpload, Fadroma.Deploy.Append];
 
 </td></tr></table>
 
-## Pre-confiured command steps
+## Pre-configured command steps
 
 <table><tr><td valign="top">
 
@@ -323,7 +323,7 @@ async function initMockTokens(deployment, agent, tokenTemplate, vesting) {
   return labels.map(label => mgmtInst[label]);
 }
 
-async function generateMgmtInitMsgs(mgmtTemplate, vesting,admin, tokens) {
+async function generateMgmtInitMsgs(mgmtTemplate, vesting, admin, tokens) {
     const labels = []
     const configs = vesting.map(({name, schedule, address, code_hash }, i) => {
         const tokenLinkProd = { address, code_hash }
@@ -331,7 +331,12 @@ async function generateMgmtInitMsgs(mgmtTemplate, vesting,admin, tokens) {
         name = `${name}.Mgmt[vested]`
         const initMsg = {
             admin,
-            token: tokens ? { address: tokens[i].address, code_hash: tokens[i].codeHash.toUpperCase() } : tokenLinkProd,
+            token: tokens ? 
+              { 
+                address: tokens[i].address, 
+                code_hash: tokens[i].codeHash.toUpperCase() 
+              } : 
+              tokenLinkProd,
             prefund: true,
             schedule,
         }
@@ -369,6 +374,39 @@ async function generateRptInitMsgs(rptTemplate, mgmtInstances, admin, vesting, t
     return { labels, configs }
 }
 
+async function generateRewardsInitMsgs(template, admin, vesting, tokens) {
+    const labels = []
+    const configs = vesting.map(({name, address, schedule, code_hash}, i ) => {
+        const mgmtInstance = mgmtInstances[i];
+        const tokenLinkProd = { address, code_hash };
+
+        const mgmtLink = { address: mgmtInstance.address, code_hash: mgmtInstance.codeHash };
+
+        const rptAccount = schedule.pools[0].accounts[0];
+        const portion = rptAccount.portion_size
+
+        const rewardsToken =  tokens ? 
+          { address: tokens[i].address, code_hash: tokens[i].codeHash.toUpperCase() } : 
+          tokenLinkProd;
+
+        const initMsg = {
+          admin,
+          config: {
+            lp_token: rewardsToken, 
+            reward_token: rewardsToken,
+          }
+        }
+
+        name = `${name}.Rewards[vested]`
+
+        labels.push(name)
+
+        return [template, name, initMsg]
+    })
+
+    return { labels, configs }
+}
+
 export async function deployTGE (
   context: MigrationContext & TGEDeployOptions
 ): Promise<TGEDeployResult> {
@@ -381,84 +419,64 @@ export async function deployTGE (
     admin = agent.address,
   } = context
 
+  if(version == 'legacy') {
+    throw new Error("Not implemented");
+  }
+
   const { isTestnet, isDevnet, isMainnet } = agent.chain
-  const [tokenBuild, mgmtBuild, rptBuild, rewardPoolBuild] = [...await buildTge(`TGE_${version}`), ...await buildRewards('Rewards_v3')]
+  const [tokenBuild, mgmtBuild, rptBuild, rewardPoolBuild] = [
+    ...await buildTge(`TGE_${version}`), 
+    ...await buildRewards('Rewards_v3')
+  ]
 
 
-  const isVestedProduction = isMainnet && version == 'vested'
+  const isVestedProduction = isMainnet && version == 'vested';
+  const isVestedDevTest = !isMainnet && version == 'vested';
 
   const getUploadBuilds = (version, isProduction) => {
-    // non production version needs a mock token
-    if(version == 'vested' && !isProduction) return [tokenBuild,mgmtBuild,rptBuild,rewardPoolBuild]
-    // production one uses third party token
-    if(version == 'vested' && isProduction) return [mgmtBuild,rptBuild,rewardPoolBuild]
-
-    if(version == 'legacy') return [tokenBuild,mgmtBuild,rptBuild]
+    if(version == 'legacy') {
+      return [tokenBuild, mgmtBuild, rptBuild]
+    };
+    // else version is 'vested'
+    // non production version needs a mock token, while production one uses third party token
+    const builds = [mgmtBuild, rptBuild, rewardPoolBuild];
+    return isProduction ? builds : [tokenBuild, ...builds];
   }
-
-
   const uploads = await uploader.uploadMany(await getUploadBuilds(version, isMainnet))
 
-
-  if(version == 'vested' && !isMainnet) {
-    const [tokenTemplate, mgmtTemplate, rptTemplate] = uploads;
-
-
-    //for devnet and testnet create some mock tokens
-    const tokens = await initMockTokens(deployment,agent, tokenTemplate, vesting);
-
-
-    // generate init messages and save the labels
-    const { configs: mgmtConfigs, labels: mgmtLabels } = await generateMgmtInitMsgs(mgmtTemplate,vesting,admin, tokens))
-    // instantiateMany returns an object with each result under the label as a key
-    const mgmtBundleResults = await agent.instantiateMany(mgmtConfigs, +Date.now())
-    // use the presaved labels to extract relevant objects
-    const mgmtInstances = mgmtLabels.map(label => mgmtBundleResults[label])
-
-    const { configs: rptConfigs, labels: rptLabels} = await generateRptInitMsgs(rptTemplate, mgmtInstances, admin, vesting, tokens);
-    const rptBundleResults = await agent.instantiateMany(rptConfigs, +Date.now());
-    const rptInstances = rptLabels.map(label => rptBundleResults[label])
-
-
-
-    //version is always vested here
-    const mgmtClients = mgmtInstances.map(result => new API.MGMTClient[version]({...result, agent }))
-    const rptClients = rptInstances.map(result => new API.RPTClient[version]({...result, agent }))
-    const tokenClients = tokens.map(result => new API.SiennaSnip20Client({...result, agent }))
-
-    return { ...mgmtClients, ...rptClients, ...tokenClients }
-
-  } else if(isVestedProduction) {
-    const [token, mgmtTemplate, rptTemplate, rewardPoolTemplate] = uploads;
-
-    const { configs: mgmtConfigs , labels: mgmtLabels } = await generateMgmtInitMsgs(mgmtTemplate, vesting, admin);
-
-
-    const mgmtBundles = await agent.bundle().wrap(bundle => {
-      bundle.instantiateMany(mgmtConfigs)
-      bundle.save()
-    })
-
-
-
-
-
-  }  else if(version == 'legacy' && !isMainnet) {
-    const tokenInitMsg = {
-      name:      "Sienna",
-      symbol:    "SIENNA",
-      decimals:  18,
-      config:    { public_total_supply: true },
-      prng_seed: randomHex(36)
-    }
-    const tokenInstance = await deployment.init(
-      agent, tokenTemplate, 'SIENNA', tokenInitMsg)
+  let tokenTemplate, mgmtTemplate, rptTemplate, rewardsTemplate;
+  if (isVestedDevTest) {
+    [tokenTemplate, mgmtTemplate, rptTemplate, rewardsTemplate] = uploads;
+  } else {
+    [mgmtTemplate, rptTemplate, rewardsTemplate] = uploads;
   }
+  
+  //for devnet and testnet create some mock tokens
+  const tokens = isMainnet ? 
+    undefined :
+    await initMockTokens(deployment,agent, tokenTemplate, vesting);
 
+  // generate init messages and save the labels
+  const { configs: mgmtConfigs, labels: mgmtLabels } = await generateMgmtInitMsgs(mgmtTemplate,vesting, admin, tokens))
+  // instantiateMany returns an object with each result under the label as a key
+  const mgmtBundleResults = await agent.instantiateMany(mgmtConfigs, Date.now())
+  // use the presaved labels to extract relevant objects
+  const mgmtInstances = mgmtLabels.map(label => mgmtBundleResults[label])
 
+  const { configs: rptConfigs, labels: rptLabels} = await generateRptInitMsgs(rptTemplate, mgmtInstances, admin, vesting, tokens);
+  const rptBundleResults = await agent.instantiateMany(rptConfigs, Date.now());
+  const rptInstances = rptLabels.map(label => rptBundleResults[label])
 
+  const { configs: rewardConfigs, labels: rewardsLabels} = await generateRewardsInitMsgs(rewardsTemplate, admin, vesting, tokens);
+  const rewardsBundleResults = await agent.instantiateMany(rewardConfigs, Date.now());
+  const rewardsInstances = rewardsLabels.map(label => rewardsBundleResults[label] );
 
-
+  //version is always vested here
+  const mgmtClients = mgmtInstances.map(result => new API.MGMTClient[version]({...result, agent }))
+  const rptClients = rptInstances.map(result => new API.RPTClient[version]({...result, agent }))
+  const tokenClients = tokens.map(result => new API.SiennaSnip20Client({...result, agent }))
+  const rewardsClients = rewardsInstances.map(result => new API.RewardsClient["v3"]({...result, agent }))
+  return { ...mgmtClients, ...rptClients, ...tokenClients, ...rewardsClients }
 }
 
 ```
@@ -993,22 +1011,42 @@ async function deployRewards (
     ammVersion = { v3: 'v2', v2: 'v1' }[version] as AMMVersion,
     adjustRPT = true
   } = context
-  const createPools = Object.entries(rewardPairs)
-  const results = await deployment.initMany(deployAgent, template, createPools.map(([name, amount])=>{
-    // get the staked token by name
-    if (name !== 'SIENNA') name = `AMM[${ammVersion}].${name}.LP`
-    const staked = new API.Snip20Client(deployment.get(name))
-    // define the name of the reward pool from the staked token
-    name = `${name}.Rewards[${version}]`
-    return [name, makeRewardsInitMsg[version](reward, staked, admin, timekeeper)]
-  }))
-  const rptConfig = createPools.map(([name, amount], i)=>[results[i].address, String(BigInt(amount)*ONE_SIENNA)])
-  const clients = results.map(result=>new API.RewardsClient[version]({...result, agent: clientAgent}))
+  const rewardPairsAsArray = Object.entries(rewardPairs)
+  const results = await deployment.initMany(
+    deployAgent, 
+    template, 
+    rewardPairsAsArray.map(([name, amount])=>{
+      const staked = getStakedToken(name, ammVersion);
+      // define the name of the reward pool from the staked token
+      name = `${name}.Rewards[${version}]`
+      return [name, makeRewardsInitMsg[version](reward, staked, admin, timekeeper)]
+    })
+  );
+  const rptConfig = rewardPairsAsArray
+    .map(
+       ([name, amount], i) =>
+       [results[i].address, String(BigInt(amount)*ONE_SIENNA)]
+    );
+  const clients = results
+    .map(
+      result => 
+      new API.RewardsClient[version]({...result, agent: clientAgent})
+    );
   if (adjustRPT) {
     await run(adjustRPTConfig, { RPT_CONFIG: rptConfig })
   }
   return clients
 }
+
+function getStakedToken(name, ammVersion) {
+  // get the staked token by name
+    if (name !== 'SIENNA') {
+      name = `AMM[${ammVersion}].${name}.LP`;
+    }
+    return new API.Snip20Client(deployment.get(name))
+}
+
+
 ```
 
 Rewards v2 and v3 have different APIs,
