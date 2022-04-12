@@ -297,7 +297,7 @@ and deploy just the TGE contracts.
 </td><td valign="top">
 
 ```typescript
-import { buildTge } from './Build'
+import { buildTge, buildRewards } from './Build'
 import { testers, getRPTAccount } from './Configure'
 import { schedule } from '@sienna/settings'
 
@@ -306,8 +306,6 @@ async function initMockTokens(deployment, agent, tokenTemplate, vesting) {
   const prefix = Date.now();
   const mgmtInst = await agent.instantiateMany(
       vesting.map((contract) => {
-        console.log(`Initing mock token: ${contract.name}`)
-
         const initMsg = {
           name: `Mock_${contract.name}`,
           symbol: contract.name.toUpperCase(),
@@ -325,9 +323,51 @@ async function initMockTokens(deployment, agent, tokenTemplate, vesting) {
   return labels.map(label => mgmtInst[label]);
 }
 
+async function generateMgmtInitMsgs(mgmtTemplate, vesting,admin, tokens) {
+    const labels = []
+    const configs = vesting.map(({name, schedule, address, code_hash }, i) => {
+        const tokenLinkProd = { address, code_hash }
+
+        name = `${name}.Mgmt[vested]`
+        const initMsg = {
+            admin,
+            token: tokens ? { address: tokens[i].address, code_hash: tokens[i].codeHash.toUpperCase() } : tokenLinkProd,
+            prefund: true,
+            schedule,
+        }
+        labels.push(name)
+        return [mgmtTemplate,name, initMsg]
+    })
+    return { labels, configs }
 }
 
+async function generateRptInitMsgs(rptTemplate, mgmtInstances, admin, vesting, tokens) {
+    const labels = []
+    const configs = vesting.map(({name, address, schedule, code_hash}, i ) => {
+        const mgmtInstance = mgmtInstances[i];
+        const tokenLinkProd = { address, code_hash };
 
+        const mgmtLink = { address: mgmtInstance.address, code_hash: mgmtInstance.codeHash };
+
+        const rptAccount = schedule.pools[0].accounts[0];
+        const portion = rptAccount.portion_size
+
+        const initMsg = {
+          portion,
+          distribution: [[admin, portion]],
+          token: tokens ? { address: tokens[i].address, code_hash: tokens[i].codeHash.toUpperCase() } : tokenLinkProd,
+          mgmt: mgmtLink
+        }
+
+        name = `${name}.Rpt[vested]`
+
+        labels.push(name)
+
+        return [rptTemplate, name, initMsg]
+    })
+
+    return { labels, configs }
+}
 
 export async function deployTGE (
   context: MigrationContext & TGEDeployOptions
@@ -340,77 +380,70 @@ export async function deployTGE (
     settings: { schedule, vesting } = getSettings(agent.chain.mode)
     admin = agent.address,
   } = context
-  const { isTestnet, isDevnet, isMainnet } = agent.chain
-  console.log(vesting)
 
-  const [tokenBuild, mgmtBuild, rptBuild] = await buildTge(`TGE_${version}`)
-  console.log(tokenBuild)
+  const { isTestnet, isDevnet, isMainnet } = agent.chain
+  const [tokenBuild, mgmtBuild, rptBuild, rewardPoolBuild] = [...await buildTge(`TGE_${version}`), ...await buildRewards('Rewards_v3')]
 
 
   const isVestedProduction = isMainnet && version == 'vested'
 
-  const uploads =
-        await uploader.uploadMany(isVestedProduction ? [mgmtBuild,rptBuild] : [tokenBuild, mgmtBuild, rptBuild])
+  const getUploadBuilds = (version, isProduction) => {
+    // non production version needs a mock token
+    if(version == 'vested' && !isProduction) return [tokenBuild,mgmtBuild,rptBuild,rewardPoolBuild]
+    // production one uses third party token
+    if(version == 'vested' && isProduction) return [mgmtBuild,rptBuild,rewardPoolBuild]
 
-    console.log(schedule)
+    if(version == 'legacy') return [tokenBuild,mgmtBuild,rptBuild]
+  }
+
+
+  const uploads = await uploader.uploadMany(await getUploadBuilds(version, isMainnet))
+
 
   if(version == 'vested' && !isMainnet) {
     const [tokenTemplate, mgmtTemplate, rptTemplate] = uploads;
 
+
+    //for devnet and testnet create some mock tokens
     const tokens = await initMockTokens(deployment,agent, tokenTemplate, vesting);
 
-    const mgmtInstances = await deployment.initMany(agent, mgmtTemplate, vesting.map(({ name,schedule }, i) => {
-      const tokenInstance = tokens[i];
 
-      const tokenLink = { address: tokenInstance.address, code_hash: tokenInstance.codeHash.toUpperCase() }
+    // generate init messages and save the labels
+    const { configs: mgmtConfigs, labels: mgmtLabels } = await generateMgmtInitMsgs(mgmtTemplate,vesting,admin, tokens))
+    // instantiateMany returns an object with each result under the label as a key
+    const mgmtBundleResults = await agent.instantiateMany(mgmtConfigs, +Date.now())
+    // use the presaved labels to extract relevant objects
+    const mgmtInstances = mgmtLabels.map(label => mgmtBundleResults[label])
 
-      console.log(tokenLink)
-      console.log(admin)
-      name = `${name}.Mgmt[vested]`
-
-      //TODO: schedule should be set along with the vesting configuration for the token.
-      // How to handle testnet/dev schedule?
-      const initMsg = {
-            admin,
-            token: tokenLink,
-            prefund: true,
-            schedule
-      }
+    const { configs: rptConfigs, labels: rptLabels} = await generateRptInitMsgs(rptTemplate, mgmtInstances, admin, vesting, tokens);
+    const rptBundleResults = await agent.instantiateMany(rptConfigs, +Date.now());
+    const rptInstances = rptLabels.map(label => rptBundleResults[label])
 
 
-      return [name, initMsg]
-    }))
 
-    const rptInstances = await deployment.initMany(agent, rptTemplate, vesting.map(({ name, }, i) => {
-      const mgmtInstance = mgmtInstances[i];
-      const tokenInstance = tokens[i];
-
-      const tokenLink = { address: tokenInstance.address, code_hash: tokenInstance.codeHash }
-      const mgmtLink = { address: mgmtInstance.address, code_hash: mgmtInstance.codeHash }
-
-      // TODO: use the schedule relative to the vesting configuration
-      const rptAccount = Object.assign(getRPTAccount(schedule), { address: admin })
-      const portion = rptAccount.portion_size
-
-      const initMsg = {
-        portion,
-        distribution: [[admin, portion]]
-        token: tokenLink,
-        mgmt: mgmtLink
-      }
-
-      name = `${name}.Rpt.[vested]`
-
-      return [name, initMsg]
-    }))
-
+    //version is always vested here
     const mgmtClients = mgmtInstances.map(result => new API.MGMTClient[version]({...result, agent }))
     const rptClients = rptInstances.map(result => new API.RPTClient[version]({...result, agent }))
     const tokenClients = tokens.map(result => new API.SiennaSnip20Client({...result, agent }))
 
     return { ...mgmtClients, ...rptClients, ...tokenClients }
 
-  } else if(version == 'legacy' && !isMainnet) {
+  } else if(isVestedProduction) {
+    const [token, mgmtTemplate, rptTemplate, rewardPoolTemplate] = uploads;
+
+    const { configs: mgmtConfigs , labels: mgmtLabels } = await generateMgmtInitMsgs(mgmtTemplate, vesting, admin);
+
+
+    const mgmtBundles = await agent.bundle().wrap(bundle => {
+      bundle.instantiateMany(mgmtConfigs)
+      bundle.save()
+    })
+
+
+
+
+
+  }  else if(version == 'legacy' && !isMainnet) {
     const tokenInitMsg = {
       name:      "Sienna",
       symbol:    "SIENNA",
@@ -428,13 +461,6 @@ export async function deployTGE (
 
 }
 
-async function deployMgmt (
-  context: MigrationContext & TGEDeployOptions
-): Promise<TGEDeployResult> {
-
-
-
-}
 ```
 
 </td></tr><tr><!--spacer--><tr><td valign="top">
