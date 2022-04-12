@@ -607,6 +607,7 @@ version = "0.1.0"
 dependencies = [
  "fadroma-platform-scrt",
  "fadroma-storage",
+ "rand",
  "serde",
 ]
 

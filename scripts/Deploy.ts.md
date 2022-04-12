@@ -377,14 +377,7 @@ async function generateRptInitMsgs(rptTemplate, mgmtInstances, admin, vesting, t
 async function generateRewardsInitMsgs(template, admin, vesting, tokens) {
     const labels = []
     const configs = vesting.map(({name, address, schedule, code_hash}, i ) => {
-        const mgmtInstance = mgmtInstances[i];
         const tokenLinkProd = { address, code_hash };
-
-        const mgmtLink = { address: mgmtInstance.address, code_hash: mgmtInstance.codeHash };
-
-        const rptAccount = schedule.pools[0].accounts[0];
-        const portion = rptAccount.portion_size
-
         const rewardsToken =  tokens ? 
           { address: tokens[i].address, code_hash: tokens[i].codeHash.toUpperCase() } : 
           tokenLinkProd;
