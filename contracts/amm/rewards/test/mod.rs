@@ -498,7 +498,7 @@ impl Context {
     }
     pub fn claims(&mut self, reward: u128) -> &mut Self {
         self.test_handle(
-            Handle::Rewards(RewardsHandle::Claim {}),
+            Handle::Rewards(RewardsHandle::Claim { to: None }),
             HandleResponse::default()
                 .msg(
                     self.reward_token
@@ -506,7 +506,9 @@ impl Context {
                         .unwrap(),
                 )
                 .unwrap()
-                .log("reward", &reward.to_string()),
+                .log("reward", &reward.to_string())
+                .unwrap()
+                .log("recipient", &self.env.message.sender.as_str())
         );
         self.deps
             .querier
@@ -543,13 +545,13 @@ impl Context {
     }
     pub fn must_wait(&mut self, remaining: Duration) -> &mut Self {
         self.test_handle(
-            Handle::Rewards(RewardsHandle::Claim {}),
+            Handle::Rewards(RewardsHandle::Claim { to: None }),
             errors::claim_bonding(remaining),
         )
     }
     pub fn pool_empty(&mut self) -> &mut Self {
         self.test_handle(
-            Handle::Rewards(RewardsHandle::Claim {}),
+            Handle::Rewards(RewardsHandle::Claim { to: None }),
             errors::claim_pool_empty(),
         )
     }

@@ -469,7 +469,7 @@ use crate::{
         })
         .branch("then_claim", |mut context| {
             context.test_handle(
-                Handle::Rewards(RewardsHandle::Claim {}),
+                Handle::Rewards(RewardsHandle::Claim { to: None }),
                 HandleResponse::default()
                     .msg(return_funds.clone()).unwrap()
                     .msg(claim_rewards.clone()).unwrap()

@@ -41,7 +41,8 @@ log,0114_close_addr,,deposit = 38861
 ,,,
 ,,,
 270,Alice,0114_close_addr,"rewards:
-  claim: {}"
+  claim:
+    to: ~"
 tx,0114_close_addr,LP_TOKEN,"transfer:
   amount: ""81659""
   memo: ~

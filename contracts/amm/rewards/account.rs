@@ -7,6 +7,7 @@ use crate::{
     },
     time_utils::{Duration, Moment},
     total::{ITotal, Total},
+    handle::ClaimRecipient
 };
 use amm_shared::Sender;
 use fadroma::*;
@@ -84,7 +85,7 @@ where
     /// Check if a withdrawal is possible, then perform it.
     fn withdraw(&mut self, core: &mut C, amount: Uint128) -> StdResult<HandleResponse>;
     /// Check if a claim is possible, then perform it
-    fn claim(&mut self, core: &mut C) -> StdResult<HandleResponse>;
+    fn claim(&mut self, core: &mut C, to: Option<ClaimRecipient>) -> StdResult<HandleResponse>;
     /// Return the user's stake if trying to interact with a closed pool
     fn force_exit(&mut self, core: &mut C, when: Moment, why: String) -> StdResult<HandleResponse>;
     /// Store the values that were updated by the passing of time
@@ -256,10 +257,18 @@ where
             response.msg(RewardsConfig::lp_token(core)?.transfer(&self.address, amount)?)
         }
     }
-    fn claim(&mut self, core: &mut C) -> StdResult<HandleResponse> {
+    fn claim(&mut self, core: &mut C, to: Option<ClaimRecipient>) -> StdResult<HandleResponse> {
+        fn transfer_resp(token: ISnip20, to: &HumanAddr, amount: Amount) -> StdResult<HandleResponse> {
+            HandleResponse::default()
+                .msg(token.transfer(&to, amount)?)?
+                .log("reward", &amount.to_string())?
+                .log("recipient", &to.0)
+        }
+
         if let Some((ref when, ref why)) = self.total.closed {
             let when = when.clone();
             let why = why.clone();
+
             self.force_exit(core, when, why)
         } else if self.bonding > 0 {
             errors::claim_bonding(self.bonding)
@@ -269,9 +278,41 @@ where
             errors::claim_zero_claimable()
         } else {
             self.commit_claim(core)?;
-            HandleResponse::default()
-                .msg(RewardsConfig::reward_token(core)?.transfer(&self.address, self.earned)?)?
-                .log("reward", &self.earned.to_string())
+
+            let reward_token = RewardsConfig::reward_token(core)?;
+
+            if let Some(to) = to {
+                match to {
+                    ClaimRecipient::Contract { contract, msg } => {
+                        let to = contract.address.to_string();
+
+                        // TODO: The current secret_toolkit version doesn't have the `callback_code_hash` parameter exposed.
+                        let send_msg = CosmosMsg::Wasm(WasmMsg::Execute {
+                            contract_addr: reward_token.link.address,
+                            callback_code_hash: reward_token.link.code_hash,
+                            msg: to_binary(&snip20_impl::msg::HandleMsg::Send {
+                                recipient: contract.address,
+                                recipient_code_hash: Some(contract.code_hash),
+                                amount: self.earned,
+                                msg,
+                                memo: None,
+                                padding: None
+                            })?,
+                            send: vec![]
+                        });
+
+                        HandleResponse::default()
+                            .msg(send_msg)?
+                            .log("reward", &self.earned.to_string())?
+                            .log("recipient", &to)
+                    }
+                    ClaimRecipient::Human(addr) => {
+                        transfer_resp(reward_token, &addr, self.earned)
+                    }
+                }
+            } else {
+                transfer_resp(reward_token, &self.address, self.earned)
+            }
         }
     }
     fn force_exit(&mut self, core: &mut C, when: Moment, why: String) -> StdResult<HandleResponse> {
