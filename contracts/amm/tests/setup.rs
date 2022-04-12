@@ -345,10 +345,10 @@ impl Amm {
         }
     }
 
-    pub fn deposit_lp_into_rewards(&mut self, address: HumanAddr, amount: Uint128) {
+    pub fn deposit_lp_into_rewards(&mut self, address: impl Into<HumanAddr>, amount: Uint128) {
         let resp: sienna_rewards::Response = self.ensemble.query(
             self.rewards.address.clone(),
-            sienna_rewards::Query::Rewards(sienna_rewards::query::RewardsQuery::Config)
+            sienna_rewards::Query::Rewards(rewards::query::RewardsQuery::Config)
         ).unwrap();
 
         let lp_token = match resp {
@@ -374,7 +374,7 @@ impl Amm {
             .unwrap();
     }
 
-    pub fn set_rewards_viewing_key(&mut self, address: HumanAddr, key: String) {
+    pub fn set_rewards_viewing_key(&mut self, address: impl Into<HumanAddr>, key: String) {
         self.ensemble
             .execute(
                 &sienna_rewards::Handle::Auth(AuthHandle::SetViewingKey { key, padding: None }),
@@ -383,12 +383,15 @@ impl Amm {
             .unwrap();
     }
 
-    pub fn get_rewards_staked(&mut self, address: HumanAddr, key: String) -> Uint128 {
+    pub fn get_rewards_staked(&mut self, address: impl Into<HumanAddr>, key: String) -> Uint128 {
         let response: Response = self
             .ensemble
             .query(
                 self.rewards.address.clone(),
-                &sienna_rewards::Query::Balance { address, key },
+                &sienna_rewards::Query::Balance {
+                    address: address.into(),
+                    key
+                },
             )
             .unwrap();
 
