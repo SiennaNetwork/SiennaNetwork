@@ -19,30 +19,29 @@
   ],
 
   "dependencies": {
-    "@hackbg/fadroma": "workspace:./deps/fadroma",
-    "@hackbg/ganesha": "workspace:./deps/ganesha",
+    "@hackbg/fadroma": "workspace:*",
     "typescript":      "^4.4.4",
     "open":            "^8.4.0"
   },
 
   "scripts": {
-    "dev": "ganesha-node --unhandled-rejections=strict scripts/README.md",
-    "ops": "ganesha-node --unhandled-rejections=strict scripts/README.md",
+    "dev": "fadroma scripts/README.md",
+    "ops": "fadroma scripts/README.md",
 
-    "build":    "ganesha-node --unhandled-rejections=strict scripts/Build.ts.md",
-    "chain":    "ganesha-node --unhandled-rejections=strict scripts/Chain.ts.md",
-    "deploy":   "ganesha-node --unhandled-rejections=strict scripts/Deploy.ts.md",
-    "fix":      "ganesha-node --unhandled-rejections=strict scripts/Fix.ts.md",
-    "generate": "ganesha-node --unhandled-rejections=strict scripts/Generate.ts.md",
-    "live":     "Ganesha_Live=1 ganesha-node --inspect --unhandled-rejections=strict --huge-max-old-generation-size scripts/Live.ts.md",
-    "receipts": "ganesha-node --unhandled-rejections=strict scripts/Receipts.ts.md",
-    "schema":   "ganesha-node --unhandled-rejections=strict scripts/Schema.ts.md",
-    "test":     "ganesha-node --unhandled-rejections=strict scripts/Test.ts.md",
-    "upload":   "ganesha-node --unhandled-rejections=strict scripts/Upload.ts.md",
+    "build":    "fadroma scripts/Build.ts.md",
+    "chain":    "fadroma scripts/Chain.ts.md",
+    "deploy":   "fadroma scripts/Deploy.ts.md",
+    "fix":      "fadroma scripts/Fix.ts.md",
+    "generate": "fadroma scripts/Generate.ts.md",
+    "receipts": "fadroma scripts/Receipts.ts.md",
+    "schema":   "fadroma scripts/Schema.ts.md",
+    "test":     "fadroma scripts/Test.ts.md",
+    "upload":   "fadroma scripts/Upload.ts.md",
+
+    "live": "Ganesha_Live=1 fadroma --inspect --huge-max-old-generation-size scripts/Live.ts.md",
 
     "dash":         "cd frontends/dashboard; pnpm web",
-    "dash:build":   "frontends/dashboard/build.sh",
-    "test:rewards": "cargo test -p sienna-rewards"
+    "dash:build":   "frontends/dashboard/build.sh"
   }
 
 }
