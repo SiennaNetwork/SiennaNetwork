@@ -1,8 +1,5 @@
-
-use sienna_rewards::{
-    fadroma::{
-        cosmwasm_std::Uint128
-    }
+use sienna_rewards::fadroma::{
+    cosmwasm_std::Uint128
 };
 
 use crate::setup::{Amm, USERS};

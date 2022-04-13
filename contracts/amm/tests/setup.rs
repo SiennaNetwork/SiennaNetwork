@@ -9,8 +9,11 @@ use amm_shared::{
         ensemble::{ContractEnsemble, ContractHarness, MockDeps, MockEnv},
         snip20_impl::{
             msg::{
-                InitConfig, InitMsg as Snip20InitMsg, InitialBalance, QueryAnswer,
-                QueryMsg as Snip20QueryMsg, QueryPermission as Snip20Permission, QueryWithPermit,
+                InitMsg as Snip20InitMsg,
+                HandleMsg as Snip20HandleMsg,
+                QueryMsg as Snip20QueryMsg,
+                QueryPermission as Snip20Permission,
+                QueryWithPermit, InitialBalance, QueryAnswer, InitConfig
             },
             snip20_handle, snip20_init, snip20_query, Snip20, SymbolValidation,
         },
@@ -293,6 +296,23 @@ impl Amm {
         }
     }
 
+    pub fn mint(
+        &mut self,
+        token: ContractLink<HumanAddr>,
+        recipient: impl Into<HumanAddr>,
+        amount: Uint128
+    ) {
+        self.ensemble.execute(
+            &Snip20HandleMsg::Mint {
+                recipient: recipient.into(),
+                amount,
+                memo: None,
+                padding: None
+            },
+            MockEnv::new(ADMIN, token)
+        ).unwrap();
+    }
+
     pub fn get_lp_balance(&self, address: impl Into<HumanAddr>, pair: HumanAddr) -> Uint128 {
         let result = self
             .ensemble
@@ -312,11 +332,11 @@ impl Amm {
             .ensemble
             .query(
                 self.rewards.address.clone(),
-                &sienna_rewards::Query::Governance(GovernanceQuery::Poll { id, now }),
+                &rewards::Query::Governance(GovernanceQuery::Poll { id, now }),
             )
             .unwrap();
         match result {
-            sienna_rewards::Response::Governance(GovernanceResponse::Poll(poll)) => poll,
+            rewards::Response::Governance(GovernanceResponse::Poll(poll)) => poll,
             _ => panic!("wrong response"),
         }
     }
@@ -327,7 +347,7 @@ impl Amm {
             .ensemble
             .query(
                 self.rewards.address.clone(),
-                &sienna_rewards::Query::Governance(GovernanceQuery::Polls {
+                &rewards::Query::Governance(GovernanceQuery::Polls {
                     now,
                     page,
                     take,
@@ -336,7 +356,7 @@ impl Amm {
             )
             .unwrap();
         match result {
-            sienna_rewards::Response::Governance(GovernanceResponse::Polls {
+            rewards::Response::Governance(GovernanceResponse::Polls {
                 polls,
                 total: _,
                 total_pages: _,
@@ -346,22 +366,11 @@ impl Amm {
     }
 
     pub fn deposit_lp_into_rewards(&mut self, address: impl Into<HumanAddr>, amount: Uint128) {
-        let resp: sienna_rewards::Response = self.ensemble.query(
-            self.rewards.address.clone(),
-            sienna_rewards::Query::Rewards(rewards::query::RewardsQuery::Config)
-        ).unwrap();
-
-        let lp_token = match resp {
-            sienna_rewards::Response::Rewards(resp) => match resp {
-                sienna_rewards::query::RewardsResponse::Config(config) => config.lp_token.unwrap(),
-                _ => panic!("Expecting rewards::query::RewardsResponse::Config")
-            },
-            _ => panic!("sienna_rewards::Response::Rewards")
-        };
+        let config = self.get_rewards_config();
 
         self.ensemble
             .execute(
-                &sienna_rewards::fadroma::snip20_impl::msg::HandleMsg::Send {
+                &rewards::fadroma::snip20_impl::msg::HandleMsg::Send {
                     recipient: self.rewards.address.clone(),
                     recipient_code_hash: None,
                     amount,
@@ -369,15 +378,63 @@ impl Amm {
                     memo: None,
                     padding: None
                 },
-                MockEnv::new(address, lp_token),
+                MockEnv::new(address, config.lp_token.unwrap()),
             )
             .unwrap();
+    }
+
+    pub fn fund_rewards(&mut self, amount: Uint128) {
+        let config = self.get_rewards_config();
+
+        self.mint(
+            config.reward_token.unwrap(),
+            self.rewards.address.clone(),
+            amount
+        )
+    }
+
+    pub fn get_rewards_config(&self) -> rewards::config::RewardsConfig {
+        let resp: rewards::Response = self.ensemble.query(
+            self.rewards.address.clone(),
+            rewards::Query::Rewards(rewards::query::RewardsQuery::Config)
+        ).unwrap();
+
+        match resp {
+            rewards::Response::Rewards(resp) => match resp {
+                rewards::query::RewardsResponse::Config(config) => config,
+                _ => panic!("Expecting rewards::query::RewardsResponse::Config")
+            },
+            _ => panic!("sienna_rewards::Response::Rewards")
+        }
+    }
+
+    pub fn get_rewards_user(&self, address: impl Into<HumanAddr>, at: u64) -> rewards::account::Account {
+        let resp: rewards::Response = self.ensemble.query(
+            self.rewards.address.clone(),
+            rewards::Query::Rewards(rewards::query::RewardsQuery::WithPermit {
+                query: rewards::query::QueryWithPermit::UserInfo { at },
+                permit: rewards::permit::Permit::new(
+                    address.into(),
+                    vec![ rewards::query::RewardsPermissions::UserInfo ],
+                    vec![ self.rewards.address.clone() ],
+                    "user_info"
+                )
+            })
+        ).unwrap();
+
+        match resp {
+            Response::Rewards(resp) => match resp {
+                rewards::query::RewardsResponse::UserInfo(account) => account,
+                _ => panic!("Expecting rewards::query::RewardsResponse")
+            },
+            _ => panic!("Expecting rewards::Response")
+        }
     }
 
     pub fn set_rewards_viewing_key(&mut self, address: impl Into<HumanAddr>, key: String) {
         self.ensemble
             .execute(
-                &sienna_rewards::Handle::Auth(AuthHandle::SetViewingKey { key, padding: None }),
+                &rewards::Handle::Auth(AuthHandle::SetViewingKey { key, padding: None }),
                 MockEnv::new(address, self.rewards.to_owned().try_into().unwrap()),
             )
             .unwrap();
@@ -388,7 +445,7 @@ impl Amm {
             .ensemble
             .query(
                 self.rewards.address.clone(),
-                &sienna_rewards::Query::Balance {
+                &rewards::Query::Balance {
                     address: address.into(),
                     key
                 },
