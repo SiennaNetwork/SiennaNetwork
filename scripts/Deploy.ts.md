@@ -431,23 +431,23 @@ export async function deployTGE (
       return [tokenBuild, mgmtBuild, rptBuild]
     };
     // else version is 'vested'
-    // non production version needs a mock token, while production one uses third party token
+    // only dev version needs mock tokens, while the rest uses third party token
     const builds = [mgmtBuild, rptBuild, rewardPoolBuild];
-    return isProduction ? builds : [tokenBuild, ...builds];
+    return isDevnet ? [tokenBuild, ...builds]: builds;
   }
   const uploads = await uploader.uploadMany(await getUploadBuilds(version, isMainnet))
 
   let tokenTemplate, mgmtTemplate, rptTemplate, rewardsTemplate;
-  if (isVestedDevTest) {
+  if (isDevnet) {
     [tokenTemplate, mgmtTemplate, rptTemplate, rewardsTemplate] = uploads;
   } else {
     [mgmtTemplate, rptTemplate, rewardsTemplate] = uploads;
   }
   
   //for devnet and testnet create some mock tokens
-  const tokens = isMainnet ? 
-    undefined :
-    await initMockTokens(deployment,agent, tokenTemplate, vesting);
+  const tokens = isDevnet ? 
+    await initMockTokens(deployment,agent, tokenTemplate, vesting) : 
+    undefined;
 
   // generate init messages and save the labels
   const { configs: mgmtConfigs, labels: mgmtLabels } = await generateMgmtInitMsgs(mgmtTemplate,vesting, admin, tokens))
@@ -467,9 +467,14 @@ export async function deployTGE (
   //version is always vested here
   const mgmtClients = mgmtInstances.map(result => new API.MGMTClient[version]({...result, agent }))
   const rptClients = rptInstances.map(result => new API.RPTClient[version]({...result, agent }))
-  const tokenClients = tokens.map(result => new API.SiennaSnip20Client({...result, agent }))
+  const tokenClients = tokens?.map(result => new API.SiennaSnip20Client({...result, agent }))
   const rewardsClients = rewardsInstances.map(result => new API.RewardsClient["v3"]({...result, agent }))
-  return { ...mgmtClients, ...rptClients, ...tokenClients, ...rewardsClients }
+  return { 
+    ...mgmtClients, 
+    ...rptClients, 
+    tokenClients ? ...tokenClients : undefined, 
+    ...rewardsClients 
+  }
 }
 
 ```

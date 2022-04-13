@@ -396,3 +396,40 @@ fn should_support_different_schedule_intervals() {
 
 }
 
+
+
+#[test]
+fn should_support_account_in_multiple_pools() {
+    let mut tge = TGE::default();
+
+    let schedule = Schedule {
+        total: Uint128(45_000),
+        pools: vec![
+            Pool{
+                name: "Investors".to_string(),
+                partial: false,
+                total: Uint128(25_000),
+                accounts: vec![
+                    Account::create(USER_INVESTOR_MIKE, 20_000, 1000, 10),
+                    Account::create(USER_INVESTOR_JOHN, 5_000, 1000, 10),
+                ]
+            }, 
+            Pool{
+                name: "Minting Pool".to_string(),
+                partial: false,
+                total: Uint128(20_000),
+                accounts: vec![
+                    Account::create(USER_INVESTOR_MIKE, 11_000, 1000, 10),
+                    Account::create(USER_MP_RPT2, 9_000, 1000, 10), 
+                ]
+            }, 
+            
+        ]
+    };
+    tge.set_shedule(schedule).unwrap();
+    let sc = &tge.query_schedule();
+    tge.launch().unwrap();
+    tge.claim_for(USER_INVESTOR_MIKE, 1000).unwrap();
+    let mikes_balance = tge.query_balance(USER_INVESTOR_MIKE);
+    assert_eq!(mikes_balance.u128(), 31_000);
+}
