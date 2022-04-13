@@ -5,7 +5,7 @@
 
       (import (builtins.fetchTarball {
         url    = "https://github.com/hackbg/nixpkgs-mozilla/archive/master.tar.gz";
-        sha256 = "1kapba23cy3y1ghyqpm0rapbrfj3qdkd7v58c6g8bhpys9qq1aic";
+        sha256 = "0admybxrjan9a04wq54c3zykpw81sc1z1nqclm74a7pgjdp7iqv1";
       }))
 
     ];
@@ -29,9 +29,8 @@ in pkgs.mkShell {
     # Some basics
     bash git jq cloc plantuml
 
-    # Node.js 14 with PNPM package manager.
-    # TODO: Make sure everything works in latest.
-    nodejs-14_x nodePackages.pnpm
+    # Node.js 17 with PNPM package manager.
+    nodejs-17_x nodePackages.pnpm
 
     # Rust Nightly from our pinned fork of the Mozilla Rust Nix repo.
     (rustChannelOfTargets "nightly" "2021-08-04" ["wasm32-unknown-unknown"])

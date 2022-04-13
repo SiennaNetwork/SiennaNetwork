@@ -28,7 +28,7 @@ Which contracts are built by each command is defined in:
 The builder environment and procedure are defined in:
 * [`@fadroma/ops/Build`](https://github.com/hackbg/fadroma/tree/v100/packages/ops/Build.ts).
 * [`@fadroma/ops/Docker`](https://github.com/hackbg/fadroma/tree/v100/packages/ops/Docker.ts).
-* [`@fadroma/scrt-1.2`](https://github.com/hackbg/fadroma/tree/v100/packages/scrt-1.2).
+* [`@fadroma/scrt`](https://github.com/hackbg/fadroma/tree/v100/packages/scrt).
 
 You will need at least **2G of disk space** for the build container.
 

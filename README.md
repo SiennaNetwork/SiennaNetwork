@@ -12,8 +12,8 @@
 
 ## Mainnet addresses
 
-MOVED: See [receipts/README.md](./receipts/README.md#mainnet-addresses) for the up-to-date
-mainnet addresses of all production contracts.
+MOVED: See [**`receipts/secret-4/deployments/prod.yml`**](./receipts/secret-4/deployments.prod.yml)
+for the up-to-date mainnet addresses of all production contracts.
 
 ## Development quickstart
 
@@ -23,15 +23,14 @@ cd sienna-contracts
 git submodule update --init --recursive
 nix-shell # optional, or bring your own Cargo and PNPM
 pnpm i
-pnpm -w dev build all
-FADROMA_CHAIN=localnet-1.2 pnpm -w ops deploy all
+pnpm build latest
+FADROMA_CHAIN=Scrt_1_2_Devnet pnpm deploy latest
 ```
 
 The smart contracts are written in Rust, targeting SecretNetwork's fork of `cosmwasm-std 0.10`
 on `wasm32-unknown-unknown`.
 
-See [scripts/Dev.ts.md](./scripts/Dev.ts.md)
-and [scripts/Ops.ts.md](./scripts/Ops.ts.md)
+See [**`package.json`**](package.json) and [**`scripts/`**](./scripts/)
 for the available workflow commands.
 
 See also:

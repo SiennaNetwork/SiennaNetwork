@@ -4,34 +4,17 @@ name: Smart Contract Build, Test And Coverage
 volumes: [ { name: cache, host: { path: /var/lib/drone/sienna-cache } } ]
 steps:
 
-  # Repo setup #####################################################################################
-
-  # Clone submodules.
-  # The main repo is cloned automatically, but,
-  # in order to clone the submodules, an SSH key is needed.
-  - name:        submodules
-    image:       alpine/git
-    environment: { DRONE_KEY: { from_secret: drone_key } }
+  # Phase 0. Clone submodules recursively. #########################################################
+  # Only public HTTP submodules are supported
+  # (Because cloning over SSH requires a whole song and dance routine with the deploy keys)
+  # So make sure that `.gitmodules` only contains HTTP module URLs.
+  - name:  submodules
+    image: alpine/git
     commands:
-    #
-    # Deploy the service account's private key from org secrets.
-    # This needs to be set up in two places:
-    #   0. Generate a ssh key locally with `ssh-keygen -t rsa` (ed25519 seems not to work)
-    #   1. Private key goes into organization secrets.
-    #   2. Public key goes into service account public keys.
-    #   3. Delete the generated SSH key from your local filesystem.
-    #
-    - pwd
-    - ls -al
-    #- mkdir -p ~/.ssh
-    #- printenv DRONE_KEY > ~/.ssh/id_rsa
-    #- chmod 0600 ~/.ssh/id_rsa
-    #- ssh-keyscan git.sienna.network >> ~/.ssh/known_hosts
     - git submodule update --init --recursive
 
-  # Phase 1. Rust. Build smart contracts. ##########################################################
-
-  - name: build-and-test
+  # Phase 1. Rust. Build and test smart contracts. #################################################
+  - name: contracts
     depends_on: [ submodules ]
     image: rust:1.59-slim
     environment: 
@@ -48,23 +31,16 @@ steps:
     - ls -al $HOME
     - export
 
-  # Phase 2. TypeScript. Contract deployment and operations. #######################################
-
-  # Install dependencies and make sure ops scripts work
-  - name:  pnpm-deps
+  # Phase 2. TypeScript. Make sure the deploy scripts work. ########################################
+  - name:  scripts
     depends_on: [ submodules ]
-    image: node:14-slim
+    image: node:16-slim
     commands:
       - npm i -g pnpm
+      - pnpm --version
       - pnpm i --unsafe-perm
-
-  # Run tests
-  - name:  pnpm-test
-    depends_on: [ pnpm-deps ]
-    image: node:14-slim
-    commands:
+      - ls -al
       - cat package.json
-      - npm i -g pnpm
       - pnpm build
       - pnpm deploy
       - pnpm test
