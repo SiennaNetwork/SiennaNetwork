@@ -29,9 +29,8 @@ in pkgs.mkShell {
     # Some basics
     bash git jq cloc plantuml
 
-    # Node.js 14 with PNPM package manager.
-    # TODO: Make sure everything works in latest.
-    nodejs-14_x nodePackages.pnpm
+    # Node.js 17 with PNPM package manager.
+    nodejs-17_x nodePackages.pnpm
 
     # Rust Nightly from our pinned fork of the Mozilla Rust Nix repo.
     (rustChannelOfTargets "nightly" "2021-08-04" ["wasm32-unknown-unknown"])
