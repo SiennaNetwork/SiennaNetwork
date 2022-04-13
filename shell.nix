@@ -5,7 +5,7 @@
 
       (import (builtins.fetchTarball {
         url    = "https://github.com/hackbg/nixpkgs-mozilla/archive/master.tar.gz";
-        sha256 = "1kapba23cy3y1ghyqpm0rapbrfj3qdkd7v58c6g8bhpys9qq1aic";
+        sha256 = "0admybxrjan9a04wq54c3zykpw81sc1z1nqclm74a7pgjdp7iqv1";
       }))
 
     ];
