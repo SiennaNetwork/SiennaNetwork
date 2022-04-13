@@ -28,6 +28,7 @@ yarn.lock
 # IDEs
 *.iml
 .idea
+.vscode
 
 .fadroma_repl_history
 
