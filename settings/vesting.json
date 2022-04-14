@@ -1,58 +1,50 @@
 [
     {
-        "name": "Silk",
-        "address": "secret1leulrux3emu7c34jux0n8x0v6y9cfhl4k8xk08",
-        "code_hash": "3c0dc12b15f22d0793f13f1f6a551e7dc0f0c113cc50f41eb8131f90517f385b",
+        "name": "Alter",
+        "rewards": {
+            "address": "secret1vhfpcn5l0m9t0tsdheewzjfdzf5hw4vsww9t5n",
+            "code_hash": "D4F32C1BCA133F15F69D557BD0722DA10F45E31E5475A12900CA1E62E63E8F76"
+        },
+        "lp": {
+            "address": "secret1g2af0x2yszuz56vmcmuffwzxu3e6knl4l28mnu",
+            "code_hash": "33EAC42C44EE69ACFE1F56CE7B14FE009A7B611E86F275D7AF2D32DD0D33D5A9"
+        },
         "schedule": {
-            "total": "200",
+            "total": "20000000000000000000",
             "pools": [
                 {
-                    "name": "Test",
-                    "total": "200",
+                    "name": "Rewards",
+                    "total": "20000000000000000000",
                     "partial": true,
-                    "accounts": [
-                        {
-                            "name": "testing_vested",
-                            "amount": "200",
-                            "address": "secret1leulrux3emu7c34jux0n8x0v6y9cfhl4k8xk08",
-                            "start_at": 7776000,
-                            "interval": 86400,
-                            "duration": 41472000,
-                            "cliff": "0",
-                            "portion_size": "200",
-                            "remainder": "0"
-                        }
-                    ]
+                    "accounts": [{}]
                 }
             ]
         }
     },
     {
         "name": "Shade",
-        "address": "secret1leulrux3emu7c34jux0n8x0v6y9cfhl4k8xk08",
-        "code_hash": "3c0dc12b15f22d0793f13f1f6a551e7dc0f0c113cc50f41eb8131f90517f385b",
+        "rewards": {
+            "address": "secret19ymc8uq799zf36wjsgu4t0pk8euddxtx5fggn8",
+            "code_hash": "5266A630E2B8EF910FB2515E1D3B5BE95D4BD48358732788D8FCD984EE966BC1"
+        },
+        "lp": {
+            "address": "secret19ymc8uq799zf36wjsgu4t0pk8euddxtx5fggn8",
+            "code_hash": "5266A630E2B8EF910FB2515E1D3B5BE95D4BD48358732788D8FCD984EE966BC1"
+        },
         "schedule": {
-            "total": "200",
+            "total": "100000000000000000000",
             "pools": [
                 {
-                    "name": "Test",
-                    "total": "200",
                     "partial": true,
-                    "accounts": [
-                        {
-                            "name": "testing_vested",
-                            "amount": "200",
-                            "address": "secret1leulrux3emu7c34jux0n8x0v6y9cfhl4k8xk08",
-                            "start_at": 7776000,
-                            "interval": 86400,
-                            "duration": 41472000,
-                            "cliff": "0",
-                            "portion_size": "200",
-                            "remainder": "0"
-                        }
-                    ]
+                    "name": "Rewards",
+                    "total": "100000000000000000000",
+                    "accounts": []
                 }
             ]
         }
     }
 ]
+
+
+
+

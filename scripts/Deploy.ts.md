@@ -92,6 +92,7 @@ const canBuildAndUpload = [
     Fadroma.Upload.FromFile,
 ];
 ```
+
 </td></tr><tr><!--spacer--></tr><tr><td valign="top">
 
 ### Deploying
@@ -329,18 +330,18 @@ async function initMockTokens(deployment, agent, tokenTemplate, vesting) {
 
 async function generateMgmtInitMsgs(mgmtTemplate, vesting, admin, tokens) {
     const labels = []
-    const configs = vesting.map(({name, schedule, address, code_hash }, i) => {
-        const tokenLinkProd = { address, code_hash }
+    const configs = vesting.map(({name, schedule, rewards }, i) => {
+
 
         name = `${name}.Mgmt[vested]`
         const initMsg = {
             admin,
-            token: tokens ? 
-              { 
-                address: tokens[i].address, 
-                code_hash: tokens[i].codeHash.toUpperCase() 
-              } : 
-              tokenLinkProd,
+            token: tokens ?
+              {
+                address: tokens[i].address,
+                code_hash: tokens[i].codeHash.toUpperCase()
+              } :
+              rewards,
             prefund: true,
             schedule,
         }
@@ -352,9 +353,8 @@ async function generateMgmtInitMsgs(mgmtTemplate, vesting, admin, tokens) {
 
 async function generateRptInitMsgs(rptTemplate, mgmtInstances, admin, vesting, tokens) {
     const labels = []
-    const configs = vesting.map(({name, address, schedule, code_hash}, i ) => {
+    const configs = vesting.map(({name, schedule}, i ) => {
         const mgmtInstance = mgmtInstances[i];
-        const tokenLinkProd = { address, code_hash };
 
         const mgmtLink = { address: mgmtInstance.address, code_hash: mgmtInstance.codeHash };
 
@@ -364,7 +364,7 @@ async function generateRptInitMsgs(rptTemplate, mgmtInstances, admin, vesting, t
         const initMsg = {
           portion,
           distribution: [[admin, portion]],
-          token: tokens ? { address: tokens[i].address, code_hash: tokens[i].codeHash.toUpperCase() } : tokenLinkProd,
+          token: tokens ? { address: tokens[i].address, code_hash: tokens[i].codeHash.toUpperCase() } : rewards,
           mgmt: mgmtLink
         }
 
@@ -380,17 +380,20 @@ async function generateRptInitMsgs(rptTemplate, mgmtInstances, admin, vesting, t
 
 async function generateRewardsInitMsgs(template, admin, vesting, tokens) {
     const labels = []
-    const configs = vesting.map(({name, address, schedule, code_hash}, i ) => {
+    const configs = vesting.map(({name, schedule, rewards, lp}, i ) => {
         const tokenLinkProd = { address, code_hash };
-        const rewardsToken =  tokens ? 
-          { address: tokens[i].address, code_hash: tokens[i].codeHash.toUpperCase() } : 
-          tokenLinkProd;
+        const rewardsToken =  tokens ?
+          { address: tokens[i].address, code_hash: tokens[i].codeHash.toUpperCase() } :
+          rewards;
+        const lpToken =  tokens ?
+          { address: tokens[i].address, code_hash: tokens[i].codeHash.toUpperCase() } :
+          lp;
 
         const initMsg = {
           admin,
           config: {
-            lp_token: rewardsToken, 
-            reward_token: rewardsToken,
+            lp_token: rewardsToken,
+            reward_token: lpToken,
           }
         }
 
@@ -422,7 +425,7 @@ export async function deployTGE (
 
   const { isTestnet, isDevnet, isMainnet } = agent.chain
   const [tokenBuild, mgmtBuild, rptBuild, rewardPoolBuild] = [
-    ...await buildTge(`TGE_${version}`), 
+    ...await buildTge(`TGE_${version}`),
     ...await buildRewards('Rewards_v3')
   ]
 
@@ -447,10 +450,10 @@ export async function deployTGE (
   } else {
     [mgmtTemplate, rptTemplate, rewardsTemplate] = uploads;
   }
-  
+
   //for devnet and testnet create some mock tokens
-  const tokens = isDevnet ? 
-    await initMockTokens(deployment,agent, tokenTemplate, vesting) : 
+  const tokens = isDevnet ?
+    await initMockTokens(deployment,agent, tokenTemplate, vesting) :
     undefined;
 
   // generate init messages and save the labels
@@ -473,11 +476,11 @@ export async function deployTGE (
   const rptClients = rptInstances.map(result => new API.RPTClient[version]({...result, agent }))
   const tokenClients = tokens?.map(result => new API.SiennaSnip20Client({...result, agent }))
   const rewardsClients = rewardsInstances.map(result => new API.RewardsClient["v3"]({...result, agent }))
-  return { 
-    ...mgmtClients, 
-    ...rptClients, 
-    tokenClients ? ...tokenClients : undefined, 
-    ...rewardsClients 
+  return {
+    ...mgmtClients,
+    ...rptClients,
+    tokenClients ? ...tokenClients : undefined,
+    ...rewardsClients
   }
 }
 
@@ -1015,8 +1018,8 @@ async function deployRewards (
   } = context
   const rewardPairsAsArray = Object.entries(rewardPairs)
   const results = await deployment.initMany(
-    deployAgent, 
-    template, 
+    deployAgent,
+    template,
     rewardPairsAsArray.map(([name, amount])=>{
       const staked = getStakedToken(name, ammVersion);
       // define the name of the reward pool from the staked token
@@ -1031,7 +1034,7 @@ async function deployRewards (
     );
   const clients = results
     .map(
-      result => 
+      result =>
       new API.RewardsClient[version]({...result, agent: clientAgent})
     );
   if (adjustRPT) {
