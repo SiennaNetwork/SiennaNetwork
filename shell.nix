@@ -30,7 +30,8 @@ in pkgs.mkShell {
     bash git jq cloc plantuml
 
     # Node.js 17 with PNPM package manager.
-    nodejs-17_x nodePackages.pnpm
+    nodejs-17_x 
+    nodePackages_latest.pnpm
 
     # Rust Nightly from our pinned fork of the Mozilla Rust Nix repo.
     (rustChannelOfTargets "nightly" "2021-08-04" ["wasm32-unknown-unknown"])
@@ -85,6 +86,9 @@ in pkgs.mkShell {
     export RUST_BACKTRACE=1
     export RUSTFLAGS="-Zmacro-backtrace"
     export PATH="$PATH:$HOME/.cargo/bin"
+    alias pnpm="${pkgs.nodePackages_latest.pnpm.outPath}/lib/node_modules/pnpm/bin/pnpm.cjs"
+    alias pnpx="${pkgs.nodePackages_latest.pnpm.outPath}/lib/node_modules/pnpm/bin/pnpx.cjs"
+
   '';
 
 }
