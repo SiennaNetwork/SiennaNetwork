@@ -7,5 +7,5 @@ edition = "2018"
 [dependencies]
 schemars = "0.7"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
-fadroma = { path = "../../deps/fadroma/crates/fadroma", features = [ "scrt", "ensemble" ] }
+fadroma = { path = "../../deps/fadroma/crates/fadroma", features = [ "scrt" ] }
 fadroma-snip20-impl = { path = "../../deps/fadroma/crates/fadroma-snip20-impl" }
