@@ -56,7 +56,7 @@ where
     Self: Sized,
 {
     /// Commit initial contract configuration to storage.
-    fn initialize(&mut self, core: &mut C, env: &Env) -> StdResult<Vec<CosmosMsg>>;
+    fn initialize(&mut self, core: &mut C) -> StdResult<Vec<CosmosMsg>>;
     fn store(&self, core: &mut C) -> StdResult<Vec<CosmosMsg>>;
     fn get(core: &C) -> StdResult<Self>;
     fn threshold(core: &C) -> StdResult<Uint128>;
@@ -70,7 +70,7 @@ where
     Q: Querier,
     C: Composable<S, A, Q>,
 {
-    fn initialize(&mut self, core: &mut C, _env: &Env) -> StdResult<Vec<CosmosMsg>> {
+    fn initialize(&mut self, core: &mut C) -> StdResult<Vec<CosmosMsg>> {
         core.set(Poll::TOTAL, 0)?;
         self.store(core)
     }

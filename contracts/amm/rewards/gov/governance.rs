@@ -15,8 +15,8 @@ pub trait Governance<S: Storage, A: Api, Q: Querier>:
     + Sized             // to pass mutable self-reference to Total and Account
 {
     /// Configure the governance module
-    fn init (&mut self, env: &Env, mut config: GovernanceConfig) -> StdResult<Vec<CosmosMsg>> {
-        config.initialize(self, env)
+    fn init (&mut self, mut config: GovernanceConfig) -> StdResult<Vec<CosmosMsg>> {
+        config.initialize(self)
     }
     /// Handle transactions
     fn handle (&mut self, env: Env, msg: GovernanceHandle) -> StdResult<HandleResponse> {

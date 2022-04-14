@@ -1,14 +1,10 @@
 Time,Sender,Recipient,Data
 ,,,
-19,Alice,0102_stake_addr,"rewards:
+19,LP_TOKEN,0102_stake_addr,"rewards:
   deposit:
+    from: Alice
     amount: ""43"""
-tx,0102_stake_addr,LP_TOKEN,"transfer_from:
-  amount: ""43""
-  memo: ~
-  owner: Alice
-  padding: ~
-  recipient: 0102_stake_addr"
+log,0102_stake_addr,,deposit = 43
 19,0102_stake_addr,Alice,account.staked               = 43
 19,0102_stake_addr,Alice,account.volume               = 0
 20,0102_stake_addr,Alice,account.staked               = 43
@@ -32,15 +28,11 @@ tx,0102_stake_addr,LP_TOKEN,"transfer_from:
 29,0102_stake_addr,Alice,account.staked               = 43
 29,0102_stake_addr,Alice,account.volume               = 430
 ,,,
-29,Alice,0102_stake_addr,"rewards:
+29,LP_TOKEN,0102_stake_addr,"rewards:
   deposit:
+    from: Alice
     amount: ""26"""
-tx,0102_stake_addr,LP_TOKEN,"transfer_from:
-  amount: ""26""
-  memo: ~
-  owner: Alice
-  padding: ~
-  recipient: 0102_stake_addr"
+log,0102_stake_addr,,deposit = 26
 29,0102_stake_addr,Alice,account.staked               = 69
 29,0102_stake_addr,Alice,account.volume               = 430
 30,0102_stake_addr,Alice,account.staked               = 69

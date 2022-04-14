@@ -1,5 +1,11 @@
-pub use fadroma::*;
-extern crate fadroma;
+use fadroma::{
+    cosmwasm_std::*,
+    composability::{
+        BaseComposable, Composable, HandleDispatch,
+        QueryDispatch, ResponseBuilder
+    },
+    ContractLink
+};
 use account::Amount;
 use account::{Account, *};
 use config::{IRewardsConfig, RewardsConfig};
@@ -20,6 +26,7 @@ use crate::keplr::*;
 pub mod migration;
 use crate::migration::*;
 
+pub use fadroma;
 pub mod account;
 pub mod config;
 pub mod errors;
@@ -142,18 +149,18 @@ Composable<S, A, Q> // to compose with other modules
 + Auth<S, A, Q>     // to authenticate txs/queries
 + Sized             // to pass mutable self-reference to Total and Account
 {
-/// Configure the rewards module
-fn init (&mut self, env: &Env, mut config: RewardsConfig) -> StdResult<Vec<CosmosMsg>> {
-    config.initialize(self, env)
-}
-/// Handle transactions
-fn handle (&mut self, env: Env, msg: RewardsHandle) -> StdResult<HandleResponse> {
-    msg.dispatch_handle(self, env)
-}
-/// Handle queries
-fn query (&self, msg: RewardsQuery) -> StdResult<RewardsResponse> {
-    msg.dispatch_query(self)
-}
+    /// Configure the rewards module
+    fn init (&mut self, env: Env, mut config: RewardsConfig) -> StdResult<Vec<CosmosMsg>> {
+        config.initialize(self, env)
+    }
+    /// Handle transactions
+    fn handle (&mut self, env: Env, msg: RewardsHandle) -> StdResult<HandleResponse> {
+        msg.dispatch_handle(self, env)
+    }
+    /// Handle queries
+    fn query (&self, msg: RewardsQuery) -> StdResult<RewardsResponse> {
+        msg.dispatch_query(self)
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
@@ -172,10 +179,12 @@ impl Init {
         C: Contract<S, A, Q>,
     {
         Auth::init(core, &env, &self.admin, &env.contract.address)?;
+
         #[cfg(feature = "gov")]
-        Governance::init(core, &env, self.governance_config.unwrap_or_default())?;
+        Governance::init(core, self.governance_config.unwrap_or_default())?;
+
         Ok(InitResponse {
-            messages: Rewards::init(core, &env, self.config)?,
+            messages: Rewards::init(core, env, self.config)?,
             log: vec![],
         })
     }
@@ -184,6 +193,13 @@ impl Init {
 #[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum Handle {
+    // SNIP20 receiver interface
+    Receive {
+        sender: HumanAddr,
+        from: HumanAddr,
+        msg: Option<Binary>,
+        amount: Uint128,
+    },
     Auth(AuthHandle),
     CreateViewingKey {
         entropy: String,
@@ -221,6 +237,7 @@ where
                 Auth::handle(core, env, AuthHandle::SetViewingKey { key, padding })
             }
             Handle::Rewards(msg) => Rewards::handle(core, env, msg),
+            Handle::Receive { from, amount, .. } => Rewards::handle(core, env, RewardsHandle::Deposit { from, amount }),
             Handle::Immigration(msg) => Immigration::handle(core, env, msg),
             Handle::Emigration(msg) => Emigration::handle(core, env, msg),
             Handle::Drain {

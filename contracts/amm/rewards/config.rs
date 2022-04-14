@@ -35,9 +35,9 @@ where
     C: Composable<S, A, Q>,
 {
     /// Commit initial contract configuration to storage.
-    fn initialize(&mut self, core: &mut C, env: &Env) -> StdResult<Vec<CosmosMsg>>;
+    fn initialize(&mut self, core: &mut C, env: Env) -> StdResult<Vec<CosmosMsg>>;
     /// Commit contract configuration to storage.
-    fn store(&self, core: &mut C) -> StdResult<Vec<CosmosMsg>>;
+    fn store(&self, core: &mut C, env: Env) -> StdResult<Vec<CosmosMsg>>;
     /// Commit contract configuration to storage.
     fn from_storage(core: &C) -> StdResult<RewardsConfig>;
     /// Get this contract's address (used in queries where Env is unavailable).
@@ -71,7 +71,7 @@ where
             timekeeper: Some(Self::timekeeper(core)?),
         })
     }
-    fn initialize(&mut self, core: &mut C, env: &Env) -> StdResult<Vec<CosmosMsg>> {
+    fn initialize(&mut self, core: &mut C, env: Env) -> StdResult<Vec<CosmosMsg>> {
         if self.reward_token.is_none() {
             Err(StdError::generic_err(
                 "need to provide link to reward token",
@@ -93,10 +93,11 @@ where
             if self.timekeeper.is_none() {
                 self.timekeeper = Some(env.message.sender.clone())
             }
-            self.store(core)
+
+            self.store(core, env)
         }
     }
-    fn store(&self, core: &mut C) -> StdResult<Vec<CosmosMsg>> {
+    fn store(&self, core: &mut C, env: Env) -> StdResult<Vec<CosmosMsg>> {
         let RewardsConfig {
             timekeeper,
             lp_token,
@@ -105,9 +106,13 @@ where
             reward_vk,
         } = self;
         let mut messages = vec![];
+
         if let Some(lp_token) = lp_token {
             core.set(Self::LP_TOKEN, &core.canonize(lp_token.clone())?)?;
+
+            messages.push(ISnip20::attach(lp_token.clone()).register_receive(env.contract_code_hash)?);
         }
+
         if let Some(bonding) = bonding {
             core.set(Self::BONDING, &bonding)?;
         }
@@ -125,6 +130,7 @@ where
         if let Some(timekeeper) = timekeeper {
             core.set(Self::TIMEKEEPER, &core.canonize(timekeeper.clone())?)?;
         }
+
         Ok(messages)
     }
     fn self_link(core: &C) -> StdResult<ContractLink<HumanAddr>> {
