@@ -425,18 +425,17 @@ fn should_be_closed() {
         )
         .unwrap();
 
-    let env = MockEnv::new("admin", amm.rewards.to_owned().try_into().unwrap());
     //close the poll
     amm.ensemble
         .execute(
             &Handle::Governance(GovernanceHandle::Close {
                 reason: "Testing closing".into(),
             }),
-            env.clone(),
+            MockEnv::new("admin", amm.rewards.to_owned().try_into().unwrap())
         )
         .unwrap();
 
-    let env = env.time(99999999);
+    amm.ensemble.block().time = 99999999;
 
     //deposit some funds
     //this should now fail
