@@ -36,8 +36,9 @@ fn admin_update_distribution() {
 
     tge.ensemble
         .execute(
-            &sienna_rpt::HandleMsg::SetDistribution {
+            &sienna_rpt::HandleMsg::Configure {
                 distribution: updated_distribution.clone(),
+                portion: Uint128(25),
             },
             MockEnv::new(
                 ADMIN,
@@ -68,8 +69,9 @@ fn stranger_cant_update_distribution() {
 
     tge.ensemble
         .execute(
-            &sienna_rpt::HandleMsg::SetDistribution {
+            &sienna_rpt::HandleMsg::Configure {
                 distribution: updated_distribution.clone(),
+                portion: Uint128(2500),
             },
             MockEnv::new(
                 "stranger",
@@ -94,8 +96,9 @@ fn only_valid_distribution() {
 
     tge.ensemble
         .execute(
-            &sienna_rpt::HandleMsg::SetDistribution {
+            &sienna_rpt::HandleMsg::Configure {
                 distribution: updated_distribution.clone(),
+                portion: Uint128(2500),
             },
             MockEnv::new(
                 ADMIN,

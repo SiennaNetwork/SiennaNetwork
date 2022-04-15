@@ -87,7 +87,6 @@ and may be deprecated in the future as live mode evolves.
 
 ```typescript
 Fadroma.command('all',
-  function buildTGELegacy       () { return buildTge('TGE_legacy') },
   function buildTgeLatest       () { return buildTge('HEAD') },
   function buildTokensLatest    () { return buildTokens('HEAD') },
   function buildTokensAMMv1     () { return buildTokens('AMM_v1') },
