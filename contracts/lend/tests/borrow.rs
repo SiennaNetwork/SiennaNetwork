@@ -41,14 +41,13 @@ fn borrow() {
     lend.prefund_and_deposit(ALICE, prefund_amount, market_one.address.clone());
     lend.prefund_and_deposit(CHESTER, chester_prefund_amount, market_two.address.clone());
 
-    lend.ensemble
-        .execute(
-            &overseer::HandleMsg::Enter {
-                markets: vec![market_one.address.clone(), market_two.address.clone()],
-            },
-            MockEnv::new(CHESTER, lend.overseer.clone()),
-        )
-        .unwrap();
+    lend.ensemble.execute(
+        &overseer::HandleMsg::Enter {
+            markets: vec![market_one.address.clone(), market_two.address.clone()],
+        },
+        MockEnv::new(CHESTER, lend.overseer.clone()),
+    )
+    .unwrap();
 
     // Assuming 1:1 price conversion:
     // With LTV ratio of 90%, if Chester wants to borrow a 100 tokens, he'd have to deposit
@@ -57,20 +56,17 @@ fn borrow() {
     // conv_factor = 0.9 * 1 * 1 = 0.9
     // Chester's liquidity = 100 * 0.9 = 90
 
-    let liquidity = lend
-        .get_liquidity(
-            CHESTER,
-            Some(market_one.address.clone()),
-            Uint256::zero(),
-            borrow_amount.into(),
-            None,
-        )
-        .unwrap();
+    let liquidity = lend.get_liquidity(
+        CHESTER,
+        Some(market_one.address.clone()),
+        Uint256::zero(),
+        borrow_amount.into(),
+        None,
+    )
+    .unwrap();
 
-    println!("{:#?}", liquidity);
-
-    // assert_eq!(liquidity.liquidity, Uint256::zero());
-    // assert_eq!(liquidity.shortfall, Uint256::from(10));
+    assert_eq!(liquidity.liquidity, Uint256::zero());
+    assert_eq!(liquidity.shortfall, Uint256::from(10 * one_token(18)));
 
     let err = lend
         .ensemble
