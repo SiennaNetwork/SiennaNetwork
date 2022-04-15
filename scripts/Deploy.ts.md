@@ -960,7 +960,7 @@ async function deployRewardPool (context: MigrationContext) {
 
     deployment, agent,
 
-    name = 'stkd-SCRT.Rewards[v3]',
+    name = 'AMM[v2].stkd-SCRT-SIENNA.LP.Rewards[v3]',
 
     settings: { admin, timekeeper } = getSettings(agent.chain.mode),
 
