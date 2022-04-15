@@ -16,6 +16,8 @@ const ALICE: &str = "Alice";
 #[test]
 fn reduce_all_reserves() {
     let mut lend = Lend::default();
+    lend.ensemble.block().height = 12345;
+    lend.ensemble.block().freeze();
 
     let initial_exchange_rate = Decimal256::percent(100);
     let deposit_amount = Uint128(one_token(18));
@@ -95,7 +97,10 @@ fn reduce_all_reserves() {
         )
         .unwrap();
 
-    let market_state = lend.state(market.contract.address.clone(), Some(112345));
+    lend.ensemble.block().height = 112345;
+    let height = lend.ensemble.block().height;
+
+    let market_state = lend.state(market.contract.address.clone(), Some(height));
 
     assert!(market_state.total_borrows > borrow_amount.into());
     assert_eq!(market_state.total_supply, Uint128(3 * one_token(18)).into());
@@ -116,7 +121,7 @@ fn reduce_all_reserves() {
                     "balance",
                 )
                 .into(),
-                block: Some(112345),
+                block: Some(height),
             },
         )
         .unwrap();
@@ -136,7 +141,7 @@ fn reduce_all_reserves() {
                     "balance",
                 )
                 .into(),
-                block: Some(112345),
+                block: Some(height),
             },
         )
         .unwrap();
@@ -153,7 +158,7 @@ fn reduce_all_reserves() {
                 memo: None,
                 padding: None,
             },
-            MockEnv::new(ALICE, underlying).height(112345),
+            MockEnv::new(ALICE, underlying)
         )
         .unwrap();
 
@@ -163,11 +168,11 @@ fn reduce_all_reserves() {
                 amount: Uint128(1_014_018_809_800_0u128),
                 to: Some(ADMIN.into()),
             },
-            MockEnv::new(ADMIN, market.contract.clone()).height(112345),
+            MockEnv::new(ADMIN, market.contract.clone())
         )
         .unwrap();
 
-    let market_state = lend.state(market.contract.address.clone(), Some(112345));
+    let market_state = lend.state(market.contract.address.clone(), Some(height));
 
     // reserves should be 0 now
     // borrows should be 0 now

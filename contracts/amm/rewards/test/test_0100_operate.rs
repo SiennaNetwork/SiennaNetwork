@@ -1,4 +1,14 @@
-use crate::test::{*, Context};
+use rand::Rng;
+use fadroma::{
+    composability::{ResponseBuilder},
+    cosmwasm_std::{HumanAddr, HandleResponse}
+};
+
+use crate::{
+    Query, Handle, RewardsHandle, RewardsQuery,
+    errors,
+    test::Context
+};
 
 #[test] fn test_0101_empty () {
     let mut context = Context::new("0101_defaults");
@@ -429,16 +439,26 @@ use crate::test::{*, Context};
     // And every user transaction returns all LP tokens to the user
     // And transfers any claimable rewards to the user
     context.later().user("Alice")
-        .branch("then_lock", |mut context|{
+        .branch("then_lock", |mut context| {
+            // YES, THIS IS A HACK - DEAL WITH IT
+            let old_sender = context.env.message.sender.clone();
+            context.env.message.sender = context.lp_token.link.address.clone();
+
             context.test_handle(
-                Handle::Rewards(RewardsHandle::Deposit { amount: 100u128.into() }),
+                Handle::Rewards(RewardsHandle::Deposit {
+                    from: HumanAddr::from("Alice"),
+                    amount: 100u128.into()
+                }),
                 HandleResponse::default()
                     .msg(return_funds.clone()).unwrap()
                     .msg(claim_rewards.clone()).unwrap()
                     .log("close_time",   &format!("{}", when)).unwrap()
-                    .log("close_reason", why));
+                    .log("close_reason", why)
+            );
+
+            context.env.message.sender = old_sender;
         })
-        .branch("then_retrieve", |mut context|{
+        .branch("then_retrieve", |mut context| {
             context.test_handle(
                 Handle::Rewards(RewardsHandle::Withdraw { amount: 100u128.into() }),
                 HandleResponse::default()
@@ -447,9 +467,9 @@ use crate::test::{*, Context};
                     .log("close_time",   &format!("{}", when)).unwrap()
                     .log("close_reason", why));
         })
-        .branch("then_claim", |mut context|{
+        .branch("then_claim", |mut context| {
             context.test_handle(
-                Handle::Rewards(RewardsHandle::Claim {}),
+                Handle::Rewards(RewardsHandle::Claim { to: None }),
                 HandleResponse::default()
                     .msg(return_funds.clone()).unwrap()
                     .msg(claim_rewards.clone()).unwrap()

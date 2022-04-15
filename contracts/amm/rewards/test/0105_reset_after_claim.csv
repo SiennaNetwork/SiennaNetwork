@@ -4,15 +4,11 @@ Time,Sender,Recipient,Data
 14,0105_reset_addr,Alice,account.bonding              = 197
 14,0105_reset_addr,Alice,account.earned               = 0
 ,,,
-14,Alice,0105_reset_addr,"rewards:
+14,LP_TOKEN,0105_reset_addr,"rewards:
   deposit:
+    from: Alice
     amount: ""85596"""
-tx,0105_reset_addr,LP_TOKEN,"transfer_from:
-  amount: ""85596""
-  memo: ~
-  owner: Alice
-  padding: ~
-  recipient: 0105_reset_addr"
+log,0105_reset_addr,,deposit = 85596
 14,0105_reset_addr,Alice,account.staked               = 85596
 14,0105_reset_addr,Alice,account.volume               = 0
 14,0105_reset_addr,Alice,account.bonding              = 197
@@ -36,13 +32,15 @@ tx,0105_reset_addr,LP_TOKEN,"transfer_from:
 212,0105_reset_addr,Alice,account.earned               = 38861
 ,,,
 212,Alice,0105_reset_addr,"rewards:
-  claim: {}"
+  claim:
+    to: ~"
 tx,0105_reset_addr,SIENNA,"transfer:
   amount: ""38861""
   memo: ~
   padding: ~
   recipient: Alice"
 log,0105_reset_addr,,reward = 38861
+log,0105_reset_addr,,recipient = Alice
 212,0105_reset_addr,Alice,total.distributed            = 38861
 212,0105_reset_addr,Alice,account.staked               = 85596
 212,0105_reset_addr,Alice,account.volume               = 0
