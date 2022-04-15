@@ -1,9 +1,10 @@
+#![allow(dead_code)]
 use fadroma::{ensemble::MockEnv, ContractLink, HumanAddr, Uint128};
 use sienna_mgmt::ConfigResponse;
 use sienna_rpt::LinearMap;
-use sienna_schedule::{Account, Schedule, Pool};
+use sienna_schedule::{Account, Pool, Schedule};
 
-use crate::setup::{ADMIN, TGE, AccountFactory, MGMT, MGMT_ADDR};
+use crate::setup::{AccountFactory, ADMIN, MGMT_ADDR, TGE};
 
 const USER_INVESTOR_MIKE: &str = "Mike";
 const USER_INVESTOR_JOHN: &str = "John";
@@ -11,8 +12,7 @@ const USER_MP_RPT1: &str = "RTP1";
 const USER_MP_RPT2: &str = "RTP2";
 const TOKEN1: &str = "secret1TOKEN1";
 const TOKEN2: &str = "secret1TOKEN2";
-const TOKEN_DECIMALS:u128 = 1_000_000_000_000_000_000;
- 
+const TOKEN_DECIMALS: u128 = 1_000_000_000_000_000_000;
 
 #[test]
 fn rpt_init() {
@@ -148,8 +148,7 @@ fn should_distribute() {
                     address: "RPT_CONTRACT".into(),
                     code_hash: tge.rpt.code_hash.clone(),
                 },
-            )
-            .time(1978897420),
+            ),
         )
         .unwrap();
 
@@ -164,49 +163,42 @@ fn should_not_schedule_for_invalid_pool_total() {
 
     let schedule = Schedule {
         total: Uint128(25_000),
-        pools: vec![
-            Pool{
-                name: "Investors".to_string(),
-                partial: false,
-                total: Uint128(20_000),
-                accounts: vec![
-                    Account::create(USER_INVESTOR_MIKE, 2_000, 1000, 10),
-                    Account::create(USER_INVESTOR_JOHN, 5_000, 1000, 10),
-                ]
-            }
-        ]
+        pools: vec![Pool {
+            name: "Investors".to_string(),
+            partial: false,
+            total: Uint128(20_000),
+            accounts: vec![
+                Account::create(USER_INVESTOR_MIKE, 2_000, 1000, 10),
+                Account::create(USER_INVESTOR_JOHN, 5_000, 1000, 10),
+            ],
+        }],
     };
     // wrong sum of totals inside pool
     tge.set_shedule(schedule).unwrap_err();
     //assert_eq!(tge.query_schedule().total.u128(), 25_000);
-    
 }
 
 #[test]
-fn should_not_lanuch_with_incorrect_prefund_balance() { // WIP
+fn should_not_lanuch_with_incorrect_prefund_balance() {
+    // WIP
     let mut tge = TGE::new(true);
-    
+
     let schedule = Schedule {
         total: Uint128(1_001_000_000_000_000_000_000),
-        pools: vec![
-            Pool{
-                name: "Investors".to_string(),
-                partial: false,
-                total: Uint128(1_001_000_000_000_000_000_000),
-                accounts: vec![
-                    Account::create(USER_INVESTOR_MIKE, 1_000_000_000_000_000_000_000, 1000, 10),
-                    Account::create(USER_INVESTOR_JOHN,     1_000_000_000_000_000_000, 1000, 10),
-                ]
-            }
-        ]
+        pools: vec![Pool {
+            name: "Investors".to_string(),
+            partial: false,
+            total: Uint128(1_001_000_000_000_000_000_000),
+            accounts: vec![
+                Account::create(USER_INVESTOR_MIKE, 1_000_000_000_000_000_000_000, 1000, 10),
+                Account::create(USER_INVESTOR_JOHN, 1_000_000_000_000_000_000, 1000, 10),
+            ],
+        }],
     };
     tge.set_shedule(schedule).unwrap();
-    let balance = tge.query_balance(MGMT_ADDR);
-    println!("MGMT balance {:}", balance);
-    tge.launch().unwrap_err(); 
+    let _ = tge.query_balance(MGMT_ADDR);
+    tge.launch().unwrap_err();
 }
-
-
 
 #[test]
 fn should_set_schedule_single_pool() {
@@ -214,24 +206,20 @@ fn should_set_schedule_single_pool() {
 
     let schedule = Schedule {
         total: Uint128(25_000),
-        pools: vec![
-            Pool{
-                name: "Investors".to_string(),
-                partial: false,
-                total: Uint128(25_000),
-                accounts: vec![
-                    Account::create(USER_INVESTOR_MIKE, 20_000, 1000, 10),
-                    Account::create(USER_INVESTOR_JOHN, 5_000, 1000, 10),
-                ]
-            }
-        ]
+        pools: vec![Pool {
+            name: "Investors".to_string(),
+            partial: false,
+            total: Uint128(25_000),
+            accounts: vec![
+                Account::create(USER_INVESTOR_MIKE, 20_000, 1000, 10),
+                Account::create(USER_INVESTOR_JOHN, 5_000, 1000, 10),
+            ],
+        }],
     };
-    
+
     tge.set_shedule(schedule).unwrap();
     assert_eq!(tge.query_schedule().total.u128(), 25_000);
-    
 }
-
 
 #[test]
 fn should_not_set_schedule_overall_total() {
@@ -240,32 +228,30 @@ fn should_not_set_schedule_overall_total() {
     let schedule = Schedule {
         total: Uint128(45_001),
         pools: vec![
-            Pool{
+            Pool {
                 name: "Investors".to_string(),
                 partial: false,
                 total: Uint128(25_000),
                 accounts: vec![
                     Account::create(USER_INVESTOR_MIKE, 20_000, 1000, 10),
                     Account::create(USER_INVESTOR_JOHN, 5_000, 1000, 10),
-                ]
-            }, 
-            Pool{
+                ],
+            },
+            Pool {
                 name: "Minting Pool".to_string(),
                 partial: false,
                 total: Uint128(20_000),
                 accounts: vec![
                     Account::create(USER_MP_RPT1, 11_000, 1000, 10),
-                    Account::create(USER_MP_RPT2, 9_000, 1000, 10), 
-                ]
-            }, 
-            
-        ]
+                    Account::create(USER_MP_RPT2, 9_000, 1000, 10),
+                ],
+            },
+        ],
     };
     // sum of pool totals is 45_000, while schedule total is 45_001
     tge.set_shedule(schedule).unwrap_err();
     //assert_eq!(tge.query_schedule().total.u128(), 25_000);
 }
-
 
 #[test]
 fn should_set_schedule_multiple_pools() {
@@ -274,33 +260,30 @@ fn should_set_schedule_multiple_pools() {
     let schedule = Schedule {
         total: Uint128(45_000),
         pools: vec![
-            Pool{
+            Pool {
                 name: "Investors".to_string(),
                 partial: false,
                 total: Uint128(25_000),
                 accounts: vec![
                     Account::create(USER_INVESTOR_MIKE, 20_000, 1000, 10),
                     Account::create(USER_INVESTOR_JOHN, 5_000, 1000, 10),
-                ]
-            }, 
-            Pool{
+                ],
+            },
+            Pool {
                 name: "Minting Pool".to_string(),
                 partial: false,
                 total: Uint128(20_000),
-                accounts: vec![ 
+                accounts: vec![
                     Account::create(USER_MP_RPT1, 11_000, 1000, 10),
                     Account::create(USER_MP_RPT2, 9_000, 1000, 10),
-                ]
-            }, 
-            
-        ]
+                ],
+            },
+        ],
     };
     // should we allow multiple RPTs inside the MiningPool ?
     tge.set_shedule(schedule).unwrap();
     assert_eq!(tge.query_schedule().total.u128(), 45_000);
 }
-
-
 
 #[test]
 fn should_not_claim_before_launch() {
@@ -308,25 +291,22 @@ fn should_not_claim_before_launch() {
 
     let schedule = Schedule {
         total: Uint128(25_000),
-        pools: vec![
-            Pool{
-                name: "Investors".to_string(),
-                partial: false,
-                total: Uint128(25_000),
-                accounts: vec![
-                    Account::create(USER_INVESTOR_MIKE, 20_000, 1000, 10),
-                    Account::create(USER_INVESTOR_JOHN, 5_000, 1000, 10),
-                ]
-            }
-        ]
+        pools: vec![Pool {
+            name: "Investors".to_string(),
+            partial: false,
+            total: Uint128(25_000),
+            accounts: vec![
+                Account::create(USER_INVESTOR_MIKE, 20_000, 1000, 10),
+                Account::create(USER_INVESTOR_JOHN, 5_000, 1000, 10),
+            ],
+        }],
     };
-    
+
     tge.set_shedule(schedule).unwrap();
     assert_eq!(tge.query_schedule().total.u128(), 25_000);
 
     tge.claim_for(USER_INVESTOR_MIKE, 5).unwrap_err();
     tge.launch().unwrap();
-    
 }
 
 #[test]
@@ -338,7 +318,7 @@ fn should_support_different_schedule_intervals() {
     let schedule = Schedule {
         total: Uint128(1_500_000_000_000_000_000_000),
         pools: vec![
-            Pool{
+            Pool {
                 name: "Investors".to_string(),
                 partial: false,
                 total: Uint128(1_000_000_000_000_000_000_000),
@@ -348,30 +328,35 @@ fn should_support_different_schedule_intervals() {
                     // In this case, 800 split on (2000/10) = 200 intervals, 4 tokens per each
                     mike.clone(),
                     john.clone(),
-                ]
-            }, 
-            Pool{
+                ],
+            },
+            Pool {
                 name: "Minting Pool".to_string(),
                 partial: false,
                 total: Uint128(500_000_000_000_000_000_000),
-                accounts: vec![
-                    Account::create(USER_MP_RPT1, 500_000_000_000_000_000_000, 1000, 12),
-                ]
-            }, 
-            
-        ]
+                accounts: vec![Account::create(
+                    USER_MP_RPT1,
+                    500_000_000_000_000_000_000,
+                    1000,
+                    12,
+                )],
+            },
+        ],
     };
 
     tge.set_shedule(schedule).unwrap();
 
-    assert_eq!(tge.query_schedule().total.u128(), 1_500_000_000_000_000_000_000);
+    assert_eq!(
+        tge.query_schedule().total.u128(),
+        1_500_000_000_000_000_000_000
+    );
 
     tge.launch().unwrap();
-    
+
     // Mike's interval = 10
     // John's interval = 12
     let mike_actual_tokens_per_interval = 4 * TOKEN_DECIMALS;
-    
+
     // claimed = amount (200e18) / potion size
     // portion size = duration / interval => 1000 / 12 = 83.3333
     // which is rounded to 83 as it's uint
@@ -380,23 +365,40 @@ fn should_support_different_schedule_intervals() {
     // remainder is 0.009638554216867469 which will be added to another portion
     let johns_rounded_intervals_count = john.duration / john.interval;
     // should be 2_409_638_554_216_867_469
-    let john_actual_tokens_per_interval = john.amount.u128() / johns_rounded_intervals_count as u128;
+    let john_actual_tokens_per_interval =
+        john.amount.u128() / johns_rounded_intervals_count as u128;
 
-    tge.claim_for(USER_INVESTOR_JOHN, john.interval - 1).unwrap(); // 0
-    assert_eq!(tge.query_balance(USER_INVESTOR_JOHN).u128(), john_actual_tokens_per_interval); 
+    tge.claim_for(USER_INVESTOR_JOHN, john.interval - 1)
+        .unwrap(); // 0
+    assert_eq!(
+        tge.query_balance(USER_INVESTOR_JOHN).u128(),
+        john_actual_tokens_per_interval
+    );
 
-    tge.claim_for(USER_INVESTOR_MIKE, 2 * mike.interval + 1).unwrap();
-    assert_eq!(tge.query_balance(USER_INVESTOR_MIKE).u128(), mike_actual_tokens_per_interval * 3); // 0, 10, 20
+    tge.claim_for(USER_INVESTOR_MIKE, 2 * mike.interval + 1)
+        .unwrap();
+    assert_eq!(
+        tge.query_balance(USER_INVESTOR_MIKE).u128(),
+        mike_actual_tokens_per_interval * 3
+    ); // 0, 10, 20
 
-    tge.claim_for(USER_INVESTOR_JOHN, 4 * john.interval + 1).unwrap();
-    assert_eq!(tge.query_balance(USER_INVESTOR_JOHN).u128(), john_actual_tokens_per_interval * 5); 
+    tge.claim_for(USER_INVESTOR_JOHN, 4 * john.interval + 1)
+        .unwrap();
+    assert_eq!(
+        tge.query_balance(USER_INVESTOR_JOHN).u128(),
+        john_actual_tokens_per_interval * 5
+    );
 
-    tge.claim_for(USER_INVESTOR_JOHN, john.interval * (johns_rounded_intervals_count + 1)).unwrap();
-    assert_eq!(tge.query_balance(USER_INVESTOR_JOHN).u128(), john.amount.u128() ); 
-
+    tge.claim_for(
+        USER_INVESTOR_JOHN,
+        john.interval * (johns_rounded_intervals_count + 1),
+    )
+    .unwrap();
+    assert_eq!(
+        tge.query_balance(USER_INVESTOR_JOHN).u128(),
+        john.amount.u128()
+    );
 }
-
-
 
 #[test]
 fn should_support_account_in_multiple_pools() {
@@ -405,29 +407,28 @@ fn should_support_account_in_multiple_pools() {
     let schedule = Schedule {
         total: Uint128(45_000),
         pools: vec![
-            Pool{
+            Pool {
                 name: "Investors".to_string(),
                 partial: false,
                 total: Uint128(25_000),
                 accounts: vec![
                     Account::create(USER_INVESTOR_MIKE, 20_000, 1000, 10),
                     Account::create(USER_INVESTOR_JOHN, 5_000, 1000, 10),
-                ]
-            }, 
-            Pool{
+                ],
+            },
+            Pool {
                 name: "Minting Pool".to_string(),
                 partial: false,
                 total: Uint128(20_000),
                 accounts: vec![
                     Account::create(USER_INVESTOR_MIKE, 11_000, 1000, 10),
-                    Account::create(USER_MP_RPT2, 9_000, 1000, 10), 
-                ]
-            }, 
-            
-        ]
+                    Account::create(USER_MP_RPT2, 9_000, 1000, 10),
+                ],
+            },
+        ],
     };
     tge.set_shedule(schedule).unwrap();
-    let sc = &tge.query_schedule();
+    let _ = &tge.query_schedule();
     tge.launch().unwrap();
     tge.claim_for(USER_INVESTOR_MIKE, 1000).unwrap();
     let mikes_balance = tge.query_balance(USER_INVESTOR_MIKE);

@@ -2,7 +2,7 @@ use crate::impl_contract_harness_default;
 use fadroma::ensemble::{ContractEnsemble, ContractHarness, MockDeps, MockEnv};
 use fadroma::snip20_impl::msg::{InitConfig, InitialBalance};
 use fadroma::snip20_impl::msg::{
-    QueryAnswer, QueryMsg as Snip20QueryMsg, QueryPermission as Snip20Permission, QueryWithPermit, HandleMsg as Snip20HandleMsg
+    QueryAnswer, QueryMsg as Snip20QueryMsg, QueryPermission as Snip20Permission, QueryWithPermit,
 };
 use fadroma::{
     from_binary, snip20_impl, snip20_impl::msg::InitMsg as Snip20InitMsg, Binary, ContractLink,
@@ -12,7 +12,6 @@ use fadroma::{Permit, StdError, Uint128};
 use sienna_mgmt;
 use sienna_rpt::{self, LinearMap};
 use sienna_schedule::{Account, Pool, Schedule};
-
 
 pub const DEFAULT_EPOCH_START: u64 = 1571797419;
 const REWARD_TOKEN_ADDR: &str = "REWARD";
@@ -58,7 +57,6 @@ pub struct TGE {
     pub token: ContractLink<HumanAddr>,
 }
 
-
 impl TGE {
     pub fn new(prefund: bool) -> Self {
         let mut ensemble = ContractEnsemble::new(50);
@@ -67,7 +65,8 @@ impl TGE {
         let token = ensemble.register(Box::new(Token));
         let schedule = Schedule::new(&[Pool::partial("TEST", 25, &[])]);
 
-        
+        ensemble.block().time = DEFAULT_EPOCH_START;
+
         let token = ensemble
             .instantiate(
                 token.id,
@@ -78,10 +77,10 @@ impl TGE {
                     decimals: 18,
                     initial_balances: match prefund {
                         true => Some(vec![InitialBalance {
-                                    address: MGMT_ADDR.into(),
-                                    amount:  Uint128(1_000_000_000_000_000_000_000),
-                                }]),
-                        false => None
+                            address: MGMT_ADDR.into(),
+                            amount: Uint128(1_000_000_000_000_000_000_000),
+                        }]),
+                        false => None,
                     },
                     initial_allowances: None,
                     prng_seed: Binary::from(b"whatever"),
@@ -99,7 +98,7 @@ impl TGE {
                         address: REWARD_TOKEN_ADDR.into(),
                         code_hash: token.code_hash.clone(),
                     },
-                ).time(DEFAULT_EPOCH_START),
+                ),
             )
             .unwrap();
         ensemble
@@ -179,7 +178,7 @@ impl TGE {
             ContractLink {
                 address: RPT_ADDR.into(),
                 code_hash: self.rpt.code_hash.clone(),
-            }
+            },
         )
     }
 
@@ -189,7 +188,7 @@ impl TGE {
             ContractLink {
                 address: MGMT_ADDR.into(),
                 code_hash: self.mgmt.code_hash.clone(),
-            }
+            },
         )
     }
 
@@ -199,7 +198,7 @@ impl TGE {
             ContractLink {
                 address: MGMT_ADDR.into(),
                 code_hash: self.mgmt.code_hash.clone(),
-            }
+            },
         )
     }
 
@@ -210,7 +209,7 @@ impl TGE {
     ) -> Result<(), StdError> {
         self.ensemble.execute(
             &sienna_mgmt::HandleMsg::AddAccount { pool_name, account },
-            self.get_mgmt_env_as_admin()
+            self.get_mgmt_env_as_admin(),
         )
     }
 
@@ -247,29 +246,27 @@ impl TGE {
         }
     }
 
-    pub fn set_shedule(&mut self, schedule: Schedule<HumanAddr>) -> StdResult<()>{
+    pub fn set_shedule(&mut self, schedule: Schedule<HumanAddr>) -> StdResult<()> {
         self.ensemble.execute(
-            &sienna_mgmt::HandleMsg::Configure {
-                schedule
-            }, 
-            self.get_mgmt_env_as_admin()
+            &sienna_mgmt::HandleMsg::Configure { schedule },
+            self.get_mgmt_env_as_admin(),
         )
     }
-    pub fn launch(&mut self) -> StdResult<()>  {
+    pub fn launch(&mut self) -> StdResult<()> {
+        self.ensemble.block().time = DEFAULT_EPOCH_START;
         self.ensemble.execute(
-            &sienna_mgmt::HandleMsg::Launch {}, 
-            self.get_mgmt_env_as_admin().time(DEFAULT_EPOCH_START)
+            &sienna_mgmt::HandleMsg::Launch {},
+            self.get_mgmt_env_as_admin(),
         )
     }
-
 
     pub fn claim_for(&mut self, user_name: &str, seconds_after: u64) -> StdResult<()> {
+        self.ensemble.block().time = DEFAULT_EPOCH_START + seconds_after;
         self.ensemble.execute(
-            &sienna_mgmt::HandleMsg::Claim {}, 
-            self.get_mgmt_env(user_name).time(DEFAULT_EPOCH_START + seconds_after)
+            &sienna_mgmt::HandleMsg::Claim {},
+            self.get_mgmt_env(user_name),
         )
     }
-
 }
 
 impl Default for TGE {
@@ -280,14 +277,30 @@ impl Default for TGE {
 
 pub trait AccountFactory {
     fn create(name: &str, amount: u128, duration: u64, interval: u64) -> Account<HumanAddr>;
-    fn create_ext(name: String, address: &str, amount: u128, cliff: u128, duration: u64, interval: u64, start_at: u64) -> Account<HumanAddr>;
+    fn create_ext(
+        name: String,
+        address: &str,
+        amount: u128,
+        cliff: u128,
+        duration: u64,
+        interval: u64,
+        start_at: u64,
+    ) -> Account<HumanAddr>;
 }
 
 impl AccountFactory for Account<HumanAddr> {
-    fn create(name: &str, amount: u128, duration: u64, interval: u64) -> Account<HumanAddr>{
+    fn create(name: &str, amount: u128, duration: u64, interval: u64) -> Account<HumanAddr> {
         Self::create_ext(name.to_string(), name, amount, 0, duration, interval, 0)
     }
-    fn create_ext(name: String, address: &str, amount: u128, cliff: u128, duration: u64, interval: u64, start_at: u64) -> Account<HumanAddr>{
+    fn create_ext(
+        name: String,
+        address: &str,
+        amount: u128,
+        cliff: u128,
+        duration: u64,
+        interval: u64,
+        start_at: u64,
+    ) -> Account<HumanAddr> {
         Account {
             name,
             address: HumanAddr::from(address),
@@ -295,7 +308,7 @@ impl AccountFactory for Account<HumanAddr> {
             cliff: Uint128(cliff),
             duration,
             interval,
-            start_at
+            start_at,
         }
     }
 }

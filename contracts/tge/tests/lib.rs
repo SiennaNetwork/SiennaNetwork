@@ -1,9 +1,11 @@
-#[cfg(test)]
-mod tge_test;
+#![allow(dead_code)]
+
 #[cfg(test)]
 mod mgmt_test;
 #[cfg(test)]
 mod setup;
+#[cfg(test)]
+mod tge_test;
 
 #[macro_export]
 macro_rules! impl_contract_harness_default {
