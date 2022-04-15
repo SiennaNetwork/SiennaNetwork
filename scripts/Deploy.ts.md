@@ -305,6 +305,7 @@ and deploy just the TGE contracts.
 import { buildTge, buildRewards } from './Build'
 import { testers, getRPTAccount } from './Configure'
 import { schedule } from '@sienna/settings'
+import { readFileSync } from 'fs'
 
 async function initMockTokens(deployment, agent, tokenTemplate, vesting) {
   const labels = [];

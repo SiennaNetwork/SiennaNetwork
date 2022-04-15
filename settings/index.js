@@ -35,7 +35,11 @@ export default function getSettingsForChain(mode) {
 }
 
 export const schedule = JSON.parse(readFileSync(resolve(__dirname, 'schedule.json'), 'utf8'))
-export const vesting = JSON.parse(readFileSync(resolve(__dirname, 'vesting.json'), 'utf8'))
+
+
+const custom_vesting = process.env.VESTING_CONFIG
+const vesting_path = custom_vesting ?? resolve(__dirname, 'vesting.json')
+export const vesting = JSON.parse(readFileSync(vesting_path, 'utf8'))
 
 export const SIENNA_DECIMALS = 18
 export const ONE_SIENNA = BigInt(
