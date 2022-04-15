@@ -1,14 +1,10 @@
 Time,Sender,Recipient,Data
 ,,,
-14,Alice,0113_single_sided_addr,"rewards:
+14,SIENNA,0113_single_sided_addr,"rewards:
   deposit:
+    from: Alice
     amount: ""42798"""
-tx,0113_single_sided_addr,SIENNA,"transfer_from:
-  amount: ""42798""
-  memo: ~
-  owner: Alice
-  padding: ~
-  recipient: 0113_single_sided_addr"
+log,0113_single_sided_addr,,deposit = 42798
 14,0113_single_sided_addr,Alice,account.earned               = 0
 ,,,
 211,RPT,0113_single_sided_addr,vest 38861
@@ -19,13 +15,15 @@ tx,0113_single_sided_addr,SIENNA,"transfer_from:
 211,0113_single_sided_addr,Alice,account.earned               = 38861
 ,,,
 211,Alice,0113_single_sided_addr,"rewards:
-  claim: {}"
+  claim:
+    to: ~"
 tx,0113_single_sided_addr,SIENNA,"transfer:
   amount: ""38861""
   memo: ~
   padding: ~
   recipient: Alice"
 log,0113_single_sided_addr,,reward = 38861
+log,0113_single_sided_addr,,recipient = Alice
 211,0113_single_sided_addr,Alice,account.earned               = 0
 211,0113_single_sided_addr,Alice,account.staked               = 42798
 ,,,

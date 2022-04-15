@@ -1,11 +1,7 @@
 Time,Sender,Recipient,Data
 ,,,
-4,Alice,0120_no_time_travel_addr,"rewards:
+4,LP_TOKEN,0120_no_time_travel_addr,"rewards:
   deposit:
+    from: Alice
     amount: ""43"""
-tx,0120_no_time_travel_addr,LP_TOKEN,"transfer_from:
-  amount: ""43""
-  memo: ~
-  owner: Alice
-  padding: ~
-  recipient: 0120_no_time_travel_addr"
+log,0120_no_time_travel_addr,,deposit = 43

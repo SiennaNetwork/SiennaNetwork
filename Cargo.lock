@@ -538,6 +538,7 @@ dependencies = [
  "fadroma-math",
  "fadroma-platform-scrt",
  "fadroma-platform-terra",
+ "fadroma-proc-message",
  "fadroma-snip20-api",
  "fadroma-snip20-impl",
  "fadroma-storage",
@@ -607,7 +608,7 @@ version = "0.1.0"
 dependencies = [
  "fadroma-platform-scrt",
  "fadroma-storage",
- "rand",
+ "oorandom",
  "serde",
 ]
 
@@ -651,6 +652,14 @@ dependencies = [
 [[package]]
 name = "fadroma-platform-terra"
 version = "0.1.0"
+
+[[package]]
+name = "fadroma-proc-message"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+]
 
 [[package]]
 name = "fadroma-snip20-api"
@@ -833,7 +842,7 @@ name = "launchpad"
 version = "0.1.0"
 dependencies = [
  "amm-shared",
- "rand",
+ "rand 0.8.5",
  "schemars",
  "serde",
  "serde_json",
@@ -1029,6 +1038,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "oorandom"
+version = "11.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0ab1bc2a289d34bd04a330323ac98a1b4bc82c9d9fcb1e66b63caa84da26b575"
+
+[[package]]
 name = "opaque-debug"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1150,6 +1165,17 @@ dependencies = [
 name = "rand"
 version = "0.8.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6a6b1679d49b24bbfe0c803429aa1874472f50d9b363131f0e89fc356b544d03"
+dependencies = [
+ "rand_chacha 0.2.2",
+ "rand_core 0.5.1",
+ "rand_hc",
+]
+
+[[package]]
+name = "rand"
+version = "0.8.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "34af8d1a0e25924bc5b7c43c079c942339d8f0a8b57c39049bef581b46327404"
 dependencies = [
  "libc",
@@ -1190,6 +1216,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d34f1408f55294453790c48b2f1ebbb1c5b4b7563eb1f418bcfcfdbb06ebb4e7"
 dependencies = [
  "getrandom 0.2.3",
+]
+
+[[package]]
+name = "rand_hc"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ca3129af7b92a17112d59ad498c6f81eaf463253766b90396d39ea7a39d6613c"
+dependencies = [
+ "rand_core 0.5.1",
 ]
 
 [[package]]
@@ -1539,9 +1574,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.73"
+version = "1.0.79"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bcbd0344bc6533bc7ec56df11d42fb70f1b912351c0825ccb7211b59d8af7cf5"
+checksum = "8e8d9fa5c3b304765ce1fd9c4c8a3de2c8db365a5b91be52f186efc675681d95"
 dependencies = [
  "itoa 1.0.1",
  "ryu",
@@ -1617,7 +1652,7 @@ dependencies = [
  "js-sys",
  "kukumba 1.0.1",
  "prettytable-rs",
- "rand",
+ "rand 0.8.5",
  "remain",
  "ripemd160",
  "schemars",
@@ -1803,7 +1838,7 @@ checksum = "dac1c663cfc93810f88aed9b8941d48cabf856a1b111c29a40439018d870eb22"
 dependencies = [
  "cfg-if",
  "libc",
- "rand",
+ "rand 0.8.5",
  "redox_syscall 0.2.10",
  "remove_dir_all",
  "winapi",

@@ -1,3 +1,5 @@
+use fadroma::ISnip20;
+
 use crate::config::IRewardsConfig;
 use crate::{
     time_utils::{Duration, DAY},

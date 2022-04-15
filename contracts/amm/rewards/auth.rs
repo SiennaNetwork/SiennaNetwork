@@ -206,6 +206,7 @@ where
 #[cfg(test)]
 mod test {
     use crate::*;
+    use fadroma::testing::{mock_dependencies, mock_env};
 
     #[test]
     fn test_vk_handle() {

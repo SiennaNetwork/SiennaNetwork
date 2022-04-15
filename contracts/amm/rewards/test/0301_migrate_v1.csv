@@ -2,29 +2,21 @@ Time,Sender,Recipient,Data
 1,0301_migrate_v1_addr,Alice,account.staked               = 0
 1,0301_migrate_v1_addr,Alice,total.staked                 = 0
 ,,,
-1,Alice,0301_migrate_v1_addr,"rewards:
+1,LP_TOKEN,0301_migrate_v1_addr,"rewards:
   deposit:
+    from: Alice
     amount: ""85596"""
-tx,0301_migrate_v1_addr,LP_TOKEN,"transfer_from:
-  amount: ""85596""
-  memo: ~
-  owner: Alice
-  padding: ~
-  recipient: 0301_migrate_v1_addr"
+log,0301_migrate_v1_addr,,deposit = 85596
 1,0301_migrate_v1_addr,Alice,account.staked               = 85596
 1,0301_migrate_v1_addr,Alice,total.staked                 = 85596
 1,0301_migrate_v1_addr,Bob,account.staked               = 0
 1,0301_migrate_v1_addr,Bob,total.staked                 = 85596
 ,,,
-1,Bob,0301_migrate_v1_addr,"rewards:
+1,LP_TOKEN,0301_migrate_v1_addr,"rewards:
   deposit:
+    from: Bob
     amount: ""77722"""
-tx,0301_migrate_v1_addr,LP_TOKEN,"transfer_from:
-  amount: ""77722""
-  memo: ~
-  owner: Bob
-  padding: ~
-  recipient: 0301_migrate_v1_addr"
+log,0301_migrate_v1_addr,,deposit = 77722
 1,0301_migrate_v1_addr,Bob,account.staked               = 77722
 1,0301_migrate_v1_addr,Bob,total.staked                 = 163318
 ,,,

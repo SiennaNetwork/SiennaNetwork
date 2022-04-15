@@ -18,6 +18,7 @@ const CHESTER: &str = "Chester";
 #[test]
 fn borrow() {
     let mut lend = Lend::default();
+    lend.ensemble.block().freeze();
 
     let underlying_1 = lend.new_underlying_token("SSCRT", 6).unwrap();
     let underlying_2 = lend.new_underlying_token("SIENNA", 18).unwrap();
