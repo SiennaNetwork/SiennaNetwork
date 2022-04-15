@@ -32,14 +32,14 @@ export abstract class RPTClient extends Client {
       return this.query({ configuration: {} });
     }
 
-    set_distribution(distribution) {
-      return this.execute({ set_distribution: { distribution }});
+    configure(distribution: any, portion: any) {
+      return this.execute({ configure: { distribution, portion } });
     }
 
     vest() {
       return this.execute({ vest: {} });
     }
-    
+
   }
 }
 
