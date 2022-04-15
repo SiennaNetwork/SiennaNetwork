@@ -1,7 +1,7 @@
 [package]
 name = "sienna-mgmt"
 version = "2.0.0"
-authors = ["Adam Avramov <adam@hack.bg>"]
+authors = ["Adam Avramov <adam@hack.bg>", "Wiz1991 <elvis.private20@gmail.com"]
 edition = "2018"
 
 exclude = [
@@ -16,11 +16,13 @@ path = "src/lib.rs"
 doctest = false
 
 [dependencies]
-fadroma = { path = "../../../deps/fadroma/crates/fadroma", features = ["derive"] }
+fadroma = { path = "../../../deps/fadroma/crates/fadroma", features = [
+  "derive",
+] }
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 
-linear-map       = { path = "../../../libraries/linear-map" }
-sienna-schedule  = { path = "../../../libraries/schedule" }
+linear-map = { path = "../../../libraries/linear-map" }
+sienna-schedule = { path = "../../../libraries/schedule" }
 
 [features]
 default = []

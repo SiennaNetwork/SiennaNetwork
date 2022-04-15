@@ -2,6 +2,7 @@
 name = "tge-tests"
 version = "0.1.0"
 edition = "2018"
+authors = ["Wiz1991 <elvis.private20@gmail.com>"]
 
 [lib]
 crate-type = ["cdylib", "rlib"]
