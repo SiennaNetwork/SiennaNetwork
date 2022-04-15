@@ -316,9 +316,14 @@ async function initMockTokens(deployment, agent, tokenTemplate, vesting) {
           symbol: contract.name.toUpperCase(),
           decimals: 18,
           config: {
-            public_total_supply: true
+            public_total_supply: true,
+            deposit: true,
           },
-          prng_seed: randomHex(36)
+          prng_seed: randomHex(36),
+          initial_balances: [{
+            address: agent.address,
+            amount: "9999999999999"
+          }]
         }
         labels.push(contract.name);
         return [tokenTemplate, contract.name, initMsg];
@@ -331,7 +336,7 @@ async function initMockTokens(deployment, agent, tokenTemplate, vesting) {
 async function generateMgmtInitMsgs(mgmtTemplate, vesting, admin, tokens) {
     const labels = []
     const configs = vesting.map(({name, schedule, rewards, lp }, i) => {
-        name = `${Date.now()}/${rewards.name}-${lp.name}.Mgmt@Vested`.replace(/\s/g, '');
+        name = `${rewards.name}-${lp.name}.Mgmt@Vested`.replace(/\s/g, '');
         const initMsg = {
             admin,
             token: tokens ?
@@ -341,6 +346,7 @@ async function generateMgmtInitMsgs(mgmtTemplate, vesting, admin, tokens) {
               } :
               rewards,
             prefund: true,
+
             schedule,
         }
         labels.push(name)
@@ -366,7 +372,7 @@ async function generateRptInitMsgs(rptTemplate, mgmtInstances, admin, vesting, p
           mgmt: mgmtLink
         }
 
-        name = `${Date.now()}/${rewards.name}-${lp.name}.Rpt@Vested`.replace(/\s/g, '');
+        name = `${rewards.name}-${lp.name}.Rpt@Vested`.replace(/\s/g, '');
 
         labels.push(name)
 
@@ -476,6 +482,24 @@ export async function deployTGE (
   const rptClients = rptInstances.map(result => new API.RPTClient[version]({...result, agent }))
   const tokenClients = tokens?.map(result => new API.SiennaSnip20Client({...result, agent }))
   const rewardsClients = rewardsInstances.map(result => new API.RewardsClient["v3"]({...result, agent }))
+
+  await agent.bundle().wrap(async bundle => {
+    const mgmtBundleClients = mgmtInstances.map(result => new API.MGMTClient[version]({...result, agent: bundle }))
+    vesting.map(async ({
+      schedule,
+      account
+    }, i) => {
+      const rptInstance = rptInstances[i]
+      const mgmtClient = mgmtBundleClients[i]
+
+      account.address = rptInstance.address
+
+      await mgmtClient.add(schedule.pools[0].name, account)
+    })
+  })
+
+
+
   return {
     ...mgmtClients,
     ...rptClients,
