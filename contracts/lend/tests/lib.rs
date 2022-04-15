@@ -16,6 +16,8 @@ mod liquidate;
 mod killswitch;
 #[cfg(test)]
 mod reserves;
+#[cfg(test)]
+mod rewards;
 
 #[macro_export]
 macro_rules! impl_contract_harness_default {

@@ -25,6 +25,8 @@ pub struct Contracts;
 
 pub struct Constants;
 
+pub struct ReceiverRegistry;
+
 #[derive(PartialEq, Debug)]
 pub struct Account(CanonicalAddr);
 
@@ -369,6 +371,29 @@ pub fn load_borrowers<S: Storage, A: Api, Q: Querier>(
         .collect::<StdResult<Vec<BorrowerRecord>>>()?;
 
     Ok((borrowers.len(&deps.storage)?, result))
+}
+
+impl ReceiverRegistry {
+    const KEY: &'static [u8] = b"receiver";
+
+    pub fn set<S: Storage, A: Api, Q: Querier>(
+        deps: &mut Extern<S, A, Q>,
+        receiver: &HumanAddr,
+        code_hash: &String
+    ) -> StdResult<()> {
+        let receiver = receiver.canonize(&deps.api)?;
+
+        ns_save(&mut deps.storage, Self::KEY, receiver.as_slice(), code_hash)
+    }
+
+    pub fn get<S: Storage, A: Api, Q: Querier>(
+        deps: &Extern<S, A, Q>,
+        receiver: &HumanAddr
+    ) -> StdResult<Option<String>> {
+        let receiver = receiver.canonize(&deps.api)?;
+
+        ns_load(&deps.storage, Self::KEY, receiver.as_slice())
+    }
 }
 
 impl BorrowerId {

@@ -351,19 +351,18 @@ impl Lend {
 
         self.prefund_user(address.clone(), amount, token.clone());
 
-        self.ensemble
-            .execute(
-                &Snip20HandleMsg::Send {
-                    recipient: market,
-                    recipient_code_hash: None,
-                    amount,
-                    msg: Some(to_binary(&market::ReceiverCallbackMsg::Deposit {}).unwrap()),
-                    memo: None,
-                    padding: None,
-                },
-                MockEnv::new(address, token),
-            )
-            .unwrap()
+        self.ensemble.execute(
+            &Snip20HandleMsg::Send {
+                recipient: market,
+                recipient_code_hash: None,
+                amount,
+                msg: Some(to_binary(&market::ReceiverCallbackMsg::Deposit {}).unwrap()),
+                memo: None,
+                padding: None,
+            },
+            MockEnv::new(address, token),
+        )
+        .unwrap()
     }
 
     pub fn new_underlying_token(
