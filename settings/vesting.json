@@ -2,49 +2,71 @@
     {
         "name": "Alter",
         "rewards": {
+            "name": "Alter",
+            "decimals": 6,
             "address": "secret1vhfpcn5l0m9t0tsdheewzjfdzf5hw4vsww9t5n",
             "code_hash": "D4F32C1BCA133F15F69D557BD0722DA10F45E31E5475A12900CA1E62E63E8F76"
         },
         "lp": {
+            "name": "LP_[SIENNA-ALTER]",
             "address": "secret1g2af0x2yszuz56vmcmuffwzxu3e6knl4l28mnu",
             "code_hash": "33EAC42C44EE69ACFE1F56CE7B14FE009A7B611E86F275D7AF2D32DD0D33D5A9"
         },
         "schedule": {
-            "total": "20000000000000000000",
+            "total": "20000000",
             "pools": [
                 {
                     "name": "Rewards",
-                    "total": "20000000000000000000",
+                    "total": "20000000",
                     "partial": true,
-                    "accounts": [{}]
+                    "accounts": []
                 }
             ]
+        },
+        "account": {
+            "name": "RPT",
+            "amount": "20000000",
+            "address": "LEAVE_BLANK",
+            "start_at": 0,
+            "interval": 3600,
+            "duration": 172800,
+            "cliff": "0",
+            "portion_size": "416666"
         }
     },
     {
         "name": "Shade",
         "rewards": {
+            "name": "Shade",
+            "decimals": 8,
             "address": "secret19ymc8uq799zf36wjsgu4t0pk8euddxtx5fggn8",
             "code_hash": "5266A630E2B8EF910FB2515E1D3B5BE95D4BD48358732788D8FCD984EE966BC1"
         },
         "lp": {
+            "name": "LP_[SIENNA-SHD]",
             "address": "secret19ymc8uq799zf36wjsgu4t0pk8euddxtx5fggn8",
             "code_hash": "5266A630E2B8EF910FB2515E1D3B5BE95D4BD48358732788D8FCD984EE966BC1"
         },
         "schedule": {
-            "total": "100000000000000000000",
+            "total": "2000000000",
             "pools": [
                 {
                     "partial": true,
                     "name": "Rewards",
-                    "total": "100000000000000000000",
+                    "total": "2000000000",
                     "accounts": []
                 }
             ]
+        },
+        "account": {
+            "name": "RPT",
+            "amount": "20000000",
+            "address": "LEAVE_BLANK",
+            "start_at": 0,
+            "interval": 3600,
+            "duration": 172800,
+            "cliff": "0",
+            "portion_size": "416666"
         }
     }
 ]
-
-
-
-

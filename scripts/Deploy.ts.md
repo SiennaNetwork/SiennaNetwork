@@ -309,7 +309,7 @@ import { schedule } from '@sienna/settings'
 async function initMockTokens(deployment, agent, tokenTemplate, vesting) {
   const labels = [];
   const prefix = Date.now();
-  const mgmtInst = await agent.instantiateMany(
+  const tokenInstaces = await agent.instantiateMany(
       vesting.map((contract) => {
         const initMsg = {
           name: `Mock_${contract.name}`,
@@ -325,15 +325,13 @@ async function initMockTokens(deployment, agent, tokenTemplate, vesting) {
       }),
       prefix
   );
-  return labels.map(label => mgmtInst[label]);
+  return labels.map(label => tokenInstaces[label]);
 }
 
 async function generateMgmtInitMsgs(mgmtTemplate, vesting, admin, tokens) {
     const labels = []
-    const configs = vesting.map(({name, schedule, rewards }, i) => {
-
-
-        name = `${name}.Mgmt[vested]`
+    const configs = vesting.map(({name, schedule, rewards, lp }, i) => {
+        name = `${Date.now()}/${rewards.name}-${lp.name}.Mgmt@Vested`.replace(/\s/g, '');
         const initMsg = {
             admin,
             token: tokens ?
@@ -351,24 +349,24 @@ async function generateMgmtInitMsgs(mgmtTemplate, vesting, admin, tokens) {
     return { labels, configs }
 }
 
-async function generateRptInitMsgs(rptTemplate, mgmtInstances, admin, vesting, tokens) {
+async function generateRptInitMsgs(rptTemplate, mgmtInstances, admin, vesting, pools, tokens) {
     const labels = []
-    const configs = vesting.map(({name, schedule}, i ) => {
+    const configs = vesting.map(({ name, schedule, rewards, lp, account }, i ) => {
         const mgmtInstance = mgmtInstances[i];
 
         const mgmtLink = { address: mgmtInstance.address, code_hash: mgmtInstance.codeHash };
 
-        const rptAccount = schedule.pools[0].accounts[0];
-        const portion = rptAccount.portion_size
+        const reciever = pools[i].address
+        const portion = account.portion_size
 
         const initMsg = {
           portion,
-          distribution: [[admin, portion]],
+          distribution: [[reciever, portion]],
           token: tokens ? { address: tokens[i].address, code_hash: tokens[i].codeHash.toUpperCase() } : rewards,
           mgmt: mgmtLink
         }
 
-        name = `${name}.Rpt[vested]`
+        name = `${Date.now()}/${rewards.name}-${lp.name}.Rpt@Vested`.replace(/\s/g, '');
 
         labels.push(name)
 
@@ -381,7 +379,6 @@ async function generateRptInitMsgs(rptTemplate, mgmtInstances, admin, vesting, t
 async function generateRewardsInitMsgs(template, admin, vesting, tokens) {
     const labels = []
     const configs = vesting.map(({name, schedule, rewards, lp}, i ) => {
-        const tokenLinkProd = { address, code_hash };
         const rewardsToken =  tokens ?
           { address: tokens[i].address, code_hash: tokens[i].codeHash.toUpperCase() } :
           rewards;
@@ -397,7 +394,7 @@ async function generateRewardsInitMsgs(template, admin, vesting, tokens) {
           }
         }
 
-        name = `${name}.Rewards[vested]`
+        name = `${Date.now()}/${rewards.name}-${lp.name}.RewardsPool@Vested`.replace(/\s/g, '');
 
         labels.push(name)
 
@@ -463,13 +460,16 @@ export async function deployTGE (
   // use the presaved labels to extract relevant objects
   const mgmtInstances = mgmtLabels.map(label => mgmtBundleResults[label])
 
-  const { configs: rptConfigs, labels: rptLabels} = await generateRptInitMsgs(rptTemplate, mgmtInstances, admin, vesting, tokens);
-  const rptBundleResults = await agent.instantiateMany(rptConfigs, Date.now());
-  const rptInstances = rptLabels.map(label => rptBundleResults[label])
 
   const { configs: rewardConfigs, labels: rewardsLabels} = await generateRewardsInitMsgs(rewardsTemplate, admin, vesting, tokens);
   const rewardsBundleResults = await agent.instantiateMany(rewardConfigs, Date.now());
   const rewardsInstances = rewardsLabels.map(label => rewardsBundleResults[label] );
+
+
+  const { configs: rptConfigs, labels: rptLabels} = await generateRptInitMsgs(rptTemplate, mgmtInstances, admin, vesting, rewardsInstances, tokens);
+  const rptBundleResults = await agent.instantiateMany(rptConfigs, Date.now());
+  const rptInstances = rptLabels.map(label => rptBundleResults[label])
+
 
   //version is always vested here
   const mgmtClients = mgmtInstances.map(result => new API.MGMTClient[version]({...result, agent }))
