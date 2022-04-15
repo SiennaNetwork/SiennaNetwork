@@ -344,7 +344,10 @@ async function generateMgmtInitMsgs(mgmtTemplate, vesting, admin, tokens) {
                 address: tokens[i].address,
                 code_hash: tokens[i].codeHash.toUpperCase()
               } :
-              rewards,
+              {
+                address: rewards.address,
+                code_hash: rewards.code_hash
+              },
             prefund: true,
 
             schedule,
@@ -368,7 +371,11 @@ async function generateRptInitMsgs(rptTemplate, mgmtInstances, admin, vesting, p
         const initMsg = {
           portion,
           distribution: [[reciever, portion]],
-          token: tokens ? { address: tokens[i].address, code_hash: tokens[i].codeHash.toUpperCase() } : rewards,
+          token: tokens ? { address: tokens[i].address, code_hash: tokens[i].codeHash.toUpperCase() } :
+              {
+                address: rewards.address,
+                code_hash: rewards.code_hash
+              },
           mgmt: mgmtLink
         }
 
@@ -387,16 +394,16 @@ async function generateRewardsInitMsgs(template, admin, vesting, tokens) {
     const configs = vesting.map(({name, schedule, rewards, lp}, i ) => {
         const rewardsToken =  tokens ?
           { address: tokens[i].address, code_hash: tokens[i].codeHash.toUpperCase() } :
-          rewards;
+          { address: rewards.address, code_hash: rewards.code_hash };
         const lpToken =  tokens ?
           { address: tokens[i].address, code_hash: tokens[i].codeHash.toUpperCase() } :
-          lp;
+          { address: lp.address, code_hash: lp.code_hash };
 
         const initMsg = {
           admin,
           config: {
-            lp_token: rewardsToken,
-            reward_token: lpToken,
+            lp_token: lpToken,
+            reward_token: rewardsToken
           }
         }
 
