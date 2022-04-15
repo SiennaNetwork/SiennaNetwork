@@ -437,7 +437,7 @@ export async function deployTGE (
   const { isTestnet, isDevnet, isMainnet } = agent.chain
   const [tokenBuild, mgmtBuild, rptBuild, rewardPoolBuild] = [
     ...await buildTge(`TGE_${version}`),
-    ...await buildRewards('Rewards_v3')
+    ...await buildRewards('HEAD')
   ]
 
 
