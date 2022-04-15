@@ -10,10 +10,10 @@ path = "lib.rs"
 [dependencies]
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 fadroma = { path = "../../../deps/fadroma/crates/fadroma", features = [
-    "derive", "ensemble"
+    "derive",
 ] }
 sienna-rpt = { path = "../rpt" }
 sienna-mgmt = { path = "../mgmt" }
 snip20-sienna = { path = "../snip20-sienna" }
-sienna-schedule  = { path = "../../../libraries/schedule" }
+sienna-schedule = { path = "../../../libraries/schedule" }
 serde_json = "1.0"
