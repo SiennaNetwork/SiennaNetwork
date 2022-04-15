@@ -1075,15 +1075,42 @@ async function deployRewards (
   return clients
 }
 
-function getStakedToken(name, ammVersion) {
-  // get the staked token by name
-    if (name !== 'SIENNA') {
-      name = `AMM[${ammVersion}].${name}.LP`;
-    }
-    return new API.Snip20Client(deployment.get(name))
+Fadroma.command(
+  'reward pool',
+  ...inCurrentDeployment,
+  deployRewardPool
+)
+
+async function deployRewardPool (context: MigrationContext) {
+
+  const {
+
+    deployment, agent,
+
+    name = 'stkd-SCRT.Rewards[v3]',
+
+    settings: { admin, timekeeper } = getSettings(agent.chain.mode),
+
+    template = {
+      chainId:  agent.chain.id,
+      codeId:   363,
+      codeHash: '8e272c6d17a7b1d740fa0067113bff42934ebdcac461da4307021e1629d3e7ce'
+    },
+
+    staked = {
+      address:  'secret15987qz3j0lfua52lsnsq5snfap8sqt6xmdc3gn'
+      codeHash: '1ff4fa35a56444e4a7aac68365a6259a74cc58d61a2ae71efedb3109c65246b4',
+    },
+
+    reward = new API.Snip20Client({ ...deployment.get('SIENNA'), agent }),
+
+  } = context
+
+  const initMsg = makeRewardsInitMsg.v3(reward, staked, admin, timekeeper)
+  const pool    = await deployment.init(agent, template, name, initMsg)
+  console.log({pool})
+
 }
-
-
 ```
 
 Rewards v2 and v3 have different APIs,
