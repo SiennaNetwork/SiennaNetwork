@@ -83,13 +83,18 @@ pub trait RPT {
 
     #[handle]
     #[require_admin]
-    fn set_distribution(distribution: Distribution<HumanAddr>) -> StdResult<HandleResponse> {
-        validate(State::load_portion(deps)?, &distribution)?;
+    fn configure(
+        portion: Portion,
+        distribution: Distribution<HumanAddr>,
+    ) -> StdResult<HandleResponse> {
+        validate(portion, &distribution)?;
 
+        State::save_portion(deps, portion)?;
         State::save_distribution(deps, distribution)?;
 
         Ok(HandleResponse::default())
     }
+    
     #[handle]
     fn vest() -> StdResult<HandleResponse> {
         let mgmt = State::load_mgmt(deps)?;
