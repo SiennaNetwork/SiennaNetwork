@@ -133,8 +133,9 @@ Fadroma.command('amm_v2',
 
 export async function buildTge (ref?) {
   const sources = getSources(refs[ref])
+  const token = ref === "TGE_vested" ? "amm-snip20" : "snip20-sienna"
   return Scrt_1_2.getBuilder().buildMany([
-    'snip20-sienna',
+    token,
     'sienna-mgmt',
     'sienna-rpt',
   ].map(x=>sources[x]))

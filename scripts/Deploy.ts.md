@@ -318,7 +318,7 @@ async function initMockTokens(deployment, agent, tokenTemplate, vesting) {
           decimals: 18,
           config: {
             public_total_supply: true,
-            deposit: true,
+            enable_deposit: true,
           },
           prng_seed: randomHex(36),
           initial_balances: [{
