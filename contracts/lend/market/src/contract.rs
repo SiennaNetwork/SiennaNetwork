@@ -186,6 +186,7 @@ pub trait Market {
                 } else {
                     Account::of(deps, &from)?
                 },
+                from,
                 amount.into(),
             ),
             ReceiverCallbackMsg::Liquidate {
@@ -777,15 +778,35 @@ fn repay<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     mut interest: LatestInterest,
     borrower: Account,
+    sender: HumanAddr,
     amount: Uint256,
 ) -> StdResult<HandleResponse> {
     let mut snapshot = borrower.get_borrow_snapshot(&deps.storage)?;
-    snapshot.subtract_balance(interest.borrow_index(&deps.storage)?, amount)?;
+    let remainder = snapshot.subtract_balance(interest.borrow_index(&deps.storage)?, amount)?;
     borrower.save_borrow_snapshot(&mut deps.storage, snapshot)?;
 
+    let amount = (amount.0 - remainder.0).into();
     TotalBorrows::decrease(&mut deps.storage, amount)?;
 
-    Ok(HandleResponse::default())
+    if remainder > Uint256::zero() {
+        let underlying = Contracts::load_underlying(deps)?;
+
+        Ok(HandleResponse {
+            messages: vec![snip20::transfer_msg(
+                sender,
+                remainder.low_u128().into(),
+                None,
+                None,
+                BLOCK_SIZE,
+                underlying.code_hash,
+                underlying.address
+            )?],
+            log: vec![],
+            data: None
+        })
+    } else {
+        Ok(HandleResponse::default())
+    }
 }
 
 fn liquidate<S: Storage, A: Api, Q: Querier>(
