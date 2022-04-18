@@ -49,7 +49,7 @@ macro_rules! MGMTError {
     (PREFUND, $balance:expr, $required:expr) => {
         format!(
             "Required prefund balance: {}, actual balance: {}",
-            $balance, $required
+            $required, $balance
         )
     };
 }
