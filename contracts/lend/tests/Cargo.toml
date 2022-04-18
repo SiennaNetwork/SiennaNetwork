@@ -14,3 +14,4 @@ lend-market   = { path = "../market" }
 lend-overseer = { path = "../overseer" }
 lend-oracle   = { path = "../oracle" }
 lend-interest-model = { path = "../interest_model" }
+sienna-rewards = { path = "../../amm/rewards" }

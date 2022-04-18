@@ -6,7 +6,8 @@ use lend_shared::{
         from_binary, snip20_impl,
         snip20_impl::msg::{
             HandleMsg as Snip20HandleMsg, InitConfig as Snip20InitConfig, InitMsg as Snip20InitMsg,
-            QueryAnswer as Snip20QueryResp, QueryMsg as Snip20QueryMsg,
+            QueryAnswer as Snip20QueryResp, QueryMsg as Snip20QueryMsg, QueryPermission as Snip20Permission,
+            QueryWithPermit
         },
         to_binary, Binary, Composable, ContractInstantiationInfo, ContractLink, Decimal256, Env,
         HandleResponse, HumanAddr, InitResponse, Permit, StdError, StdResult, Uint128, Uint256
@@ -351,19 +352,18 @@ impl Lend {
 
         self.prefund_user(address.clone(), amount, token.clone());
 
-        self.ensemble
-            .execute(
-                &Snip20HandleMsg::Send {
-                    recipient: market,
-                    recipient_code_hash: None,
-                    amount,
-                    msg: Some(to_binary(&market::ReceiverCallbackMsg::Deposit {}).unwrap()),
-                    memo: None,
-                    padding: None,
-                },
-                MockEnv::new(address, token),
-            )
-            .unwrap()
+        self.ensemble.execute(
+            &Snip20HandleMsg::Send {
+                recipient: market,
+                recipient_code_hash: None,
+                amount,
+                msg: Some(to_binary(&market::ReceiverCallbackMsg::Deposit {}).unwrap()),
+                memo: None,
+                padding: None,
+            },
+            MockEnv::new(address, token),
+        )
+        .unwrap()
     }
 
     pub fn new_underlying_token(
@@ -420,22 +420,26 @@ impl Lend {
     }
 
     #[inline]
-    pub fn _underlying_balance(&self, address: impl Into<HumanAddr>, market: HumanAddr) -> Uint256 {
-        self.ensemble
+    pub fn token_balance(&self, address: impl Into<HumanAddr>, token: HumanAddr) -> Uint128 {
+        let resp: Snip20QueryResp = self.ensemble
             .query(
-                market.clone(),
-                market::QueryMsg::BalanceUnderlying {
-                    method: Permit::new(
+                token.clone(),
+                Snip20QueryMsg::WithPermit {
+                    permit: Permit::new(
                         address,
-                        vec![market::MarketPermissions::Balance],
-                        vec![market],
+                        vec![Snip20Permission::Balance],
+                        vec![token],
                         "balance",
-                    )
-                    .into(),
-                    block: None,
-                },
+                    ),
+                    query: QueryWithPermit::Balance {  }
+                }
             )
-            .unwrap()
+            .unwrap();
+
+        match resp {
+            Snip20QueryResp::Balance { amount } => amount,
+            _ => panic!("Expecting Snip20QueryResp::Balance")
+        }
     }
 
     #[inline]
