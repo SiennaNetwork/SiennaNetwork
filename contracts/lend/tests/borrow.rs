@@ -254,6 +254,122 @@ fn cannot_increase_collateral_value_by_entering_the_same_market_multiple_times()
 }
 
 #[test]
+fn partial_repay() {
+    let mut lend = Lend::default();
+    lend.ensemble.block().freeze();
+
+    let underlying_1 = lend.new_underlying_token("SSCRT", 6).unwrap();
+    let underlying_2 = lend.new_underlying_token("SIENNA", 18).unwrap();
+
+    let market_one = lend
+        .whitelist_market(underlying_1.clone(), Decimal256::percent(90), None, None)
+        .unwrap()
+        .contract;
+
+    let market_two = lend
+        .whitelist_market(underlying_2, Decimal256::percent(90), None, None)
+        .unwrap()
+        .contract;
+
+    let prefund_amount = Uint128(500 * one_token(6));
+    let borrow_amount = Uint128(100 * one_token(6));
+    let repay_amount = Uint128(50 * one_token(6));
+    let collateral_amount = Uint128(112 * one_token(18));
+
+    lend.prefund_and_deposit(BOB, prefund_amount, market_one.address.clone());
+    lend.prefund_and_deposit(ALICE, prefund_amount, market_one.address.clone());
+    lend.prefund_and_deposit(CHESTER, collateral_amount, market_two.address.clone());
+
+    lend.ensemble
+        .execute(
+            &overseer::HandleMsg::Enter {
+                markets: vec![market_one.address.clone(), market_two.address.clone()],
+            },
+            MockEnv::new(CHESTER, lend.overseer.clone()),
+        )
+        .unwrap();
+
+    lend.ensemble
+        .execute(
+            &market::HandleMsg::Borrow {
+                amount: borrow_amount.into(),
+            },
+            MockEnv::new(CHESTER, market_one.clone()),
+        )
+        .unwrap();
+
+    let liquidity_before = lend.get_liquidity(
+        CHESTER,
+        None,
+        Uint256::zero(),
+        Uint256::zero(),
+        None
+    ).unwrap();
+
+    lend.ensemble
+        .execute(
+            &snip20::HandleMsg::Send {
+                recipient: market_one.address.clone(),
+                recipient_code_hash: None,
+                amount: repay_amount,
+                msg: Some(to_binary(&market::ReceiverCallbackMsg::Repay { borrower: None }).unwrap()),
+                memo: None,
+                padding: None,
+            },
+            MockEnv::new(CHESTER, underlying_1.clone()),
+        )
+        .unwrap();
+
+    let market_one_state = lend.state(market_one.address.clone(), None);
+
+    let outstanding_balance: Uint128 = (borrow_amount.0 - repay_amount.0).into();
+
+    assert_eq!(market_one_state.total_borrows, repay_amount.into());
+    assert_eq!(market_one_state.total_supply, (prefund_amount.0 * 2).into());
+    assert_eq!(
+        market_one_state.underlying_balance,
+        ((prefund_amount.0 * 2) - outstanding_balance.0).into()
+    );
+
+    let info: market::BorrowersResponse = lend
+        .ensemble
+        .query(
+            market_one.address.clone(),
+            market::QueryMsg::Borrowers {
+                pagination: Pagination {
+                    start: 0,
+                    limit: 10
+                },
+                block: market_one_state.accrual_block,
+            },
+        )
+        .unwrap();
+
+    // Borrows repaid in full are removed from storage.
+    assert_eq!(info.total, 1);
+    assert_eq!(info.entries.len(), 1);
+
+    let chester = info.entries.first().unwrap();
+    assert_eq!(chester.principal_balance, outstanding_balance.into());
+
+    let user = lend.account_info(CHESTER, market_one.address);
+    assert_eq!(user.borrow_balance, chester.actual_balance);
+
+    let balance = lend.token_balance(CHESTER, underlying_1.address);
+    assert_eq!(balance, repay_amount);
+
+    let liquidity_after = lend.get_liquidity(
+        CHESTER,
+        None,
+        Uint256::zero(),
+        Uint256::zero(),
+        None
+    ).unwrap();
+
+    assert!(liquidity_before.liquidity < liquidity_after.liquidity);
+}
+
+#[test]
 fn self_repay() {
     do_repay(true, Uint128::zero())
 }
