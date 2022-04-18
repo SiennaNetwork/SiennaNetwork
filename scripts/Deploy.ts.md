@@ -27,22 +27,11 @@ implemented in `@fadroma/cli`.
 
 > See also: [@fadroma/cli/index.ts](https://github.com/hackbg/fadroma/blob/v100/packages/cli/index.ts)
 
-</td><td valign="top">
-
-</td></tr><tr><!--spacer--></tr><tr><td valign="top">
-
-## Deployment system overview
-
-The Sienna platform consists of multiple smart contracts that
-depend on each other's existence and configuration. A group of
-such contracts is called a **Deployment**.
-
-The `Deployment` is represented by a `.yml` file
-under `receipts/$FADROMA_CHAIN/deployments/`.
-The deployment file contains **Receipts** -
-snippets of YAML containing info about each contract.
-
-> See also: [@fadroma/ops/Deploy.ts](https://github.com/hackbg/fadroma/blob/v100/packages/ops/Deploy.ts)
+Each call to `Fadroma.command('name', ...steps)` binds
+one or more build steps to a command accessible from the terminal.
+The steps are async functions that are run sequentially.
+The paramerer, `context`, is populated from the return values
+of previous build steps.
 
 </td><td valign="top">
 
@@ -84,6 +73,12 @@ for the corresponding contract, the upload becomes a no-op.
 
 </td><td valign="top">
 
+Adding `...canBuildAndUpload` to the start of a command
+enables building and uploading contracts from local sources for Secret Network 1.2.
+
+The connection variant (mainnet, testnet or devnet) is set via the
+`FADROMA_CHAIN` enviornment variable.
+
 ```typescript
 const canBuildAndUpload = [
   Fadroma.Chain.FromEnv,
@@ -91,16 +86,25 @@ const canBuildAndUpload = [
   Fadroma.Upload.FromFile,
 ]
 ```
-
 </td></tr><tr><!--spacer--></tr><tr><td valign="top">
 
-### Deployment command contexts
+### Deploying
 
-Each deploy command may either start a new Deployment, or
-append to the one that is currently selected. This is represented by the
-`Fadroma.Deploy.New` and `Fadroma.Deploy.Append` pre-defined build steps.
-Invoking either of them populates the `deployment` and `prefix` keys
-in the `MigrationContext` for subsequent steps.
+> See also: [@fadroma/ops/Deploy.ts](https://github.com/hackbg/fadroma/blob/v100/packages/ops/Deploy.ts)
+
+The Sienna platform consists of multiple smart contracts that
+depend on each other's existence and configuration. A group of
+such contracts is called a **Deployment**.
+
+The `Deployment` is represented by a `.yml` file
+under `receipts/$FADROMA_CHAIN/deployments/`.
+The deployment file contains **Receipts** -
+snippets of YAML containing info about each contract.
+
+Each command may start a new Deployment, or append to the one that is currently selected.
+This is represented by the `Fadroma.Deploy.New` and `Fadroma.Deploy.Append` steps which
+you can add to the start of your command. Invoking either of them populates the
+`deployment` and `prefix` keys in the `MigrationContext` for subsequent steps.
 
 * Use `Fadroma.Deploy.New` when you want to start from a clean slate.
   It will create a new deployment under `/receipts/$FADROMA_CHAIN/$TIMESTAMP`.
@@ -942,6 +946,43 @@ async function deployRewards (
     await run(adjustRPTConfig, { RPT_CONFIG: rptConfig })
   }
   return clients
+}
+
+Fadroma.command(
+  'reward pool',
+  ...inCurrentDeployment,
+  deployRewardPool
+)
+
+async function deployRewardPool (context: MigrationContext) {
+
+  const {
+
+    deployment, agent,
+
+    name = 'AMM[v2].stkd-SCRT-SIENNA.LP.Rewards[v3]',
+
+    settings: { admin, timekeeper } = getSettings(agent.chain.mode),
+
+    template = {
+      chainId:  agent.chain.id,
+      codeId:   363,
+      codeHash: '8e272c6d17a7b1d740fa0067113bff42934ebdcac461da4307021e1629d3e7ce'
+    },
+
+    staked = {
+      address:  'secret15987qz3j0lfua52lsnsq5snfap8sqt6xmdc3gn'
+      codeHash: '1ff4fa35a56444e4a7aac68365a6259a74cc58d61a2ae71efedb3109c65246b4',
+    },
+
+    reward = new API.Snip20Client({ ...deployment.get('SIENNA'), agent }),
+
+  } = context
+
+  const initMsg = makeRewardsInitMsg.v3(reward, staked, admin, timekeeper)
+  const pool    = await deployment.init(agent, template, name, initMsg)
+  console.log({pool})
+
 }
 ```
 

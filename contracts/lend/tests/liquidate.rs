@@ -295,7 +295,9 @@ fn borrower_accrues_interest_and_goes_underwater() {
     assert_eq!(liquidity.liquidity, topup_amount.into());
     assert_eq!(liquidity.shortfall, Uint256::zero());
 
-    let mut current_block = 12360;
+    let height = 12360;
+    lend.ensemble.block().height = height;
+    lend.ensemble.block().freeze();
 
     let liquidity = lend
         .get_liquidity(
@@ -303,7 +305,7 @@ fn borrower_accrues_interest_and_goes_underwater() {
             None,
             Uint256::zero(),
             Uint256::zero(),
-            Some(current_block),
+            Some(height),
         )
         .unwrap();
 
@@ -313,7 +315,7 @@ fn borrower_accrues_interest_and_goes_underwater() {
     let borrowers: market::BorrowersResponse = lend.ensemble.query(
         market_2.contract.address.clone(),
         market::QueryMsg::Borrowers {
-            block: current_block,
+            block: height,
             pagination: Pagination {
                 start: 0,
                 limit: 10
@@ -340,13 +342,14 @@ fn borrower_accrues_interest_and_goes_underwater() {
             memo: None,
             padding: None,
         },
-        MockEnv::new(ALICE, underlying_2.clone()).height(current_block)
+        MockEnv::new(ALICE, underlying_2.clone())
     )
     .unwrap_err();
 
     assert_eq!(err, StdError::generic_err("Borrower cannot be liquidated."));
 
-    current_block += 1000000;
+    lend.ensemble.block().height += 1000000;
+    let height = lend.ensemble.block().height;
 
     let liquidity = lend
         .get_liquidity(
@@ -354,7 +357,7 @@ fn borrower_accrues_interest_and_goes_underwater() {
             None,
             Uint256::zero(),
             Uint256::zero(),
-            Some(current_block),
+            Some(height),
         )
         .unwrap();
 
@@ -364,7 +367,7 @@ fn borrower_accrues_interest_and_goes_underwater() {
     let borrowers: market::BorrowersResponse = lend.ensemble.query(
         market_2.contract.address.clone(),
         market::QueryMsg::Borrowers {
-            block: current_block,
+            block: height,
             pagination: Pagination {
                 start: 0,
                 limit: 10
@@ -392,14 +395,14 @@ fn borrower_accrues_interest_and_goes_underwater() {
             memo: None,
             padding: None,
         },
-        MockEnv::new(ALICE, underlying_2.clone()).height(current_block)
+        MockEnv::new(ALICE, underlying_2.clone())
     )
     .unwrap();
 
     let borrowers: market::BorrowersResponse = lend.ensemble.query(
         market_2.contract.address.clone(),
         market::QueryMsg::Borrowers {
-            block: current_block,
+            block: height,
             pagination: Pagination {
                 start: 0,
                 limit: 10
@@ -417,6 +420,9 @@ fn close_factor() {
         LendConfig::new()
             .close_factor(Decimal256::percent(50))
     );
+
+    let height = lend.ensemble.block().height;
+    lend.ensemble.block().freeze();
 
     let borrow_amount = Uint256::from(10 * one_token(18));
 
@@ -571,7 +577,7 @@ fn close_factor() {
     let borrowers: market::BorrowersResponse = lend.ensemble.query(
         market_2.contract.address.clone(),
         market::QueryMsg::Borrowers {
-            block: 12345,
+            block: height,
             pagination: Pagination {
                 start: 0,
                 limit: 10

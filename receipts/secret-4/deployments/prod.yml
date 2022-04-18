@@ -4022,3 +4022,17 @@ codeId:   363
 codeHash: 8e272c6d17a7b1d740fa0067113bff42934ebdcac461da4307021e1629d3e7ce
 address:  secret145sj6t2nvl53yhpqjf243f99vsycehl0n6s2vl
 initTx:   5901F7A5126AA379157F2389FCA8C8B6E2A40FB2C3E9523A8D0DA85686E0E6A2
+---
+name:     AMM[v2].stkd-SCRT-SIENNA.LP.Rewards[v3]
+chainId:  secret-4
+codeId:   363
+codeHash: 8e272c6d17a7b1d740fa0067113bff42934ebdcac461da4307021e1629d3e7ce
+address:  secret1mv63thhlkqqgprydeqtsr7sevkvvgnp5gn5xjh
+initTx:   4FB9A07472DFE3CBCF484544965407FE0B85605B424DCA4B527D3E7F800F9630
+--- # this one needs to be closed:
+name:     stkd-SCRT.Rewards[v3]
+chainId:  secret-4
+codeId:   363
+codeHash: 8e272c6d17a7b1d740fa0067113bff42934ebdcac461da4307021e1629d3e7ce
+address:  secret1lwt90s5dexa9cy5dva6kjg2d7m9fmg7ldue5qw
+initTx:   D4B5DDA939973628D92F69014AAA0B2129DDE0242676D460D675744CB266E031

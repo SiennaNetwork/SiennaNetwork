@@ -1,14 +1,10 @@
 Time,Sender,Recipient,Data
 ,,,
-9,Alice,0110_overlap_addr,"rewards:
+9,LP_TOKEN,0110_overlap_addr,"rewards:
   deposit:
+    from: Alice
     amount: ""42798"""
-tx,0110_overlap_addr,LP_TOKEN,"transfer_from:
-  amount: ""42798""
-  memo: ~
-  owner: Alice
-  padding: ~
-  recipient: 0110_overlap_addr"
+log,0110_overlap_addr,,deposit = 42798
 ,,,
 206,RPT,0110_overlap_addr,vest 93561
 ,,,
@@ -17,13 +13,9 @@ tx,0110_overlap_addr,LP_TOKEN,"transfer_from:
     next_epoch: 1"
 206,0110_overlap_addr,Bob,account.starting_pool_volume = 8431206
 ,,,
-206,Bob,0110_overlap_addr,"rewards:
+206,LP_TOKEN,0110_overlap_addr,"rewards:
   deposit:
+    from: Bob
     amount: ""38861"""
-tx,0110_overlap_addr,LP_TOKEN,"transfer_from:
-  amount: ""38861""
-  memo: ~
-  owner: Bob
-  padding: ~
-  recipient: 0110_overlap_addr"
+log,0110_overlap_addr,,deposit = 38861
 206,0110_overlap_addr,Bob,account.starting_pool_volume = 8431206
