@@ -298,8 +298,14 @@ Fadroma.command('tge',
   Sienna.Deploy.TGE)
 
 Fadroma.command('vesting',
-  ...inNewDeployment,
-  Sienna.Deploy.Vesting)
+  ...canBuildAndUpload,
+  function deployNewOnDevnetAppendOtherwise (context) {
+    return context.chain.isDevnet
+      ? Fadroma.Deploy.New(context)
+      : Fadroma.Deploy.Append(context)
+  },
+  Sienna.Deploy.Vesting,
+  Sienna.Deploy.Status)
 ```
 
 This will create a new deployment
@@ -604,7 +610,6 @@ export function generateRewardsConfigs (admin, vesting, tokens) {
     }
   ])
 }
-
 ```
 
 </td></tr><tr><!--spacer--><tr><td valign="top">
