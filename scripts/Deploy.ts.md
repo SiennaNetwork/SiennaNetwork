@@ -450,10 +450,14 @@ export async function deployVesting (
       // build vesting contracts from working tree
       sources(versions.HEAD,       contracts.Vesting),
       // build rewards contract from release branch
-      sources(versions.Rewards.v3, contracts.Rewards)
+      sources(versions.Rewards.v3, contracts.Rewards),
       // build a standard token contract for testing
       isMainnet ? [] : [source(versions.HEAD, source('amm-snip20'))],
     )
+
+    MGMTClient    = API.MGMTClient['vesting'],
+    RPTClient     = API.RPTClient['vesting'],
+    RewardsClient = API.RewardsClient['v3'],
 
     admin = agent.address,
     settings: {
@@ -467,6 +471,9 @@ export async function deployVesting (
       tokenTemplate,
       vesting
     ) : [],
+    tokenClients = tokens.map(
+      instance => agent.getClient(API.SiennaSnip20Client, instance)
+    )
 
     mgmtInitMsgs: {
       mgmtConfigs,
@@ -477,10 +484,12 @@ export async function deployVesting (
       admin,
       tokens
     ),
-
     mgmtInstances = Object.values(
       await agent.instantiateMany(mgmtConfigs, Date.now())
     ),
+    mgmtClients = mgmtInstances.map(
+      instance => agent.getClient(MGMTClient, instance)
+    )
 
     rewardsInitMsgs: {
       rewardsConfigs,
@@ -491,10 +500,12 @@ export async function deployVesting (
       vesting,
       tokens
     ),
-
     rewardsInstances = Object.values(
       await agent.instantiateMany(rewardsConfigs, Date.now())
     ),
+    rewardsClients = rewardsInstances.map(
+      instance => agent.getClient(RewardsClient, instance)
+    )
 
     rptInitMsgs: {
       rptConfigs,
@@ -507,39 +518,30 @@ export async function deployVesting (
       rewardsInstances,
       tokens
     ),
-
     rptInstances = Object.values(
       await agent.instantiateMany(rptConfigs, Date.now())
+    )
+    rptClients = rptInstances.map(
+      instance => agent.getClient(RPTClient, instance)
     )
 
   } = context
 
-  //version is always vested here
-  const mgmtClients    = mgmtInstances.map(result => new API.MGMTClient[version]({...result, agent }))
-  const rptClients     = rptInstances.map(result => new API.RPTClient[version]({...result, agent }))
-  const tokenClients   = tokens?.map(result => new API.SiennaSnip20Client({...result, agent }))
-  const rewardsClients = rewardsInstances.map(result => new API.RewardsClient["v3"]({...result, agent }))
-
   await agent.bundle().wrap(async bundle => {
-    const mgmtBundleClients = mgmtInstances.map(result => new API.MGMTClient[version]({...result, agent: bundle }))
-    vesting.map(async ({
-      schedule,
-      account
-    }, i) => {
-      const rptInstance = rptInstances[i]
-      const mgmtClient = mgmtBundleClients[i]
-
-      account.address = rptInstance.address
-
-      await mgmtClient.add(schedule.pools[0].name, account)
-    })
+    const mgmtBundleClients = mgmtInstances.map(
+      instance => bundle.getClient(MGMTClient, instance)
+    )
+    await Promise.all(vesting.map(async ({ schedule, account }, i) => {
+      account.address = rptInstances[i].address
+      await mgmtBundleClients[i].add(schedule.pools[0].name, account)
+    }))
   })
 
   return {
-    ...mgmtClients,
-    ...rptClients,
-    tokenClients ? ...tokenClients : undefined,
-    ...rewardsClients
+    mgmtClients,
+    rptClients,
+    tokenClients,
+    rewardsClients
   }
 }
 
