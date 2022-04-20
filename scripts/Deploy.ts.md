@@ -15,8 +15,8 @@ import getSettings, { ONE_SIENNA } from '@sienna/settings'
 import { versions, contracts, source, sources } from './Build'
 
 const linkTuple      = instance => [instance.address, instance.codeHash]
-const linkStruct     = instance => ({ address: instance?.address,  code_hash: instance?.codeHash })
-const templateStruct = template => ({ id: Number(template.codeId), code_hash: template.codeHash  })
+const linkStruct     = instance => ({ address: instance?.address,  code_hash: instance?.codeHash.toUpperCase() })
+const templateStruct = template => ({ id: Number(template.codeId), code_hash: template.codeHash.toUpperCase()  })
 ```
 
 <table><tr><td valign="top">
@@ -475,10 +475,7 @@ export async function deployVesting (
       instance => agent.getClient(API.SiennaSnip20Client, instance)
     )
 
-    mgmtInitMsgs: {
-      mgmtConfigs,
-      mgmtLabels
-    } = generateMgmtInitMsgs(
+    mgmtConfigs = generateMgmtConfigs(
       vesting,
       admin,
       tokens
@@ -492,10 +489,7 @@ export async function deployVesting (
       instance => agent.getClient(MGMTClient, instance)
     )
 
-    rewardsInitMsgs: {
-      rewardsConfigs,
-      rewardsLabels
-    } = generateRewardsInitMsgs(
+    rewardsConfigs = generateRewardsConfigs(
       admin,
       vesting,
       tokens
@@ -509,10 +503,7 @@ export async function deployVesting (
       instance => agent.getClient(RewardsClient, instance)
     )
 
-    rptInitMsgs: {
-      rptConfigs,
-      rptLabels
-    } = generateRptInitMsgs(
+    rptConfigs = generateRptInitMsgs(
       mgmtInstances,
       admin,
       vesting,
@@ -548,115 +539,63 @@ export async function deployVesting (
   }
 }
 
-async function initMockTokens(deployment, agent, tokenTemplate, vesting) {
-  const labels = [];
-  const prefix = Date.now();
-  const tokenInstaces = await agent.instantiateMany(
-      vesting.map((contract) => {
-        const initMsg = {
-          name: `Mock_${contract.name}`,
-          symbol: contract.name.toUpperCase(),
-          decimals: 18,
-          config: {
-            public_total_supply: true,
-            enable_deposit: true,
-          },
-          prng_seed: randomHex(36),
-          initial_balances: [{
-            address: agent.address,
-            amount: "9999999999999"
-          }]
-        }
-        labels.push(contract.name);
-        return [tokenTemplate, contract.name, initMsg];
-      }),
-      prefix
-  );
-  return labels.map(label => tokenInstaces[label]);
+async function initMockTokens (deployment, agent, tokenTemplate, vesting) {
+  const mockTokenConfig = {
+    decimals: 18,
+    config: {
+      public_total_supply: true,
+      enable_deposit: true,
+    },
+    initial_balances: [{
+      address: agent.address,
+      amount: "9999999999999"
+    }]
+  }
+  return await deployment.initMany(
+    tokenTemplate,
+    vesting.map(({ name }) => [
+      name, {
+        ...mockTokenConfig,
+        name:  `Mock_${name}`,
+        symbol: name.toUpperCase(),
+        prng_seed: randomHex(36),
+      }
+    ])
+  )
 }
 
-function generateMgmtInitMsgs (vesting, admin, tokens) {
-    const labels = []
-    const configs = vesting.map(({name, schedule, rewards, lp }, i) => {
-        name = `${rewards.name}-${lp.name}.Mgmt@Vested`.replace(/\s/g, '');
-        const initMsg = {
-            admin,
-            token: tokens ?
-              {
-                address: tokens[i].address,
-                code_hash: tokens[i].codeHash.toUpperCase()
-              } :
-              {
-                address: rewards.address,
-                code_hash: rewards.code_hash
-              },
-            prefund: true,
-
-            schedule,
-        }
-        labels.push(name)
-        return [name, initMsg]
-    })
-    return { mgmtLabels: labels, mgmtConfigs: configs }
+function generateMgmtConfigs (vesting, admin, tokens) {
+  return vesting.map(({name, schedule, rewards, lp}, i) => [
+    `${rewards.name}-${lp.name}.Mgmt@Vested`.replace(/\s/g, ''), {
+      admin,
+      schedule,
+      prefund: true,
+      token: linkStruct(tokens[i] || rewards)
+    }
+  ])
 }
 
-function generateRptInitMsgs (mgmtInstances, admin, vesting, pools, tokens) {
-    const labels = []
-    const configs = vesting.map(({ name, schedule, rewards, lp, account }, i ) => {
-        const mgmtInstance = mgmtInstances[i];
-
-        const mgmtLink = { address: mgmtInstance.address, code_hash: mgmtInstance.codeHash };
-
-        const reciever = pools[i].address
-        const portion = account.portion_size
-
-        const initMsg = {
-          portion,
-          distribution: [[reciever, portion]],
-          token: tokens ? { address: tokens[i].address, code_hash: tokens[i].codeHash.toUpperCase() } :
-              {
-                address: rewards.address,
-                code_hash: rewards.code_hash
-              },
-          mgmt: mgmtLink
-        }
-
-        name = `${rewards.name}-${lp.name}.Rpt@Vested`.replace(/\s/g, '');
-
-        labels.push(name)
-
-        return [name, initMsg]
-    })
-
-    return { rptLabels: labels, rptConfigs: configs }
+function generateRptConfigs (mgmts, admin, vesting, pools, tokens) {
+  return vesting.map(({ name, schedule, rewards, lp, account }, i) => [
+    `${rewards.name}-${lp.name}.Rpt@Vested`.replace(/\s/g, ''), {
+      portion,
+      mgmt:  linkStruct(mgmts[i])
+      token: linkStruct(tokens[i] || rewards)
+      distribution: [[pools[i].address, account.portion_size]],
+    }
+  ])
 }
 
-function generateRewardsInitMsgs(admin, vesting, tokens) {
-    const labels = []
-    const configs = vesting.map(({name, schedule, rewards, lp}, i ) => {
-        const rewardsToken =  tokens ?
-          { address: tokens[i].address, code_hash: tokens[i].codeHash.toUpperCase() } :
-          { address: rewards.address, code_hash: rewards.code_hash };
-        const lpToken =  tokens ?
-          { address: tokens[i].address, code_hash: tokens[i].codeHash.toUpperCase() } :
-          { address: lp.address, code_hash: lp.code_hash };
-
-        const initMsg = {
-          admin,
-          config: {
-            lp_token: lpToken,
-            reward_token: rewardsToken
-          }
-        }
-
-        name = `${Date.now()}/${rewards.name}-${lp.name}.RewardsPool@Vested`.replace(/\s/g, '');
-
-        labels.push(name)
-
-        return [name, initMsg]
-    })
-
-    return { rewardsLabels: labels, rewardsConfigs: configs }
+function generateRewardsConfigs (admin, vesting, tokens) {
+  return vesting.map(({name, schedule, rewards, lp}, i ) => [
+    `${rewards.name}-${lp.name}.RewardsPool@Vested`.replace(/\s/g, ''), {
+      admin,
+      config: {
+        lp_token:     linkStruct(tokens[i] || lp),
+        reward_token: linkStruct(tokens[i] || rewards)
+      }
+    }
+  ])
 }
 
 ```
