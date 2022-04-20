@@ -479,13 +479,14 @@ export async function deployVesting (
       mgmtConfigs,
       mgmtLabels
     } = generateMgmtInitMsgs(
-      templates[0],
       vesting,
       admin,
       tokens
     ),
-    mgmtInstances = Object.values(
-      await agent.instantiateMany(mgmtConfigs, Date.now())
+    mgmtInstances = await deployment.initMany(
+      agent,
+      templates[0],
+      mgmtConfigs
     ),
     mgmtClients = mgmtInstances.map(
       instance => agent.getClient(MGMTClient, instance)
@@ -495,13 +496,14 @@ export async function deployVesting (
       rewardsConfigs,
       rewardsLabels
     } = generateRewardsInitMsgs(
-      templates[2],
       admin,
       vesting,
       tokens
     ),
-    rewardsInstances = Object.values(
-      await agent.instantiateMany(rewardsConfigs, Date.now())
+    rewardsInstances = await deployment.initMany(
+      agent,
+      templates[2],
+      rewardsConfigs
     ),
     rewardsClients = rewardsInstances.map(
       instance => agent.getClient(RewardsClient, instance)
@@ -511,15 +513,16 @@ export async function deployVesting (
       rptConfigs,
       rptLabels
     } = generateRptInitMsgs(
-      templates[1],
       mgmtInstances,
       admin,
       vesting,
       rewardsInstances,
       tokens
     ),
-    rptInstances = Object.values(
-      await agent.instantiateMany(rptConfigs, Date.now())
+    rptInstances = await deployment.initMany(
+      agent,
+      templates[1],
+      rptConfigs
     )
     rptClients = rptInstances.map(
       instance => agent.getClient(RPTClient, instance)
@@ -572,7 +575,7 @@ async function initMockTokens(deployment, agent, tokenTemplate, vesting) {
   return labels.map(label => tokenInstaces[label]);
 }
 
-function generateMgmtInitMsgs (mgmtTemplate, vesting, admin, tokens) {
+function generateMgmtInitMsgs (vesting, admin, tokens) {
     const labels = []
     const configs = vesting.map(({name, schedule, rewards, lp }, i) => {
         name = `${rewards.name}-${lp.name}.Mgmt@Vested`.replace(/\s/g, '');
@@ -592,12 +595,12 @@ function generateMgmtInitMsgs (mgmtTemplate, vesting, admin, tokens) {
             schedule,
         }
         labels.push(name)
-        return [mgmtTemplate, name, initMsg]
+        return [name, initMsg]
     })
     return { mgmtLabels: labels, mgmtConfigs: configs }
 }
 
-function generateRptInitMsgs (rptTemplate, mgmtInstances, admin, vesting, pools, tokens) {
+function generateRptInitMsgs (mgmtInstances, admin, vesting, pools, tokens) {
     const labels = []
     const configs = vesting.map(({ name, schedule, rewards, lp, account }, i ) => {
         const mgmtInstance = mgmtInstances[i];
@@ -622,13 +625,13 @@ function generateRptInitMsgs (rptTemplate, mgmtInstances, admin, vesting, pools,
 
         labels.push(name)
 
-        return [rptTemplate, name, initMsg]
+        return [name, initMsg]
     })
 
     return { rptLabels: labels, rptConfigs: configs }
 }
 
-function generateRewardsInitMsgs(template, admin, vesting, tokens) {
+function generateRewardsInitMsgs(admin, vesting, tokens) {
     const labels = []
     const configs = vesting.map(({name, schedule, rewards, lp}, i ) => {
         const rewardsToken =  tokens ?
@@ -650,7 +653,7 @@ function generateRewardsInitMsgs(template, admin, vesting, tokens) {
 
         labels.push(name)
 
-        return [template, name, initMsg]
+        return [name, initMsg]
     })
 
     return { rewardsLabels: labels, rewardsConfigs: configs }
