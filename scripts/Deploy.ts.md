@@ -321,15 +321,23 @@ export async function deployTGE (
     srcs = sources(ref, contracts.TGE),
     builder,
     uploader,
-    templates = await buildAndUploadMany(builder, uploader, srcs)
+    templates = await buildAndUploadMany(
+      builder, uploader, srcs
+    )
+
     deployment, prefix,
     agent,
-    settings: { schedule } = getSettings(agent.chain.mode)
+
     admin = agent.address,
+    settings: { schedule } = getSettings(agent.chain.mode)
   } = context
 
   // 1. Build and upload the three TGE contracts:
-  const [tokenTemplate, mgmtTemplate, rptTemplate] = templates
+  const [
+    tokenTemplate,
+    mgmtTemplate,
+    rptTemplate
+  ] = templates
 
   // 2. Instantiate the main token
   const tokenInitMsg = {
@@ -425,82 +433,91 @@ export async function deployTGE (
 
 ```typescript
 export async function deployVesting (
-  context: MigrationContext & TGEDeployOptions
-): Promise<TGEDeployResult> {
+  context: MigrationContext & VestingDeployOptions
+): Promise<VestingDeployResult> {
 
   const {
-    ref = versions.HEAD,
-    srcs = sources(ref, contracts.TGE),
+    deployment,
+    prefix,
+    agent,
+    agent: { chain: { isMainnet, isTestnet, isDevnet } },
+
     builder,
     uploader,
-    templates = await buildAndUploadMany(builder, uploader, srcs)
-    deployment, prefix,
-    agent,
+    templates = await buildAndUploadMany(
+      builder,
+      uploader,
+      // build vesting contracts from working tree
+      sources(versions.HEAD,       contracts.Vesting),
+      // build rewards contract from release branch
+      sources(versions.Rewards.v3, contracts.Rewards)
+      // build a standard token contract for testing
+      isMainnet ? [] : [source(versions.HEAD, source('amm-snip20'))],
+    )
 
-    version,
     admin = agent.address,
-    settings: { schedule, vesting } = getSettings(agent.chain.mode)
+    settings: {
+      schedule,
+      vesting
+    } = getSettings(agent.chain.mode)
+
+    tokens = isDevnet ? await initMockTokens(
+      templates[3],
+      agent,
+      tokenTemplate,
+      vesting
+    ) : [],
+
+    mgmtInitMsgs: {
+      mgmtConfigs,
+      mgmtLabels
+    } = generateMgmtInitMsgs(
+      templates[0],
+      vesting,
+      admin,
+      tokens
+    ),
+
+    mgmtInstances = Object.values(
+      await agent.instantiateMany(mgmtConfigs, Date.now())
+    ),
+
+    rewardsInitMsgs: {
+      rewardsConfigs,
+      rewardsLabels
+    } = generateRewardsInitMsgs(
+      templates[2],
+      admin,
+      vesting,
+      tokens
+    ),
+
+    rewardsInstances = Object.values(
+      await agent.instantiateMany(rewardsConfigs, Date.now())
+    ),
+
+    rptInitMsgs: {
+      rptConfigs,
+      rptLabels
+    } = generateRptInitMsgs(
+      templates[1],
+      mgmtInstances,
+      admin,
+      vesting,
+      rewardsInstances,
+      tokens
+    ),
+
+    rptInstances = Object.values(
+      await agent.instantiateMany(rptConfigs, Date.now())
+    )
+
   } = context
 
-  if(version == 'legacy') {
-    throw new Error("Not implemented");
-  }
-
-  const { isTestnet, isDevnet, isMainnet } = agent.chain
-  const [tokenBuild, mgmtBuild, rptBuild, rewardPoolBuild] = [
-    ...await buildTge(`TGE_${version}`),
-    ...await buildRewards('Rewards_v3')
-  ]
-
-
-  const isVestedProduction = isMainnet && version == 'vested';
-  const isVestedDevTest = !isMainnet && version == 'vested';
-
-  const getUploadBuilds = (version, isProduction) => {
-    if(version == 'legacy') {
-      return [tokenBuild, mgmtBuild, rptBuild]
-    };
-    // else version is 'vested'
-    // only dev version needs mock tokens, while the rest uses third party token
-    const builds = [mgmtBuild, rptBuild, rewardPoolBuild];
-    return isDevnet ? [tokenBuild, ...builds]: builds;
-  }
-  const uploads = await uploader.uploadMany(await getUploadBuilds(version, isMainnet))
-
-  let tokenTemplate, mgmtTemplate, rptTemplate, rewardsTemplate;
-  if (isDevnet) {
-    [tokenTemplate, mgmtTemplate, rptTemplate, rewardsTemplate] = uploads;
-  } else {
-    [mgmtTemplate, rptTemplate, rewardsTemplate] = uploads;
-  }
-
-  //for devnet and testnet create some mock tokens
-  const tokens = isDevnet ?
-    await initMockTokens(deployment,agent, tokenTemplate, vesting) :
-    undefined;
-
-  // generate init messages and save the labels
-  const { configs: mgmtConfigs, labels: mgmtLabels } = await generateMgmtInitMsgs(mgmtTemplate,vesting, admin, tokens))
-  // instantiateMany returns an object with each result under the label as a key
-  const mgmtBundleResults = await agent.instantiateMany(mgmtConfigs, Date.now())
-  // use the presaved labels to extract relevant objects
-  const mgmtInstances = mgmtLabels.map(label => mgmtBundleResults[label])
-
-
-  const { configs: rewardConfigs, labels: rewardsLabels} = await generateRewardsInitMsgs(rewardsTemplate, admin, vesting, tokens);
-  const rewardsBundleResults = await agent.instantiateMany(rewardConfigs, Date.now());
-  const rewardsInstances = rewardsLabels.map(label => rewardsBundleResults[label] );
-
-
-  const { configs: rptConfigs, labels: rptLabels} = await generateRptInitMsgs(rptTemplate, mgmtInstances, admin, vesting, rewardsInstances, tokens);
-  const rptBundleResults = await agent.instantiateMany(rptConfigs, Date.now());
-  const rptInstances = rptLabels.map(label => rptBundleResults[label])
-
-
   //version is always vested here
-  const mgmtClients = mgmtInstances.map(result => new API.MGMTClient[version]({...result, agent }))
-  const rptClients = rptInstances.map(result => new API.RPTClient[version]({...result, agent }))
-  const tokenClients = tokens?.map(result => new API.SiennaSnip20Client({...result, agent }))
+  const mgmtClients    = mgmtInstances.map(result => new API.MGMTClient[version]({...result, agent }))
+  const rptClients     = rptInstances.map(result => new API.RPTClient[version]({...result, agent }))
+  const tokenClients   = tokens?.map(result => new API.SiennaSnip20Client({...result, agent }))
   const rewardsClients = rewardsInstances.map(result => new API.RewardsClient["v3"]({...result, agent }))
 
   await agent.bundle().wrap(async bundle => {
@@ -517,8 +534,6 @@ export async function deployVesting (
       await mgmtClient.add(schedule.pools[0].name, account)
     })
   })
-
-
 
   return {
     ...mgmtClients,
@@ -555,7 +570,7 @@ async function initMockTokens(deployment, agent, tokenTemplate, vesting) {
   return labels.map(label => tokenInstaces[label]);
 }
 
-async function generateMgmtInitMsgs(mgmtTemplate, vesting, admin, tokens) {
+function generateMgmtInitMsgs (mgmtTemplate, vesting, admin, tokens) {
     const labels = []
     const configs = vesting.map(({name, schedule, rewards, lp }, i) => {
         name = `${rewards.name}-${lp.name}.Mgmt@Vested`.replace(/\s/g, '');
@@ -575,12 +590,12 @@ async function generateMgmtInitMsgs(mgmtTemplate, vesting, admin, tokens) {
             schedule,
         }
         labels.push(name)
-        return [mgmtTemplate,name, initMsg]
+        return [mgmtTemplate, name, initMsg]
     })
-    return { labels, configs }
+    return { mgmtLabels: labels, mgmtConfigs: configs }
 }
 
-async function generateRptInitMsgs(rptTemplate, mgmtInstances, admin, vesting, pools, tokens) {
+function generateRptInitMsgs (rptTemplate, mgmtInstances, admin, vesting, pools, tokens) {
     const labels = []
     const configs = vesting.map(({ name, schedule, rewards, lp, account }, i ) => {
         const mgmtInstance = mgmtInstances[i];
@@ -608,10 +623,10 @@ async function generateRptInitMsgs(rptTemplate, mgmtInstances, admin, vesting, p
         return [rptTemplate, name, initMsg]
     })
 
-    return { labels, configs }
+    return { rptLabels: labels, rptConfigs: configs }
 }
 
-async function generateRewardsInitMsgs(template, admin, vesting, tokens) {
+function generateRewardsInitMsgs(template, admin, vesting, tokens) {
     const labels = []
     const configs = vesting.map(({name, schedule, rewards, lp}, i ) => {
         const rewardsToken =  tokens ?
@@ -636,7 +651,7 @@ async function generateRewardsInitMsgs(template, admin, vesting, tokens) {
         return [template, name, initMsg]
     })
 
-    return { labels, configs }
+    return { rewardsLabels: labels, rewardsConfigs: configs }
 }
 
 ```

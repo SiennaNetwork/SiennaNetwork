@@ -46,8 +46,7 @@ export const contracts = {
   TGE:       [ 'snip20-sienna'
              , 'sienna-mgmt'
              , 'sienna-rpt' ],
-  Vesting:   [ 'amm-snip20'
-             , 'sienna-mgmt',
+  Vesting:   [ 'sienna-mgmt',
              , 'sienna-rpt' ],
   Tokens:    [ 'amm-snip20'
              , 'lp-token' ]
