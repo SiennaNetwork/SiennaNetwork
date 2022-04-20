@@ -1,205 +1,189 @@
-# Sienna Scripts: Build
+# Building the Sienna smart contracts
+
+## Overview and usage
+
+The command **`pnpm -w build`** prints all the available [*build sets*](#build-sets).
+
+> NOTE: If you're at the top level of the workspace, the `-w` is optional.
+>       Always make sure you're in the main workspace before trying to build.
+>       For example, if you chdir into `deps/fadroma`, it won't work.
+
+A build set is a set of [*build sources*](#build-sources).
+Each build source represents the source code of a smart contract
+that can be compiled to produce a *build artifact*.
+Build artifacts are stored under [`/artifacts/`](../artifacts).
+
+The command **`pnpm -w build something`** asks [Fadroma](https://github.com/hackbg/fadroma/tree/v100/packages/scrt)
+to compile the smart contracts from the build set called `something` for
+production.
+
+> NOTE: Before building, make sure you have at least **2G of disk space**
+>       for the [build container](#how-the-build-works).
+
+Read on for the list of available [build sets](#build-sets) (groups of contracts),
+[build sources](#build-sources) (individual contracts),
+and an [overview of the build procedure](#how-the-build-works).
+
+## Build sources
+
+Each build set consists of one or more instances of Fadroma's **Source** object.
+The Source object points to the source code of a smart contract, referenced by
+**workspace**, **crate name**, and, optionally, **Git ref** (commit/branch/tag/etc).
+
+Currently, Fadroma does not enumerate the crates in the project workspace,
+nor does it identify which of these are smart contracts and which are libraries,
+nor does it have unified support for smart contract versioning and migrations
+(though all these features are in the pipeline!).
+
+That's why the following lists of contracts and versions are necessary.
+
+### List of contracts
+
+> PLEASE: Keep these up to date when adding, removing, or renaming contracts.
 
 ```typescript
-import Fadroma, {
-  bold, timestamp, Console,
-  Source, Scrt_1_2
-} from '@hackbg/fadroma'
+export const contracts = {
+  TGE:       [ 'snip20-sienna'
+             , 'sienna-mgmt'
+             , 'sienna-rpt' ],
+  Vesting:   [ 'sienna-mgmt'
+             , 'sienna-rpt' ],
+  Tokens:    [ 'amm-snip20'
+             , 'lp-token' ]
+  AMM:       [ 'factory'
+             , 'exchange'
+             , 'lp-token'
+             , 'amm-snip20']
+  Lend:      [ 'lend-interest-model'
+             , 'lend-market'
+             , 'lend-mock-oracle'
+             , 'lend-oracle'
+             , 'lend-overseer'
+             , 'amm-snip20' ]
+  Launchpad: [ 'launchpad'
+             , 'ido' ]
+  Rewards:   [ 'sienna-rewards' ]
+  Router:    [ 'router' ]
+}
+
+contracts.all = [...new Set([
+  ...contracts.TGE,
+  ...contracts.Vesting,
+  ...contracts.Tokens,
+  ...contracts.AMM,
+  ...contracts.Launchpad,
+  ...contracts.Rewards,
+  ...contracts.Router,
+  ...contracts.Lend,
+])]
+```
+
+### List of versions
+
+> PLEASE: Keep this up to date when rolling out new project phases,
+>         to maintain deployment reproducibility.
+
+```typescript
+export const versions = {
+  HEAD:    'HEAD',
+  AMM:     { v1: 'legacy/amm-v1', v2: 'legacy/amm-v2-rewards-v3' },
+  Rewards: { v2: 'legacy/rewards-v2', v3: 'legacy/amm-v2-rewards-v3' }
+}
+```
+
+## Build sets
+
+A build set is a function that returns an array of **Source** objects,
+representing a list of smart contracts to build.
+
+Build sets are collected in the default export of this module - the `build` object.
+To add a new build set, add it like `build['my-build-set'] = () => [/*sources*/]`
+
+```typescript
+const build = {}
+export default build
+```
+
+To add the build sources of the build set, you can use the `sources` helper function:
+`build['my-build-set'] = () => sources('git-ref', ['crate-name', 'crate-name'])`.
+
+> PROTIP: You can pass more than one list of crate names;
+>         Fadroma's `Source.collect` does the array concatenation for you!
+
+> PLEASE: No magic strings! Take the git ref from the `versions` object,
+>         and the crate names from `contracts`.
+
+```typescript
+import { Source } from '@hackbg/fadroma'
 import { workspace } from '@sienna/settings'
-const console = new Console('@sienna/scripts/Build')
-const parallel = (...commands) => input => Promise.all(commands.map(command=>command(input)))
+export function source (crate, ref = 'HEAD') {
+  if (!contracts.all.includes(crate)) {
+    throw new Error(`crate ${crate} not in scripts/Build.ts:contracts.all`)
+  }
+  return new Source(workspace, crate, ref)
+}
+export function sources (ref, ...crateLists) {
+  return Source.collect(workspace, ref, ...crateLists)
+}
 ```
 
-## Overview
+So, without further ado, here are the currently supported build sets.
+You can use these as references when defining your own.
 
-**Run `pnpm -w build` to list the subsets of contracts that can be built.**
+### Building latest everything
 
-The command `pnpm -w build all` compiles all contracts for production.
-
-The build output consists of two files being written to [/artifacts](../artifacts):
-* `contract-name@version.wasm` (gitignored)
-* `contract-name@version.wasm.sha256` (not gitignored).
-
-Which contracts are built by each command is defined in:
-* [`@sienna/tge/build.ts`](../contracts/tge/build.ts')
-* [`@sienna/amm/build.ts`](../contracts/amm/build.ts')
-* [`@sienna/lend/build.ts`](../contracts/tge/build.ts')
-
-The builder environment and procedure are defined in:
-* [`@fadroma/ops/Build`](https://github.com/hackbg/fadroma/tree/v100/packages/ops/Build.ts).
-* [`@fadroma/ops/Docker`](https://github.com/hackbg/fadroma/tree/v100/packages/ops/Docker.ts).
-* [`@fadroma/scrt`](https://github.com/hackbg/fadroma/tree/v100/packages/scrt).
-
-You will need at least **2G of disk space** for the build container.
-
-## Contract sources
-
-The `getSources` function takes one optional argument, `ref`
-(if you want to get `Source` objects pointing to a past commit),
-and returns a mapping from crate name to `Source` object.
+The simplest build set consists of all the contracts in the current working tree.
+It looks like this:
 
 ```typescript
-export const contracts = [
-  // TGE
-  'snip20-sienna',
-  'sienna-mgmt',
-  'sienna-rpt',
-  // Swap
-  'amm-snip20',
-  'lp-token',
-  'factory',
-  'exchange',
-  'router',
-  'ido',
-  'launchpad',
-  'sienna-rewards'
-  // Lend
-  'lend-interest-model',
-  'lend-market',
-  'lend-mock-oracle',
-  'lend-oracle',
-  'lend-overseer'
+build['latest'] = () => sources(versions.HEAD, contracts.all)
+```
+
+Runing **`pnpm -w build latest`** will build the contracts from this build set.
+
+> WARNING: This will build the contracts for production, but will include any
+>          non-committed changes from your working tree. Please don't deploy
+>          such contracts, as this violates the principle of reproducibility.
+
+### Building the full history of the project
+
+The most complex build configuration builds all the contracts that
+were ever in production. This complements `pnpm deploy history`,
+enabling you to recreate the whole history of the smart contract system.
+
+```typescript
+build['history'] = () => [
+  ...sources(versions.AMM.v1,     contracts.AMM, contracts.Launchpad, contracts.Tokens),
+  ...sources(versions.Rewards.v2, contracts.Rewards),
+  ...sources(versions.AMM.v2,     contracts.AMM, contracts.Tokens),
+  ...sources(versions.Rewards.v3, contracts.Rewards)
+  ...sources(versions.HEAD,       contracts.all)
 ]
-
-export const getSources = Source.collectCrates(workspace, contracts)
 ```
 
-### Commits of note
+Running **`pnpm -w build history`** will build the contracts from this build set.
+
+> WARNING: This may take a very long time depending on your system. (Docker on Mac - 3hrs)
+
+### Specific build configurations
+
+These configurations represent specific groups of interdependent contracts.
+This is useful mainly when you're working on a specific part of the system
+and don't want to build unrelated things.
+
+> PLEASE: Add your own build configurations here as needed.
 
 ```typescript
-export const refs = {
-  HEAD: 'HEAD',
-  // TGE_v1: TODO find which commit was deployed on mainnet launch
-  AMM_v1:     'legacy/amm-v1',
-  AMM_v2:     'legacy/amm-v2-rewards-v3',
-  Rewards_v2: 'legacy/rewards-v2',
-  Rewards_v3: 'legacy/amm-v2-rewards-v3'
-  TGE_legacy: 'dev',
-  TGE_vested: 'HEAD',
-}
+build['amm_v1']    = () => sources(versions.AMM.v1, contracts.AMM)
+build['amm_v2']    = () => sources(versions.AMM.v2, contracts.AMM)
+build['lend']      = () => sources(versions.HEAD, contracts.Lend)
+build['router']    = () => sources(versions.HEAD, contracts.AMM, contracts.Router, contracts.Tokens)
+build['launchpad'] = () => sources(versions.HEAD, contracts.Launchpad)
 ```
 
-## Build combinations
+## Special case: building the templates for the AMM Factory
 
-These are groups of contracts that depend on each other
-and you may want to build together. This is not particularly useful
-and may be deprecated in the future as live mode evolves.
-
-```typescript
-Fadroma.command('all',
-  function buildTgeLatest       () { return buildTge('HEAD') },
-  function buildTokensLatest    () { return buildTokens('HEAD') },
-  function buildTokensAMMv1     () { return buildTokens('AMM_v1') },
-  function buildTokensAMMv2     () { return buildTokens('AMM_v2') },
-  function buildAMMLatest       () { return buildAmm('HEAD') },
-  function buildAMMv1           () { return buildAmm('AMM_v1') },
-  function buildAMMv1Launchpad  () { return buildLaunchpad('AMM_v1') },
-  function buildAMMv1Ido        () { return buildIdo('AMM_v1') },
-  function buildAMMv2           () { return buildAmm('AMM_v2') },
-  function buildRewardsv2       () { return buildRewards('Rewards_v2') },
-  function buildRewardsv3       () { return buildRewards('Rewards_v3') }
-)
-
-Fadroma.command('tge legacy', 
-  () => buildTge('TGE_legacy')
-)
-
-Fadroma.command('tge vested', 
-  () => buildTge('TGE_vested')
-)
-  
-Fadroma.command('latest',
-  function buildLatest () {
-    const sources = getSources()
-    return Scrt_1_2.getBuilder().buildMany(contracts.map(x=>sources[x]))
-  })
-
-Fadroma.command('router', parallel(
-  () => buildTokens('HEAD'),
-  () => buildRouter('HEAD')))
-
-Fadroma.command('lend', parallel(
-  () => buildTokens('HEAD'),
-  () => buildLend('HEAD')))
-
-Fadroma.command('amm_v1',
-  () => buildAmm(refs['AMM_v1']))
-
-Fadroma.command('amm_v2',
-  () => buildAmm(refs['AMM_v2']))
-
-
-
-
-export async function buildTge (ref?) {
-  const sources = getSources(refs[ref])
-  const token = ref === "TGE_vested" ? "amm-snip20" : "snip20-sienna"
-  return Scrt_1_2.getBuilder().buildMany([
-    token,
-    'sienna-mgmt',
-    'sienna-rpt',
-  ].map(x=>sources[x]))
-}
-
-export async function buildTokens (ref?): Promise<Artifact[]> {
-  const sources = getSources(refs[ref])
-  return Scrt_1_2.getBuilder().buildMany([
-    'amm-snip20',
-    'lp-token',
-  ].map(x=>sources[x]))
-}
-
-export async function buildAmm (ref?): Promise<Artifact[]> {
-  const sources = getSources(refs[ref])
-  return Scrt_1_2.getBuilder().buildMany([
-    'factory',
-    'exchange',
-  ].map(x=>sources[x]))
-}
-
-export async function buildLaunchpad (ref?): Promise<Artifact[]> {
-  const sources = getSources(refs[ref])
-  return Scrt_1_2.getBuilder().buildMany([
-    'launchpad',
-  ].map(x=>sources[x]))
-}
-
-export async function buildIdo (ref?): Promise<Artifact[]> {
-  const sources = getSources(refs[ref])
-  return Scrt_1_2.getBuilder().buildMany([
-    'ido',
-  ].map(x=>sources[x]))
-}
-
-export async function buildRouter (ref?): Promise<Artifact[]> {
-  const sources = getSources(refs[ref])
-  return Scrt_1_2.getBuilder().buildMany([
-    'router',
-  ].map(x=>sources[x]))
-}
-
-export async function buildRewards (ref?): Promise<Artifact[]> {
-  const sources = getSources(refs[ref])
-  const builder = Scrt_1_2.getBuilder()
-  return Scrt_1_2.getBuilder().buildMany([
-    'sienna-rewards',
-  ].map(x=>sources[x]))
-}
-
-export async function buildLend (ref?): Promise<Artifact[]> {
-  const sources = getSources(refs[ref])
-  return Scrt_1_2.getBuilder().buildMany([
-    'lend-interest-model',
-    'lend-oracle',
-    'lend-market',
-    'lend-overseer',
-    'lend-mock-oracle',
-    'amm-snip20'
-  ].map(x=>sources[x]))
-}
-```
-
-## Building the templates for the AMM Factory
+This function is used by `deployAMM`, and is an example of using the builder directly.
 
 The AMM factory needs to be configured
 with [code ID + code hash] pairs that the factory
@@ -210,21 +194,22 @@ differs between AMMv1 and AMMv2 (v1 contained
 some extra templates that weren't being used)
 
 ```typescript
+import { Scrt_1_2 } from '@hackbg/fadroma'
 export async function buildAMMTemplates (
   uploader: Uploader,
   version:  AMMVersion,
-  ref:      string  = refs[`AMM_${version}`],
+  ref:      string  = versions.AMM[version],
   builder:  Builder = Scrt_1_2.getBuilder()
 ): Promise<Record<string, {id:number,code_hash:string}>> {
-  const crates  = getSources(ref)
-  const sources = [crates['exchange'], crates['lp-token']]
+  const crates = ['exchange', 'lp-token']
   if (version === 'v1') {
     console.info('Building extra (unused) templates required by AMM Factory v1...')
-    sources.push(crates['amm-snip20'])
-    sources.push(crates['launchpad'])
-    sources.push(crates['ido'])
+    crates.push('amm-snip20')
+    crates.push('launchpad')
+    crates.push('ido')
   }
-  const artifacts = await builder.buildMany(sources)
+  const srcs = sources(ref, ['exchange', 'lp-token'])
+  const artifacts = await builder.buildMany(sources(ref, crates))
   const templates = []
   for (const artifact of artifacts) {
     templates.push(await uploader.upload(artifact))
@@ -247,9 +232,15 @@ export async function buildAMMTemplates (
 }
 ```
 
-## Entry point
+## How the build works
 
-```typescript
-Error.stackTraceLimit = Infinity
-export default Fadroma.module(import.meta.url)
-```
+The build output consists of two files being written to [/artifacts](../artifacts):
+* `contract-name@version.wasm` (gitignored)
+* `contract-name@version.wasm.sha256` (not gitignored).
+
+The builder environment and procedure are defined in:
+* [`@fadroma/ops/Build`](https://github.com/hackbg/fadroma/tree/v100/packages/ops/Build.ts).
+* [`@fadroma/ops/Docker`](https://github.com/hackbg/fadroma/tree/v100/packages/ops/Docker.ts).
+* [`@fadroma/scrt`](https://github.com/hackbg/fadroma/tree/v100/packages/scrt).
+
+The build environment is based on an enhanced version of `enigmampc/secret-contract-optimizer`.
