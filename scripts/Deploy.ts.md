@@ -461,8 +461,8 @@ export async function deployVesting (
       isMainnet ? [] : [source('amm-snip20')],
     ),
 
-    MGMTClient    = API.MGMTClient['vesting'],
-    RPTClient     = API.RPTClient['vesting'],
+    MGMTClient    = API.MGMTClient['vested'],
+    RPTClient     = API.RPTClient['vested'],
     RewardsClient = API.RewardsClient['v3'],
 
     admin = agent.address,
