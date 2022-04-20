@@ -444,7 +444,13 @@ export async function deployVesting (
 
     builder,
     uploader,
-    templates = await buildAndUploadMany(
+
+    templates: [
+      mgmtTemplate,
+      rptTemplate,
+      rewardsTemplate,
+      tokenTemplate
+    ] = await buildAndUploadMany(
       builder,
       uploader,
       // build vesting contracts from working tree
@@ -453,7 +459,7 @@ export async function deployVesting (
       sources(versions.Rewards.v3, contracts.Rewards),
       // build a standard token contract for testing
       isMainnet ? [] : [source('amm-snip20')],
-    )
+    ),
 
     MGMTClient    = API.MGMTClient['vesting'],
     RPTClient     = API.RPTClient['vesting'],
@@ -466,7 +472,7 @@ export async function deployVesting (
     } = getSettings(agent.chain.mode)
 
     tokens = isDevnet ? await initMockTokens(
-      templates[3],
+      deployment,
       agent,
       tokenTemplate,
       vesting
@@ -480,10 +486,9 @@ export async function deployVesting (
       admin,
       tokens
     ),
-
     mgmtInstances = await deployment.initMany(
       agent,
-      templates[0],
+      mgmtTemplate,
       mgmtConfigs
     ),
     mgmtClients = mgmtInstances.map(
@@ -497,7 +502,7 @@ export async function deployVesting (
     ),
     rewardsInstances = await deployment.initMany(
       agent,
-      templates[2],
+      rewardsTemplate,
       rewardsConfigs
     ),
     rewardsClients = rewardsInstances.map(
@@ -513,7 +518,7 @@ export async function deployVesting (
     ),
     rptInstances = await deployment.initMany(
       agent,
-      templates[1],
+      rptTemplate,
       rptConfigs
     )
     rptClients = rptInstances.map(
