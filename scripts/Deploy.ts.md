@@ -558,6 +558,7 @@ async function initMockTokens (deployment, agent, tokenTemplate, vesting) {
     }]
   }
   return await deployment.initMany(
+    agent,
     tokenTemplate,
     vesting.map(({ name }) => [
       name, {
