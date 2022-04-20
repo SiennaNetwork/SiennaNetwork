@@ -359,3 +359,59 @@ fn prod_schedule_simulation() {
 
     assert_eq!(history.total, num_txs);
 }
+#[test]
+fn can_increase_allocation() {
+    let mut tge = TGE::new(true);
+
+    let claimant = "claimant";
+    let launch_time = 1000;
+    let interval = 180;
+    let amount = Uint128(25);
+
+    tge.add_account(
+        "TEST".into(),
+        Account {
+            name: claimant.into(),
+            address: claimant.into(),
+            amount,
+            cliff: Uint128::zero(),
+            start_at: 0,
+            interval,
+            duration: 0,
+        },
+    )
+    .unwrap();
+
+    for addr in ["rando", claimant] {
+        let err = tge
+            .ensemble
+            .execute(&mgmt::HandleMsg::Claim {}, tge.get_mgmt_env(addr))
+            .unwrap_err();
+
+        assert_eq!(err, StdError::generic_err(mgmt::MGMTError!(PRELAUNCH)));
+    }
+
+    tge.ensemble.block().time = launch_time;
+
+    tge.ensemble
+        .execute(&mgmt::HandleMsg::Launch {}, tge.get_mgmt_env_as_admin())
+        .unwrap();
+
+    tge.ensemble.block().time = launch_time + interval;
+
+    tge.ensemble
+        .execute(&mgmt::HandleMsg::Claim {}, tge.get_mgmt_env(claimant))
+        .unwrap();
+
+   
+
+    tge.ensemble
+        .execute(
+            &mgmt::HandleMsg::IncreaseAllocation {
+                total_increment: Uint128(100),
+                pool: Pool::partial("allocated_new", 100, &vec![]),
+            },
+            tge.get_mgmt_env_as_admin(),
+        )
+        .unwrap();
+}

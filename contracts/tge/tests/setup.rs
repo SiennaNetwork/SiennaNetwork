@@ -121,7 +121,7 @@ impl TGE {
             .instantiate(
                 mgmt_model.id,
                 &sienna_mgmt::InitMsg {
-                    admin: Some(ADMIN.into()),
+                    admin: None,
                     prefund,
                     schedule,
                     token: token.clone(),

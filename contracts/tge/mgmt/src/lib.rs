@@ -20,7 +20,7 @@ use serde::{Deserialize, Serialize};
 use migration::MgmtKillswitch;
 use state::{Config, History, Participant};
 
-use sienna_schedule::{validate::Validation, vesting::Vesting, Account, Schedule, Seconds};
+use sienna_schedule::{validate::Validation, vesting::Vesting, Account, Pool, Schedule, Seconds};
 
 /// This doesn't need to be private because the schedule and claim history are public by design.
 const VIEWING_KEY: &str = "SiennaMGMT";
@@ -231,6 +231,43 @@ pub trait Mgmt {
             log: vec![log("action", "claim"), log("claimed", claimable)],
             data: None,
         })
+    }
+    #[handle]
+    #[require_admin]
+    fn increase_allocation(
+        total_increment: Uint128,
+        pool: Pool<HumanAddr>,
+    ) -> StdResult<HandleResponse> {
+        let mut schedule = Config::load_schedule(&deps.storage)?;
+        let token = Config::load_token(&deps)?;
+        let pool = pool.canonize(&deps.api)?;
+
+        schedule.total += total_increment;
+        schedule.pools.push(pool);
+
+        schedule.validate()?;
+
+        let total_claimed = History::total_claimed(&deps.storage)?;
+
+        let balance = snip20::balance_query(
+            &deps.querier,
+            env.contract.address,
+            VIEWING_KEY.into(),
+            BLOCK_SIZE,
+            token.code_hash,
+            token.address,
+        )?
+        .amount;
+
+        if balance < (schedule.total - total_claimed).unwrap() {
+            return Err(StdError::generic_err(MGMTError!(
+                PREFUND,
+                balance,
+                schedule.total
+            )));
+        }
+
+        Ok(HandleResponse::default())
     }
 
     #[query]
