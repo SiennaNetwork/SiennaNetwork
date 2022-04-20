@@ -8,7 +8,7 @@
             "code_hash": "D4F32C1BCA133F15F69D557BD0722DA10F45E31E5475A12900CA1E62E63E8F76"
         },
         "lp": {
-            "name": "LP_[SIENNA-ALTER]",
+            "name": "LP-SIENNA-ALTER",
             "address": "secret1zk3lpvjze9duv47c66n76zryc4nwg73e3kf4a0",
             "code_hash": "1ff4fa35a56444e4a7aac68365a6259a74cc58d61a2ae71efedb3109c65246b4"
         },
@@ -43,7 +43,7 @@
             "code_hash": "5266A630E2B8EF910FB2515E1D3B5BE95D4BD48358732788D8FCD984EE966BC1"
         },
         "lp": {
-            "name": "LP_[SIENNA-SHD]",
+            "name": "LP-SIENNA-SHD",
             "address": "secret19ymc8uq799zf36wjsgu4t0pk8euddxtx5fggn8",
             "code_hash": "5266A630E2B8EF910FB2515E1D3B5BE95D4BD48358732788D8FCD984EE966BC1"
         },

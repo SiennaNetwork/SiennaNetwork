@@ -573,7 +573,7 @@ async function initMockTokens (deployment, agent, tokenTemplate, vesting) {
 
 export function generateMgmtConfigs (vesting, admin, tokens) {
   return vesting.map(({name, schedule, rewards, lp}, i) => [
-    `${rewards.name}-${lp.name}.Mgmt@Vested`.replace(/\s/g, ''), {
+    `${rewards.name}.MGMT[v3]`.replace(/\s/g, ''), {
       admin,
       schedule,
       prefund: true,
@@ -584,7 +584,7 @@ export function generateMgmtConfigs (vesting, admin, tokens) {
 
 export function generateRptConfigs (mgmts, admin, vesting, pools, tokens) {
   return vesting.map(({ name, schedule, rewards, lp, account }, i) => [
-    `${rewards.name}-${lp.name}.Rpt@Vested`.replace(/\s/g, ''), {
+    `${rewards.name}.RPT[v3]`.replace(/\s/g, ''), {
       mgmt:    linkStruct(mgmts[i])
       token:   linkStruct(tokens[i] || rewards)
       portion: account.portion_size,
@@ -595,7 +595,7 @@ export function generateRptConfigs (mgmts, admin, vesting, pools, tokens) {
 
 export function generateRewardsConfigs (admin, vesting, tokens) {
   return vesting.map(({name, schedule, rewards, lp}, i ) => [
-    `${rewards.name}-${lp.name}.RewardsPool@Vested`.replace(/\s/g, ''), {
+    `${rewards.name}-${lp.name}.Rewards[v3]`.replace(/\s/g, ''), {
       admin,
       config: {
         lp_token:     linkStruct(tokens[i] || lp),
