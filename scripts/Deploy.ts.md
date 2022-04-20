@@ -4,24 +4,19 @@
 
 ```typescript
 import Fadroma, {
-    bold,
-    colors,
-    timestamp,
-    Console,
-    print,
-    randomHex,
-    MigrationContext,
-    Deployments,
-    Uploads,
-    Chain,
-    Scrt_1_2,
-} from '@hackbg/fadroma';
+  Console, bold, colors, timestamp, print, randomHex,
+  MigrationContext, buildAndUpload, buildAndUploadMany
+} from '@hackbg/fadroma'
 
-const console = new Console('@sienna/scripts/Deploy');
+const console = new Console('@sienna/scripts/Deploy')
 
-import * as API from '@sienna/api';
-import getSettings, { ONE_SIENNA } from '@sienna/settings';
-import { refs, getSources } from './Build';
+import * as API from '@sienna/api'
+import getSettings, { ONE_SIENNA } from '@sienna/settings'
+import { versions, contracts, source, sources } from './Build'
+
+const linkTuple      = instance => [instance.address, instance.codeHash]
+const linkStruct     = instance => ({ address: instance?.address,  code_hash: instance?.codeHash })
+const templateStruct = template => ({ id: Number(template.codeId), code_hash: template.codeHash  })
 ```
 
 <table><tr><td valign="top">
@@ -87,10 +82,10 @@ The connection variant (mainnet, testnet or devnet) is set via the
 
 ```typescript
 const canBuildAndUpload = [
-    Fadroma.Chain.FromEnv,
-    Fadroma.Build.Scrt_1_2,
-    Fadroma.Upload.FromFile,
-];
+  Fadroma.Chain.FromEnv,
+  Fadroma.Build.Scrt_1_2,
+  Fadroma.Upload.FromFile,
+]
 ```
 
 </td></tr><tr><!--spacer--></tr><tr><td valign="top">
@@ -113,22 +108,30 @@ This is represented by the `Fadroma.Deploy.New` and `Fadroma.Deploy.Append` step
 you can add to the start of your command. Invoking either of them populates the
 `deployment` and `prefix` keys in the `MigrationContext` for subsequent steps.
 
--   Use `Fadroma.Deploy.New` when you want to start from a clean slate.
-    It will create a new deployment under `/receipts/$FADROMA_CHAIN/$TIMESTAMP`.
+* Use `Fadroma.Deploy.New` when you want to start from a clean slate.
+  It will create a new deployment under `/receipts/$FADROMA_CHAIN/$TIMESTAMP`.
 
--   Use `Fadroma.Deploy.Append` when you want to add contracts to an
-    existing deployment.
+* Use `Fadroma.Deploy.Append` when you want to add contracts to an
+  existing deployment.
 
 </td><td valign="top">
 
 ```typescript
-Fadroma.command('new', Fadroma.Deploy.New);
+Fadroma.command('new',
+  Fadroma.Deploy.New)
 
-const inNewDeployment = [...canBuildAndUpload, Fadroma.Deploy.New];
+const inNewDeployment = [
+  ...canBuildAndUpload,
+  Fadroma.Deploy.New
+]
 
-Fadroma.command('select', Fadroma.Deploy.Select);
+Fadroma.command('select',
+  Fadroma.Deploy.Select)
 
-const inCurrentDeployment = [...canBuildAndUpload, Fadroma.Deploy.Append];
+const inCurrentDeployment = [
+  ...canBuildAndUpload,
+  Fadroma.Deploy.Append
+]
 ```
 
 </td></tr></table>
@@ -148,7 +151,7 @@ The implementations of these procedures follow below.
 Thank Eich for **hoisting**!
 
 ```typescript
-const Sienna = {};
+const Sienna = {}
 ```
 
 </td><td valign="top">
@@ -156,57 +159,48 @@ const Sienna = {};
 ### Deploying
 
 ```typescript
-Sienna.Deploy = {};
+Sienna.Deploy = {}
 
-Sienna.Deploy.TGE = function deployTGE_HEAD({ run }) {
-    return run(deployTGE, { version: 'vested' });
-};
+Sienna.Deploy.TGE =
+  function deployTGE ({ run }) {
+    return run(deployTGE, { version: 'legacy' }) }
 
-Sienna.Deploy.TGE.tge = function deployTGE_legacy({ run }) {
-    return run(deployTGE, { version: 'legacy' });
-};
-Sienna.Deploy.TGE.vested = function deployTGE_vested({ run }) {
-    return run(deployTGE, { version: 'vested' });
-};
+Sienna.Deploy.Vesting =
+  function deployVesting ({ run }) {
+    return run(deployTGE, { version: 'vested' }) }
 
-Sienna.Deploy.AMM = function deployAMM_HEAD({ run }) {
+Sienna.Deploy.AMM =
+  function deployAMM_HEAD ({ run }) {
     return run(deployAMM, {
-        ammVersion: 'v2',
-        ref: 'HEAD',
-    });
-};
-Sienna.Deploy.AMM.v1 = function deployAMM_v1({ run }) {
+      ammVersion: 'v2',
+      ref:        'HEAD' }) }
+Sienna.Deploy.AMM.v1 =
+  function deployAMM_v1 ({ run }) {
     return run(deployAMM, {
-        ammVersion: 'v1',
-    });
-};
-Sienna.Deploy.AMM.v2 = function deployAMM_v2({ run }) {
+      ammVersion: 'v1' }) }
+Sienna.Deploy.AMM.v2 =
+  function deployAMM_v2 ({ run }) {
     return run(deployAMM, {
-        ammVersion: 'v2',
-    });
-};
+      ammVersion: 'v2' }) };
 
-Sienna.Deploy.Router = deployRouter;
+Sienna.Deploy.Router = deployRouter
 
-Sienna.Deploy.Rewards = function deployRewards_HEAD({ run }) {
+Sienna.Deploy.Rewards =
+  function deployRewards_HEAD ({ run }) {
     return run(deployRewards, {
-        version: 'v3',
-        adjustRPT: true,
-        ref: 'HEAD',
-    });
-};
-Sienna.Deploy.Rewards.v2 = function deployRewards_v2({ run }) {
+      version:   'v3',
+      adjustRPT: true,
+      ref:       'HEAD' }) }
+Sienna.Deploy.Rewards.v2 =
+  function deployRewards_v2 ({ run }) {
     return run(deployRewards, {
-        version: 'v2',
-        adjustRPT: true,
-    });
-};
-Sienna.Deploy.Rewards.v3 = function deployRewards_v3({ run }) {
+      version:   'v2',
+      adjustRPT: true }) }
+Sienna.Deploy.Rewards.v3 =
+  function deployRewards_v3({ run }) {
     return run(deployRewards, {
-        version: 'v3',
-        adjustRPT: true,
-    });
-};
+      version:   'v3',
+      adjustRPT: true }) }
 
 Sienna.Deploy.Lend = deployLend;
 ```
@@ -216,29 +210,29 @@ Sienna.Deploy.Lend = deployLend;
 ### Upgrading
 
 ```typescript
-Sienna.Upgrade = {};
+Sienna.Upgrade = {}
 
-Sienna.Upgrade.AMM = {};
-Sienna.Upgrade.AMM.v1_to_v2 = function upgradeAMM_v1_to_v2({ run }) {
+Sienna.Upgrade.AMM = {}
+Sienna.Upgrade.AMM.v1_to_v2 =
+  function upgradeAMM_v1_to_v2 ({ run }) {
     return run(upgradeAMM, {
-        vOld: 'v1',
-        vNew: 'v2',
-    });
-};
+      vOld: 'v1'
+      vNew: 'v2' }) }
 
-Sienna.Upgrade.AMM.Factory = {};
-Sienna.Upgrade.AMM.Factory.v1_to_v2 = upgradeAMMFactory_v1_to_v2;
+Sienna.Upgrade.AMM.Factory = {}
+Sienna.Upgrade.AMM.Factory.v1_to_v2 =
+  upgradeAMMFactory_v1_to_v2
 
-Sienna.Upgrade.AMM.Exchanges = {};
-Sienna.Upgrade.AMM.Exchanges.v1_to_v2 = cloneAMMExchanges_v1_to_v2;
+Sienna.Upgrade.AMM.Exchanges = {}
+Sienna.Upgrade.AMM.Exchanges.v1_to_v2 =
+  cloneAMMExchanges_v1_to_v2
 
-Sienna.Upgrade.Rewards = {};
-Sienna.Upgrade.Rewards.v2_to_v3 = function upgradeRewards_v2_to_v3({ run }) {
+Sienna.Upgrade.Rewards = {}
+Sienna.Upgrade.Rewards.v2_to_v3 =
+  function upgradeRewards_v2_to_v3({ run }) {
     return run(upgradeRewards, {
-        vOld: 'v2',
-        vNew: 'v3',
-    });
-};
+       vOld: 'v2'
+       vNew: 'v3' }) }
 ```
 
 </td></tr></table>
@@ -249,63 +243,290 @@ Sienna.Upgrade.Rewards.v2_to_v3 = function upgradeRewards_v2_to_v3({ run }) {
 
 <table><tr><td valign="top">
 
-### Deploying the Sienna TGE
+### Deploying vesting contracts
+
+The **Sienna TGE (Token Generation Event)** is the
+core of the Sienna Platform. It contains a token (SIENNA)
+and two vesting contracts:
+
+* with a complex, permanent schedule **(MGMT, short for Management)**
+* one with a simple, reconfigurable schedule **(RPT, short for Remaining Pool Tokens)**.
+
+The **auxiliary vestings** consist of just the latter two contracts,
+configured to distribute a pre-existing third-party SNIP20 token.
+
+The vesting deployment procedures take the following parameters:
+
+```typescript
+type VestingKind = 'tge' | 'vesting'
+
+export type VestingDeployOptions = {
+  /** Which kind of vesting to deploy **/
+  version: VestingKind
+  /** Address of the admin. */
+  admin:   string
+  /** The schedule for the new MGMT.
+    * Defaults to production schedule. */
+  settings?: { schedule?: typeof settings.schedule }
+}
+```
+
+And add the following items to the migration context:
+
+```typescript
+export type VestingDeployResult = {
+  /** The deployed MGMT contract. */
+  MGMT:   API.MGMTClient
+  /** The deployed RPT contract. */
+  RPT:    API.RPTClient
+} & ({
+  /** The deployed SIENNA SNIP20 token contract. */
+  SIENNA: API.Snip20Client
+} | {
+  /** The deployed SIENNA SNIP20 token contract. */
+  VESTED: API.Snip20Client
+})
+```
+
+</td><td valign="top">
 
 > Run with: `pnpm deploy tge`
 
 ```typescript
-Fadroma.command('tge legacy', ...inNewDeployment, Sienna.Deploy.TGE.tge);
-Fadroma.command('tge vested', ...inNewDeployment, Sienna.Deploy.TGE.vested);
-```
+Fadroma.command('tge',
+  ...inNewDeployment,
+  Sienna.Deploy.TGE)
 
-**The Sienna TGE (Token Generation Event)** is the
-core of the Sienna Platform. It contains a token (SIENNA)
-and two vesting contracts:
-
--   one with a complex, permanent schedule **(MGMT, short for Management)**
--   and one with a simple, reconfigurable schedule **(RPT, short for Remaining Pool Tokens)**.
-
-Its deployment procedure takes the following parameters:
-
-```typescript
-type TGEAPIVersion = 'legacy' | 'vested';
-
-export type TGEDeployOptions = {
-    /** Address of the admin. */
-    admin: string;
-    /** Which version/type to deploy **/
-    version: TGEAPIVersion;
-    /** The schedule for the new MGMT.
-     * Defaults to production schedule. */
-    settings?: { schedule?: typeof settings.schedule };
-};
-```
-
-And adds the following items to the migration context:
-
-```typescript
-export type TGEDeployResult = {
-    /** The deployed SIENNA SNIP20 token contract. */
-    SIENNA: API.Snip20Client;
-
-    /** The deployed MGMT contract. */
-    MGMT: API.MGMTClient;
-    /** The deployed RPT contract. */
-    RPT: API.RPTClient;
-};
+Fadroma.command('vesting',
+  ...inNewDeployment,
+  Sienna.Deploy.Vesting)
 ```
 
 This will create a new deployment
 under `/receipts/$FADROMA_CHAIN/$TIMESTAMP`,
 and deploy just the TGE contracts.
 
+</td></tr><tr><!--spacer--></tr><tr><td valign="top">
+
+```typescript
+import { testers, getRPTAccount } from './Configure'
+import { schedule } from '@sienna/settings'
+
+export async function deployTGE (
+  context: MigrationContext & VestingDeployOptions
+): Promise<VestingDeployResult> {
+
+  const {
+    ref  = versions.HEAD,
+    srcs = sources(ref, contracts.TGE),
+    builder,
+    uploader,
+    templates = await buildAndUploadMany(builder, uploader, srcs)
+    deployment, prefix,
+    agent,
+    settings: { schedule } = getSettings(agent.chain.mode)
+    admin = agent.address,
+  } = context
+
+  // 1. Build and upload the three TGE contracts:
+  const [tokenTemplate, mgmtTemplate, rptTemplate] = templates
+
+  // 2. Instantiate the main token
+  const tokenInitMsg = {
+    name:      "Sienna",
+    symbol:    "SIENNA",
+    decimals:  18,
+    config:    { public_total_supply: true },
+    prng_seed: randomHex(36)
+  }
+  const tokenInstance = await deployment.init(
+    agent, tokenTemplate, 'SIENNA', tokenInitMsg)
+
+  // 3. Mutate the vesting schedule to use
+  // the admin address as a temporary RPT address
+  const tokenLink = linkTuple(tokenInstance)
+  const rptAccount =
+    Object.assign(getRPTAccount(schedule), { address: admin })
+  const portion =
+    rptAccount.portion_size
+
+  // 4. Instantiate the vesting contract (MGMT)
+  const mgmtInitMsg = {
+    admin: admin,
+    token: tokenLink,
+    schedule
+  }
+  const mgmtInstance = await deployment.init(
+    agent, mgmtTemplate, 'MGMT', mgmtInitMsg)
+  const mgmtLink = linkTuple(mgmtInstance)
+
+  // 5. Instantiate the RPT contract
+  const rptInstance = await deployment.init(
+    agent, rptTemplate, 'RPT', {
+      portion,
+      config: [[admin, portion]]
+      token:  tokenLink,
+      mgmt:   mgmtLink,
+    })
+
+  // 6. Set the RPT contract's account in schedule
+  rptAccount.address = rptInstance.address
+  const { isTestnet, isDevnet } = agent.chain
+  await agent.bundle().wrap(async bundle=>{
+
+    // 7. In non-production modes, mint some test tokens
+    //    for the admin and other pre-defined accounts
+    const token = new API.SiennaSnip20Client({
+      ...deployment.get('SIENNA'), agent: bundle
+    })
+
+    if (isTestnet||isDevnet) {
+      console.warn(
+        'Minting some test tokens '         +
+        'for the admin and other testers. ' +
+        '(Only for testnet and devnet!)'
+      )
+      await token.setMinters([admin])
+      for (const addr of [ admin, ...testers ]) {
+        const amount = "5000000000000000000000"
+        console.warn(
+          bold('Minting'), amount, bold('SIENNA'),
+          'to', bold(addr)
+        )
+        await token.mint(amount, admin)
+      }
+    }
+
+    // 8. MGMT becomes admin and sole minter of token,
+    //    takes the final vesting config, and launches
+    const mgmt = new API.MGMTClient({
+      ...deployment.get('MGMT'), agent: bundle
+    })
+    await mgmt.acquire(token)
+    await mgmt.configure(schedule)
+    await mgmt.launch()
+
+  })
+
+  // 9. Return interfaces to the three contracts.
+  //    This will add them to the context for
+  //    subsequent steps. (Retrieves them through
+  //    the Deployment to make sure the receipts
+  //    were saved.)
+  return {
+    SIENNA: deployment.getClient(agent, API.SiennaSnip20Client, 'SIENNA'),
+    MGMT:   deployment.getClient(agent, API.MGMTClient,         'MGMT'),
+    RPT:    deployment.getClient(agent, API.RPTClient,          'RPT'),
+  }
+}
+```
+
 </td><td valign="top">
 
 ```typescript
-import { buildTge, buildRewards } from './Build'
-import { testers, getRPTAccount } from './Configure'
-import { schedule } from '@sienna/settings'
-import { readFileSync } from 'fs'
+export async function deployVesting (
+  context: MigrationContext & TGEDeployOptions
+): Promise<TGEDeployResult> {
+
+  const {
+    ref = versions.HEAD,
+    srcs = sources(ref, contracts.TGE),
+    builder,
+    uploader,
+    templates = await buildAndUploadMany(builder, uploader, srcs)
+    deployment, prefix,
+    agent,
+
+    version,
+    admin = agent.address,
+    settings: { schedule, vesting } = getSettings(agent.chain.mode)
+  } = context
+
+  if(version == 'legacy') {
+    throw new Error("Not implemented");
+  }
+
+  const { isTestnet, isDevnet, isMainnet } = agent.chain
+  const [tokenBuild, mgmtBuild, rptBuild, rewardPoolBuild] = [
+    ...await buildTge(`TGE_${version}`),
+    ...await buildRewards('Rewards_v3')
+  ]
+
+
+  const isVestedProduction = isMainnet && version == 'vested';
+  const isVestedDevTest = !isMainnet && version == 'vested';
+
+  const getUploadBuilds = (version, isProduction) => {
+    if(version == 'legacy') {
+      return [tokenBuild, mgmtBuild, rptBuild]
+    };
+    // else version is 'vested'
+    // only dev version needs mock tokens, while the rest uses third party token
+    const builds = [mgmtBuild, rptBuild, rewardPoolBuild];
+    return isDevnet ? [tokenBuild, ...builds]: builds;
+  }
+  const uploads = await uploader.uploadMany(await getUploadBuilds(version, isMainnet))
+
+  let tokenTemplate, mgmtTemplate, rptTemplate, rewardsTemplate;
+  if (isDevnet) {
+    [tokenTemplate, mgmtTemplate, rptTemplate, rewardsTemplate] = uploads;
+  } else {
+    [mgmtTemplate, rptTemplate, rewardsTemplate] = uploads;
+  }
+
+  //for devnet and testnet create some mock tokens
+  const tokens = isDevnet ?
+    await initMockTokens(deployment,agent, tokenTemplate, vesting) :
+    undefined;
+
+  // generate init messages and save the labels
+  const { configs: mgmtConfigs, labels: mgmtLabels } = await generateMgmtInitMsgs(mgmtTemplate,vesting, admin, tokens))
+  // instantiateMany returns an object with each result under the label as a key
+  const mgmtBundleResults = await agent.instantiateMany(mgmtConfigs, Date.now())
+  // use the presaved labels to extract relevant objects
+  const mgmtInstances = mgmtLabels.map(label => mgmtBundleResults[label])
+
+
+  const { configs: rewardConfigs, labels: rewardsLabels} = await generateRewardsInitMsgs(rewardsTemplate, admin, vesting, tokens);
+  const rewardsBundleResults = await agent.instantiateMany(rewardConfigs, Date.now());
+  const rewardsInstances = rewardsLabels.map(label => rewardsBundleResults[label] );
+
+
+  const { configs: rptConfigs, labels: rptLabels} = await generateRptInitMsgs(rptTemplate, mgmtInstances, admin, vesting, rewardsInstances, tokens);
+  const rptBundleResults = await agent.instantiateMany(rptConfigs, Date.now());
+  const rptInstances = rptLabels.map(label => rptBundleResults[label])
+
+
+  //version is always vested here
+  const mgmtClients = mgmtInstances.map(result => new API.MGMTClient[version]({...result, agent }))
+  const rptClients = rptInstances.map(result => new API.RPTClient[version]({...result, agent }))
+  const tokenClients = tokens?.map(result => new API.SiennaSnip20Client({...result, agent }))
+  const rewardsClients = rewardsInstances.map(result => new API.RewardsClient["v3"]({...result, agent }))
+
+  await agent.bundle().wrap(async bundle => {
+    const mgmtBundleClients = mgmtInstances.map(result => new API.MGMTClient[version]({...result, agent: bundle }))
+    vesting.map(async ({
+      schedule,
+      account
+    }, i) => {
+      const rptInstance = rptInstances[i]
+      const mgmtClient = mgmtBundleClients[i]
+
+      account.address = rptInstance.address
+
+      await mgmtClient.add(schedule.pools[0].name, account)
+    })
+  })
+
+
+
+  return {
+    ...mgmtClients,
+    ...rptClients,
+    tokenClients ? ...tokenClients : undefined,
+    ...rewardsClients
+  }
+}
 
 async function initMockTokens(deployment, agent, tokenTemplate, vesting) {
   const labels = [];
@@ -416,104 +637,6 @@ async function generateRewardsInitMsgs(template, admin, vesting, tokens) {
     })
 
     return { labels, configs }
-}
-
-export async function deployTGE (
-  context: MigrationContext & TGEDeployOptions
-): Promise<TGEDeployResult> {
-
-  const {
-    agent, uploader,
-    version,
-    deployment, prefix,
-    settings: { schedule, vesting } = getSettings(agent.chain.mode)
-    admin = agent.address,
-  } = context
-
-  if(version == 'legacy') {
-    throw new Error("Not implemented");
-  }
-
-  const { isTestnet, isDevnet, isMainnet } = agent.chain
-  const [tokenBuild, mgmtBuild, rptBuild, rewardPoolBuild] = [
-    ...await buildTge(`TGE_${version}`),
-    ...await buildRewards('Rewards_v3')
-  ]
-
-
-  const isVestedProduction = isMainnet && version == 'vested';
-  const isVestedDevTest = !isMainnet && version == 'vested';
-
-  const getUploadBuilds = (version, isProduction) => {
-    if(version == 'legacy') {
-      return [tokenBuild, mgmtBuild, rptBuild]
-    };
-    // else version is 'vested'
-    // only dev version needs mock tokens, while the rest uses third party token
-    const builds = [mgmtBuild, rptBuild, rewardPoolBuild];
-    return isDevnet ? [tokenBuild, ...builds]: builds;
-  }
-  const uploads = await uploader.uploadMany(await getUploadBuilds(version, isMainnet))
-
-  let tokenTemplate, mgmtTemplate, rptTemplate, rewardsTemplate;
-  if (isDevnet) {
-    [tokenTemplate, mgmtTemplate, rptTemplate, rewardsTemplate] = uploads;
-  } else {
-    [mgmtTemplate, rptTemplate, rewardsTemplate] = uploads;
-  }
-
-  //for devnet and testnet create some mock tokens
-  const tokens = isDevnet ?
-    await initMockTokens(deployment,agent, tokenTemplate, vesting) :
-    undefined;
-
-  // generate init messages and save the labels
-  const { configs: mgmtConfigs, labels: mgmtLabels } = await generateMgmtInitMsgs(mgmtTemplate,vesting, admin, tokens))
-  // instantiateMany returns an object with each result under the label as a key
-  const mgmtBundleResults = await agent.instantiateMany(mgmtConfigs, Date.now())
-  // use the presaved labels to extract relevant objects
-  const mgmtInstances = mgmtLabels.map(label => mgmtBundleResults[label])
-
-
-  const { configs: rewardConfigs, labels: rewardsLabels} = await generateRewardsInitMsgs(rewardsTemplate, admin, vesting, tokens);
-  const rewardsBundleResults = await agent.instantiateMany(rewardConfigs, Date.now());
-  const rewardsInstances = rewardsLabels.map(label => rewardsBundleResults[label] );
-
-
-  const { configs: rptConfigs, labels: rptLabels} = await generateRptInitMsgs(rptTemplate, mgmtInstances, admin, vesting, rewardsInstances, tokens);
-  const rptBundleResults = await agent.instantiateMany(rptConfigs, Date.now());
-  const rptInstances = rptLabels.map(label => rptBundleResults[label])
-
-
-  //version is always vested here
-  const mgmtClients = mgmtInstances.map(result => new API.MGMTClient[version]({...result, agent }))
-  const rptClients = rptInstances.map(result => new API.RPTClient[version]({...result, agent }))
-  const tokenClients = tokens?.map(result => new API.SiennaSnip20Client({...result, agent }))
-  const rewardsClients = rewardsInstances.map(result => new API.RewardsClient["v3"]({...result, agent }))
-
-  await agent.bundle().wrap(async bundle => {
-    const mgmtBundleClients = mgmtInstances.map(result => new API.MGMTClient[version]({...result, agent: bundle }))
-    vesting.map(async ({
-      schedule,
-      account
-    }, i) => {
-      const rptInstance = rptInstances[i]
-      const mgmtClient = mgmtBundleClients[i]
-
-      account.address = rptInstance.address
-
-      await mgmtClient.add(schedule.pools[0].name, account)
-    })
-  })
-
-
-
-  return {
-    ...mgmtClients,
-    ...rptClients,
-    tokenClients ? ...tokenClients : undefined,
-    ...rewardsClients
-  }
 }
 
 ```
