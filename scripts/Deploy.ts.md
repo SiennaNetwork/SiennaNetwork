@@ -504,7 +504,7 @@ export async function deployVesting (
       instance => agent.getClient(RewardsClient, instance)
     )
 
-    rptConfigs = generateRptInitMsgs(
+    rptConfigs = generateRptConfigs(
       mgmtInstances,
       admin,
       vesting,
