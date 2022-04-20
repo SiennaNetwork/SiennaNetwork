@@ -162,12 +162,12 @@ const Sienna = {}
 Sienna.Deploy = {}
 
 Sienna.Deploy.TGE =
-  function deployTGE ({ run }) {
-    return run(deployTGE, { version: 'legacy' }) }
+  function deployTGE_HEAD ({ run }) {
+    return run(deployTGE) }
 
 Sienna.Deploy.Vesting =
-  function deployVesting ({ run }) {
-    return run(deployTGE, { version: 'vested' }) }
+  function deployVesting_HEAD ({ run }) {
+    return run(deployVesting) }
 
 Sienna.Deploy.AMM =
   function deployAMM_HEAD ({ run }) {
@@ -452,7 +452,7 @@ export async function deployVesting (
       // build rewards contract from release branch
       sources(versions.Rewards.v3, contracts.Rewards),
       // build a standard token contract for testing
-      isMainnet ? [] : [source(versions.HEAD, source('amm-snip20'))],
+      isMainnet ? [] : [source('amm-snip20')],
     )
 
     MGMTClient    = API.MGMTClient['vesting'],
@@ -480,6 +480,7 @@ export async function deployVesting (
       admin,
       tokens
     ),
+
     mgmtInstances = await deployment.initMany(
       agent,
       templates[0],
