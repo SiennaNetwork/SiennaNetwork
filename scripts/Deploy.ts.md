@@ -1181,7 +1181,7 @@ async function upgradeRewards (
 
 ```typescript
 Fadroma.command("lend",
-  ...inCurrentDeployment,
+  ...inNewDeployment,
   Sienna.Deploy.Lend)
 ```
 
@@ -1228,17 +1228,17 @@ export async function deployLend (
         , deployment, prefix
 
         // Interest model settings:
-        , base_rate_year       =      "0"
+        , base_rate_year       =      "0.2"
         , blocks_year          = 6311520
         , jump_multiplier_year =      "0"
         , jump_threshold       =      "0"
-        , multiplier_year      =      "1"
+        , multiplier_year      =      "0.9"
 
         // Overseer settings:
         , entropy      =  randomHex(36)
         , prng_seed    =  randomHex(36)
         , close_factor =  "0.5"
-        , premium      =  "1"
+        , premium      =  "1.08"
         } = context
 
   const { isDevnet } = agent.chain
@@ -1249,7 +1249,6 @@ export async function deployLend (
     marketTemplate,
     overseerTemplate,
     mockOracleTemplate,
-    tokenTemplate,
   ] = await uploader.uploadMany(await buildLend())
 
   // Define names for deployed contracts
@@ -1259,35 +1258,7 @@ export async function deployLend (
     oracle:        `Lend[${v}].Oracle`,
     mockOracle:    `Lend[${v}].MockOracle`,
     overseer:      `Lend[${v}].Overseer`,
-    token1:        `Lend[${v}].Placeholder.slATOM`,
-    token2:        `Lend[${v}].Placeholder.slSCRT`
   }
-
-  // Deploy placeholder tokens
-  const tokenConfig = {
-    enable_burn: true,
-    enable_deposit: true,
-    enable_mint: true,
-    enable_redeem: true,
-    public_total_supply: true,
-  }
-  const token1 = await deployment.init(
-    deployAgent, tokenTemplate, names.token1, {
-      name:     "slToken1",
-      symbol:   "SLATOM",
-      decimals:  18,
-      prng_seed: randomHex(36),
-      config:    tokenConfig,
-    })
-  const token2 = await deployment.init(
-    deployAgent, tokenTemplate, names.token2, {
-      name:     "slToken2",
-      symbol:   "SLSCRT",
-      decimals:  18,
-      prng_seed: randomHex(36),
-      config:    tokenConfig,
-    })
-
   // Create the interest model
   await deployment.init(
     deployAgent, interestModelTemplate, names.interestModel, {
@@ -1315,8 +1286,8 @@ export async function deployLend (
         id:        Number(oracleTemplate.codeId)
       },
       oracle_source: {
-        code_hash: mockOracle.codeHash,
-        address:   mockOracle.address
+        code_hash: isDevnet ? mockOracle.codeHash : "55f701d7e86ad1758f6a812ac35174a4f911bc9a1e1066c3ca3ee63736408005",
+        address:   isDevnet ? mockOracle.address : "secret150e2n880rvlv9cm6aqsusu40jfl7x5zt6rt7na",
       }
     })
 
@@ -1334,12 +1305,6 @@ export async function deployLend (
     // })
     MOCK_ORACLE:    new API.MockOracleClient({
       ...deployment.get(names.mockOracle),    agent
-    })
-    TOKEN1:         new API.AMMSnip20Client({
-      ...deployment.get(names.token1),        agent
-    })
-    TOKEN2:         new API.AMMSnip20Client({
-      ...deployment.get(names.token2),        agent
     })
   }
 
