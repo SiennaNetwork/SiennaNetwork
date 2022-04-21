@@ -1,7 +1,7 @@
 [package]
 name = "sienna-mgmt"
 version = "3.0.0"
-authors = ["Adam Avramov <adam@hack.bg>", "Wiz1991 <elvis.private20@gmail.com"]
+authors = ["Adam Avramov <adam@hack.bg>", "Wiz1991 <elvis.private20@gmail.com", ivanp <ivanp@nignite.com>]
 edition = "2018"
 
 exclude = [
