@@ -111,11 +111,22 @@ Since the schedule cannot be configured again after launching, to avoid spinning
 * Pools cannot be removed or changed
 * The contract **must** have enough balance to increase the total, else the schedule will not be updated
 
+Steps: 
+1. Send desired amount of tokens to `MGMT`
+2. Send `IncreaseAllocation` message
+3. Update RPT distribution accordingly
+
 After sending over the required tokens, call the `IncreaseAllocation` method as follows: 
 ```bash
 secretcli tx compute execute <address> '{"increase_allocation": { "total_increment": "<amount>", "pool": <new_pool> }}`
 ```
-The pool can be made partial with no accounts since its possible to add accounts to a pool later. 
+> The pool can be made partial with no accounts since its possible to add accounts to a pool later. You can also add 
+
+Pitfalls:
+* To avoid any potential issues, the allocation should be updated before vest is called
+* Distribution in `RPT` also has to be updated right away
+
+In the scenario that the `RPT` is not updated at all or in time, it will have leftover funds which will remain on the contract. The only possible way to take out these tokens then would be to update the distribution accordingly so that the tokens that werent sent, would be sent. This is however prone to error and should be avoided (if the admin makes a mistake in the calculation). 
 
 ## RPT
 Handles the main distribution of the tokens to the relevant pools or users. 
@@ -214,6 +225,7 @@ Vesting configuratin:
         "name": "",
         "rewards": {
             "name": "",
+            "timekeeper": "" // optional, will be ignored if undefined or empty. Do not pass invalid address here!
             "decimals": 18, // based on how the token is configured
             "address": "",
             "code_hash": ""
@@ -268,7 +280,7 @@ Send this message in a transaction from the admin address to the MGMT contract t
 
 ```json
 {"add_account":{"pool":"Investors","account":{"name":"someone","amount":"1000000000000000000","address":"secret1ngfu3dkawmswrpct4r6wvx223f5pxfsryffc7a","start_at":0,"interval":0,"duration":0,"cliff":"1000000000000000000"}}
-```
+```g
 
 </td><td>
 

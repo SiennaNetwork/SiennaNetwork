@@ -542,10 +542,6 @@ export async function deployVesting (
       await mgmtBundleClients[i].add(schedule.pools[0].name, account)
     }))
   })
-  console.log("%o",generateRewardsConfigs(
-      admin,
-      vesting,
-      tokens))
 
   return {
     mgmtClients,
