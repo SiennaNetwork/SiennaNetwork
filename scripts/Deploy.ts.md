@@ -1483,7 +1483,6 @@ export async function deployLend (
         } = context
 
   const { isDevnet } = agent.chain
-  console.log(templates);
 
   const [
     interestModelTemplate,
