@@ -3,7 +3,7 @@
 /// Create an error result
 #[macro_export] macro_rules! Error {
     ($msg:expr) => {
-        Err(cosmwasm_std::StdError::GenericErr {
+        Err(fadroma::cosmwasm_std::StdError::GenericErr {
             msg: $msg.to_string(),
             backtrace: None //Some(snafu::Backtrace::generate())
         })
@@ -21,7 +21,7 @@
     )*) => {
         $( impl $(<$G$(:$GG)?>)? $Struct $(<$G>)? { $(
             #[doc=$format]
-            pub fn $name<T> ($(&$self,)? $($arg : $type),*) -> cosmwasm_std::StdResult<T> {
+            pub fn $name<T> ($(&$self,)? $($arg : $type),*) -> fadroma::cosmwasm_std::StdResult<T> {
                 Error!(format!($format $(, $var)*))
             }
         )* } )*

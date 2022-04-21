@@ -1,7 +1,10 @@
 //! Minimal KV store that passes `serde_json_wasm` serialization
 
 use std::mem::replace;
-use cosmwasm_std::{StdResult, Api, HumanAddr, CanonicalAddr};
+use fadroma::{
+    schemars,
+    cosmwasm_std::{StdResult, Api, HumanAddr, CanonicalAddr}
+};
 
 /// Just a wrapped `Vec` with `get` and `insert` methods.
 ///

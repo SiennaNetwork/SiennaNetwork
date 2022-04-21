@@ -1,63 +1,8 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Handle",
+  "title": "HandleMsg",
   "anyOf": [
     {
-      "description": "Set the contract status. Used to pause the contract operation in case of errors, and to initiate a migration to a fixed version of the contract.",
-      "type": "object",
-      "required": [
-        "set_status"
-      ],
-      "properties": {
-        "set_status": {
-          "type": "object",
-          "required": [
-            "level",
-            "reason"
-          ],
-          "properties": {
-            "level": {
-              "$ref": "#/definitions/ContractStatusLevel"
-            },
-            "new_address": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/HumanAddr"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "reason": {
-              "type": "string"
-            }
-          }
-        }
-      }
-    },
-    {
-      "description": "The current admin can make someone else the admin.",
-      "type": "object",
-      "required": [
-        "set_owner"
-      ],
-      "properties": {
-        "set_owner": {
-          "type": "object",
-          "required": [
-            "new_admin"
-          ],
-          "properties": {
-            "new_admin": {
-              "$ref": "#/definitions/HumanAddr"
-            }
-          }
-        }
-      }
-    },
-    {
-      "description": "Load a new schedule (only before launching the contract)",
       "type": "object",
       "required": [
         "configure"
@@ -77,7 +22,6 @@
       }
     },
     {
-      "description": "Add a new account to a partially filled pool",
       "type": "object",
       "required": [
         "add_account"
@@ -101,7 +45,6 @@
       }
     },
     {
-      "description": "An instance can be launched only once. Launching the instance mints the total tokens as specified by the schedule, and prevents any more tokens from ever being minted by the underlying contract.",
       "type": "object",
       "required": [
         "launch"
@@ -113,7 +56,6 @@
       }
     },
     {
-      "description": "After launch, recipients can call the Claim method to receive the gains that they have accumulated so far.",
       "type": "object",
       "required": [
         "claim"
@@ -121,6 +63,28 @@
       "properties": {
         "claim": {
           "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "admin"
+      ],
+      "properties": {
+        "admin": {
+          "$ref": "#/definitions/HandleMsg"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "killswitch"
+      ],
+      "properties": {
+        "killswitch": {
+          "$ref": "#/definitions/HandleMsg"
         }
       }
     }
@@ -187,12 +151,38 @@
         }
       }
     },
-    "ContractStatusLevel": {
-      "type": "string",
-      "enum": [
-        "Operational",
-        "Paused",
-        "Migrating"
+    "HandleMsg": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "change_admin"
+          ],
+          "properties": {
+            "change_admin": {
+              "type": "object",
+              "required": [
+                "address"
+              ],
+              "properties": {
+                "address": {
+                  "$ref": "#/definitions/HumanAddr"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "accept_admin"
+          ],
+          "properties": {
+            "accept_admin": {
+              "type": "object"
+            }
+          }
+        }
       ]
     },
     "HumanAddr": {

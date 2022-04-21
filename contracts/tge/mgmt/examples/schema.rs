@@ -1,7 +1,7 @@
-use cosmwasm_schema::{export_schema, remove_schemas, schema_for};
+use fadroma::cosmwasm_schema::{export_schema, remove_schemas, schema_for};
 use std::fs::create_dir_all;
 
-use sienna_mgmt::msg as mgmt;
+use sienna_mgmt as mgmt;
 
 fn main() {
     let mut out_dir = std::path::PathBuf::from(file!());
@@ -11,8 +11,6 @@ fn main() {
     create_dir_all(&out_dir).unwrap();
     remove_schemas(&out_dir).unwrap();
 
-    export_schema(&schema_for!(mgmt::Init), &out_dir);
-    export_schema(&schema_for!(mgmt::Handle), &out_dir);
-    export_schema(&schema_for!(mgmt::Query), &out_dir);
-    export_schema(&schema_for!(mgmt::Response), &out_dir);
+    export_schema(&schema_for!(mgmt::InitMsg), &out_dir);
+    export_schema(&schema_for!(mgmt::HandleMsg), &out_dir);
 }

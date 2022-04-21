@@ -11,6 +11,7 @@
     "./contracts/lend/*",
     "./contracts/tge/*",
     "./deps/*",
+    "./deps/fadroma/deps/*",
     "./frontends/*",
     "./libraries/schedule",
     "./receipts",
@@ -28,7 +29,7 @@
     "dev": "fadroma scripts/README.md",
     "ops": "fadroma scripts/README.md",
 
-    "build":    "fadroma scripts/Build.ts.md",
+    "build":    "fadroma build scripts/Build.ts.md",
     "chain":    "fadroma scripts/Chain.ts.md",
     "deploy":   "fadroma scripts/Deploy.ts.md",
     "fix":      "fadroma scripts/Fix.ts.md",
