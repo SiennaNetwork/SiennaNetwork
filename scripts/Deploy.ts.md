@@ -542,6 +542,10 @@ export async function deployVesting (
       await mgmtBundleClients[i].add(schedule.pools[0].name, account)
     }))
   })
+  console.log("%o",generateRewardsConfigs(
+      admin,
+      vesting,
+      tokens))
 
   return {
     mgmtClients,
@@ -605,7 +609,8 @@ export function generateRewardsConfigs (admin, vesting, tokens) {
       admin,
       config: {
         lp_token:     linkStruct(tokens[i] || lp),
-        reward_token: linkStruct(tokens[i] || rewards)
+        reward_token: linkStruct(tokens[i] || rewards),
+        ...(rewards.timekeeper && { timekeeper: rewards.timekeeper })
       }
     }
   ])
