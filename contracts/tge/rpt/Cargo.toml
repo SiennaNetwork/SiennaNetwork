@@ -1,28 +1,22 @@
 [package]
 name = "sienna-rpt"
-version = "1.0.0"
-authors = ["Adam Avramov <adam@hack.bg>"]
+version = "2.0.0"
+authors = ["Adam Avramov <adam@hack.bg>", "Wiz1991 <elvis.private20@gmail.com"]
 edition = "2018"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
+path = "src/lib.rs"
 doctest = false
 
 [dependencies]
-cosmwasm-schema  = { git = "https://github.com/hackbg/SecretNetwork", tag = "v1.0.0" }
-cosmwasm-std     = { git = "https://github.com/hackbg/SecretNetwork", tag = "v1.0.0" }
-cosmwasm-storage = { git = "https://github.com/hackbg/SecretNetwork", tag = "v1.0.0" }
-fadroma          = { git = "https://github.com/hackbg/fadroma", branch = "21.05.2" }
-linear-map       = { path = "../../../libraries/linear-map" }
-schemars         = "0.7"
-secret-toolkit   = { git = "https://github.com/hackbg/secret-toolkit", tag = "legacy-mgmt" }
-serde            = { version = "1.0.103", default-features = false, features = ["derive"] }
-sienna-mgmt      = { path = "../mgmt" }
-sienna-migrate   = { path = "../../../libraries/migrate" }
+fadroma = { path = "../../../deps/fadroma/crates/fadroma", features = [
+  "derive",
+] }
+serde = { version = "1.0.103", default-features = false, features = ["derive"] }
+linear-map = { path = "../../../libraries/linear-map" }
+sienna-mgmt = { path = "../mgmt" }
 
-fadroma-bind-js = { optional = true, path = "../../../deps/fadroma/crates/fadroma-bind-js" }
-wasm-bindgen    = { optional = true, version = "0.2" }
-js-sys          = { optional = true, version = "0.3.55" }
 
 [dev-dependencies]
 kukumba = { git = "https://github.com/hackbg/kukumba", branch = "21.04" }
@@ -30,10 +24,3 @@ snip20-sienna = { path = "../snip20-sienna" }
 
 [features]
 default = []
-# this allows the contract to be build for a mock environment
-# that is hosted in a browser. allows dashboard and fast integration tests
-browser = [
-  "fadroma-bind-js",
-  "wasm-bindgen", "wasm-bindgen/serde-serialize", "js-sys",
-  "sienna-mgmt/browser", "sienna-mgmt/apionly"
-]

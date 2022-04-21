@@ -1,8 +1,7 @@
-use cosmwasm_schema::{export_schema, remove_schemas, schema_for};
 use std::fs::create_dir_all;
 
-use sienna_rpt::msg as rpt;
-
+use fadroma::{export_schema, remove_schemas, schema_for};
+use sienna_rpt::{HandleMsg, InitMsg, QueryMsg};
 fn main() {
     let mut out_dir = std::path::PathBuf::from(file!());
     out_dir.pop();
@@ -11,8 +10,7 @@ fn main() {
     create_dir_all(&out_dir).unwrap();
     remove_schemas(&out_dir).unwrap();
 
-    export_schema(&schema_for!(rpt::Init), &out_dir);
-    export_schema(&schema_for!(rpt::Handle), &out_dir);
-    export_schema(&schema_for!(rpt::Query), &out_dir);
-    export_schema(&schema_for!(rpt::Response), &out_dir);
+    export_schema(&schema_for!(InitMsg), &out_dir);
+    export_schema(&schema_for!(HandleMsg), &out_dir);
+    export_schema(&schema_for!(QueryMsg), &out_dir);
 }

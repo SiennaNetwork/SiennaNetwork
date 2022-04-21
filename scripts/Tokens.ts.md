@@ -84,7 +84,7 @@ the "official" testnet tokens.
 
 ```typescript
 import { randomHex } from '@hackbg/fadroma'
-import { getSources } from './Build'
+import { source, sources, versions, contracts } from './Build'
 
 /** Get a collection of the placeholder tokens to use on devnet. */
 export async function getOrCreatePlaceholderTokens (context: MigrationContext & {
@@ -104,7 +104,7 @@ export async function getOrCreatePlaceholderTokens (context: MigrationContext & 
     placeholders = getSettings(chain.mode).placeholderTokens,
     knownTokens  = {}
     builder      = new Scrt_1_2.Builder()
-    template     = await uploader.upload(await builder.build(getSources()['amm-snip20']))
+    template     = await uploader.upload(await builder.build(source('amm-snip20')))
     admin        = clientAgent.address,
   } = context
 

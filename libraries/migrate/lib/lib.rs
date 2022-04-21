@@ -1,6 +1,9 @@
-use cosmwasm_std::{StdResult, StdError, HumanAddr};
+use fadroma::{
+    schemars,
+    schemars::JsonSchema,
+    cosmwasm_std::{StdResult, StdError, HumanAddr}
+};
 use serde::{Serialize, Deserialize};
-use schemars::JsonSchema;
 
 #[derive(Serialize, Deserialize, JsonSchema, PartialEq, Debug, Clone)]
 pub enum ContractStatusLevel {

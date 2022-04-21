@@ -32,7 +32,7 @@ impl<A: Clone> Pool<A> {
 #[cfg(test)]
 mod tests {
     #![allow(non_snake_case)]
-    use cosmwasm_std::HumanAddr;
+    use fadroma::cosmwasm_std::HumanAddr;
     use crate::{Schedule, Pool, Account};
     #[test] fn test_add_to_full () {
         let Alice = HumanAddr::from("Alice");

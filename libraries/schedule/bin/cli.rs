@@ -30,7 +30,7 @@ fn main () -> Result<(), std::io::Error> {
                     println!("* Cliff: **{} attoSIENNA**", &account.cliff);
                     println!("* Portion size: **{} attoSIENNA**", &account.portion_size());
                     println!("* Portion count: **{}**\n", &account.portion_count());
-                    let mut portion = if account.cliff > cosmwasm_std::Uint128::zero() { -1 } else { 0 };
+                    let mut portion = if account.cliff > fadroma::Uint128::zero() { -1 } else { 0 };
                     let mut balance = 0u128;
                     println!("|portion #|day|unlocked amount (attoSIENNA)|");
                     println!("|:-:|:-:|--:|");
@@ -58,6 +58,6 @@ fn main () -> Result<(), std::io::Error> {
 
 }
 
-fn get_schedule (path: &str) -> Result<Schedule<HumanAddr>, serde_json_wasm::de::Error> {
+fn get_schedule (path: &str) -> Result<Schedule<fadroma::HumanAddr>, serde_json_wasm::de::Error> {
     from_str(&read_to_string(Path::new(path)).unwrap())
 }

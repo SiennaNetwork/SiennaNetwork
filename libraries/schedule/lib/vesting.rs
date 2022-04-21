@@ -102,7 +102,7 @@ impl<A> Account<A> {
 #[cfg(test)]
 mod tests {
     #![allow(non_snake_case)]
-    use cosmwasm_std::HumanAddr;
+    use fadroma::cosmwasm_std::HumanAddr;
     use crate::{Schedule, Pool, Account, vesting::Vesting};
     #[test] fn blank () {
         // some imaginary people:

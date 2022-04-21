@@ -9,11 +9,13 @@
 ///   * If `partial` is true, `Account`s can be at runtime, up to the total.
 ///   * Otherwise, requires `Account`s to add up to exactly the total in order to pass validation.
 /// * `Account`: subdivision of a `Pool` (corresponds to `Channel`+`Periodic` from v1)
+use fadroma::{
+    schemars,
+    schemars::JsonSchema,
+    cosmwasm_std::{Uint128, StdResult}
+};
 
-use schemars::JsonSchema;
 use serde::{Serialize, Deserialize};
-//use snafu::GenerateBacktrace;
-pub use cosmwasm_std::{Uint128, HumanAddr, StdResult, StdError};
 
 pub mod errors; pub use errors::*;
 pub mod canon; pub use canon::*;
@@ -37,6 +39,7 @@ pub struct Schedule<A:Clone> {
     pub total:   Uint128,
     pub pools:   Vec<Pool<A>>,
 }
+
 impl<A:Clone> Schedule<A> {
     pub fn new (pools: &[Pool<A>]) -> Self {
         let mut s = Schedule { total: Uint128::zero(), pools: pools.to_vec() };
@@ -61,6 +64,7 @@ pub struct Pool<A> {
     pub total:    Uint128,
     pub accounts: Vec<Account<A>>,
 }
+
 impl<A:Clone> Pool<A> {
     pub fn partial (name: &str, total: u128, accounts: &[Account<A>]) -> Self {
         let accounts = accounts.to_vec();

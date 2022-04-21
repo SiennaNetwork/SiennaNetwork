@@ -1,4 +1,6 @@
-# Sienna TGE/Vesting
+# Sienna TGE
+
+For vesting version check [Vesting.md](./VESTING.md)
 
 * [Contents](#contents) of this directory
 * [Compile for production](#compile-for-production)

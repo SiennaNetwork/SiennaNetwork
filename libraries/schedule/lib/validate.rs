@@ -69,7 +69,7 @@ impl<A:Clone> Validation for Account<A> {
 #[cfg(test)]
 mod tests {
     #![allow(non_snake_case)]
-    use cosmwasm_std::HumanAddr;
+    use fadroma::cosmwasm_std::HumanAddr;
     use crate::{Schedule, Pool, Account, validate::Validation};
     #[test] fn test_amount_eq_zero () {
         let A = Account::periodic("A", &HumanAddr::from(""), 0, 0, 0, 0, 0);
