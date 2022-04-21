@@ -87,7 +87,8 @@ contracts.all = [...new Set([
 export const versions = {
   HEAD:    'HEAD',
   AMM:     { v1: 'legacy/amm-v1', v2: 'legacy/amm-v2-rewards-v3' },
-  Rewards: { v2: 'legacy/rewards-v2', v3: 'legacy/amm-v2-rewards-v3' }
+  Rewards: { v2: 'legacy/rewards-v2', v3: 'legacy/amm-v2-rewards-v3' },
+  TGE:     { vest: 'HEAD', legacy: 'c34bfbcfe' } // TOOO: Is this the correct commit for legacy deploy? 
 }
 ```
 
@@ -179,6 +180,8 @@ build['amm_v2']    = () => sources(versions.AMM.v2, contracts.AMM)
 build['lend']      = () => sources(versions.HEAD, contracts.Lend)
 build['router']    = () => sources(versions.HEAD, contracts.AMM, contracts.Router, contracts.Tokens)
 build['launchpad'] = () => sources(versions.HEAD, contracts.Launchpad)
+build['vesting']   = () => sources(versions.TGE.vest, contracts.TGE)
+build['tge']       = () => sources(versions.TGE.legacy, contracts.TGE)
 ```
 
 ## Special case: building the templates for the AMM Factory
