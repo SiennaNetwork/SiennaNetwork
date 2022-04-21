@@ -280,7 +280,7 @@ Send this message in a transaction from the admin address to the MGMT contract t
 
 ```json
 {"add_account":{"pool":"Investors","account":{"name":"someone","amount":"1000000000000000000","address":"secret1ngfu3dkawmswrpct4r6wvx223f5pxfsryffc7a","start_at":0,"interval":0,"duration":0,"cliff":"1000000000000000000"}}
-```g
+```
 
 </td><td>
 
