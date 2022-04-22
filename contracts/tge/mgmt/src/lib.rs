@@ -266,6 +266,8 @@ pub trait Mgmt {
                 schedule.total
             )));
         }
+        
+        Config::save_schedule(deps, schedule.humanize(&deps.api)?)?;
 
         Ok(HandleResponse::default())
     }
