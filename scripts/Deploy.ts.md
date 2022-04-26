@@ -118,7 +118,8 @@ you can add to the start of your command. Invoking either of them populates the
 
 ```typescript
 Fadroma.command('new',
-  Fadroma.Deploy.New)
+  Fadroma.Deploy.New
+)
 
 const inNewDeployment = [
   ...canBuildAndUpload,
@@ -126,7 +127,9 @@ const inNewDeployment = [
 ]
 
 Fadroma.command('select',
-  Fadroma.Deploy.Select)
+  Fadroma.Chain.FromEnv,
+  Fadroma.Deploy.Select
+)
 
 const inCurrentDeployment = [
   ...canBuildAndUpload,
