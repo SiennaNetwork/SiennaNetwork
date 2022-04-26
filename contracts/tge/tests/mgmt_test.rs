@@ -403,8 +403,6 @@ fn can_increase_allocation() {
         .execute(&mgmt::HandleMsg::Claim {}, tge.get_mgmt_env(claimant))
         .unwrap();
 
-   
-
     tge.ensemble
         .execute(
             &mgmt::HandleMsg::IncreaseAllocation {
@@ -414,4 +412,11 @@ fn can_increase_allocation() {
             tge.get_mgmt_env_as_admin(),
         )
         .unwrap();
+
+    let schedule: Schedule<HumanAddr> = tge
+        .ensemble
+        .query(tge.mgmt.address, mgmt::QueryMsg::Schedule {})
+        .unwrap();
+
+    assert_eq!(schedule.pools[1].name, "allocated_new")
 }
