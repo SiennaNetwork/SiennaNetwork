@@ -1,5 +1,21 @@
 # Building the Sienna smart contracts
 
+> **Build command:** [@fadroma/cli/build](https://github.com/hackbg/fadroma/blob/v100/packages/commands/build.ts)
+> **Source and Artifact types:** [@fadroma/ops/Core](https://github.com/hackbg/fadroma/blob/v100/packages/ops/Core.ts)
+> **General builder logic:** [@fadroma/ops/Build](https://github.com/hackbg/fadroma/blob/v100/packages/ops/Build.ts)
+> **Secret Network builder logic:** [@fadroma/scrt/ScrtBuild](https://github.com/hackbg/fadroma/blob/v100/packages/scrt/ScrtBuild.ts)
+
+## Build artifact caching
+
+Builds create pairs of `contract@commit.wasm` and `contract@commit.wasm.sha256` files
+under `artifacts/`. The `.wasm` file is called a **build artifact** and the `.wasm.sha256`
+file is called an **artifact checksum file**.
+
+**If a corresponding `.wasm` file is present, building that contract from that commit becomes a no-op,
+even if the source has changed.**
+
+* **Env var:** `FADROMA_BUILD_ALWAYS`: set this to a non-empty value to always rebuild the contracts.
+
 ## Overview and usage
 
 The command **`pnpm -w build`** prints all the available [*build sets*](#build-sets).

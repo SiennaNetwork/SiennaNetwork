@@ -1,84 +1,64 @@
-# Sienna Scripts: Deploy
+# Deploying contracts
 
-> Run me with `pnpm deploy` or `pnpm -w deploy`
+|                     |                                   |
+| ------------------- | --------------------------------- |
+| **Entry point:**    | `pnpm deploy` or `pnpm -w deploy` |
+| **Overview:**       | [./Deployment](./Deployment)      |
+| **Implementation:** | [@fadroma/ops/Deploy](https://github.com/hackbg/fadroma/blob/v100/packages/ops/Deploy.ts)              |
+| **Specification:**  | [@fadroma/ops/Deploy.spec](https://github.com/hackbg/fadroma/blob/v100/packages/ops/Deploy.spec.ts.md) |
 
 ```typescript
-import Fadroma, {
-  Console, bold, colors, timestamp, print, randomHex,
-  MigrationContext, buildAndUpload, buildAndUploadMany
-} from '@hackbg/fadroma'
+import Fadroma, { Console } from '@hackbg/fadroma'
+const console = new Console('Sienna Deploy')
+```
 
-const console = new Console('@sienna/scripts/Deploy')
+Some shorthands that will be used below:
 
-import * as API from '@sienna/api'
-import getSettings, { ONE_SIENNA } from '@sienna/settings'
-import { versions, contracts, source, sources } from './Build'
-
+```typescript
 const linkTuple      = instance => [instance.address, instance.codeHash]
 const linkStruct     = instance => ({ address: instance?.address,  code_hash: instance?.codeHash.toUpperCase() })
 const templateStruct = template => ({ id: Number(template.codeId), code_hash: template.codeHash.toUpperCase()  })
 ```
 
+# Overview of build/upload/deploy workflow
+
 <table><tr><td valign="top">
 
-## Command system overview
+```typescript
+import { MigrationContext, buildAndUpload, buildAndUploadMany } from '@hackbg/fadroma'
+import * as API from '@sienna/api'
+import getSettings, { ONE_SIENNA } from '@sienna/settings'
+import { versions, contracts, source, sources } from './Build'
+```
 
-This script manages the deployments using the Fadroma command system,
-implemented in `@fadroma/cli`.
+The implementation of each deployment procedure is an `async function`
+which takes a single argument, the `MigrationContext`, and performs
+build, upload, and init/handle/query operations by means of the entries
+of the migration context.
 
-> See also: [@fadroma/cli/index.ts](https://github.com/hackbg/fadroma/blob/v100/packages/cli/index.ts)
+* `chain` and `agent`
+* `builder` and `uploader`
+* `deployment` and `prefix`
 
-Each call to `Fadroma.command('name', ...steps)` binds
-one or more build steps to a command accessible from the terminal.
-The steps are async functions that are run sequentially.
-The paramerer, `context`, is populated from the return values
-of previous build steps.
+The migration context is populated by Each deploy command in this file begins by invoking
+four pre-defined steps from Fadroma that populate
+the `chain`, `agent`, `builder`, `uploader`, `deployment` and `prefix`
+keys of the `MigrationContext` for subsequent command steps.
 
-</td><td valign="top">
-
-</td></tr><tr><!--spacer--></tr><tr><td valign="top">
-
-### Building and uploading
-
-Each deploy command in this file begins by invoking
-three pre-defined steps from Fadroma that populate
-the `chain`, `agent`, `builder`, and `uploader` keys
-of the `MigrationContext` for subsequent command steps.
-
-The `chain` and `agent` are taken from the environment (or `.env` file).
-
-> Set the `FADROMA_CHAIN` environment variable to choose between
-> `Scrt_1_2_Devnet`, `Scrt_1_2_Testnet` and `Scrt_1_2_Mainnet`
-> as the target of these commands.
+The `chain` and `agent` are taken from the environment (or `.env` file):
+* **Env var:** `FADROMA_CHAIN`:       select mainnet, testnet, or devnet
+* **Env var:** `SCRT_AGENT_MNEMONIC`: mnemonic of wallet used for deploy
 
 The `builder` and `uploader` objects allow the source code of the contracts
 to be reproducibly compiled and uploaded to the selected blockchain.
-
-Builds create `.wasm` and `.wasm.sha256` files under `artifacts/`.
-If a `.wasm` file for a contract is present, building that
-contract becomes a no-op.
-
-> Set the `FADROMA_BUILD_ALWAYS` environment variable to always rebuild
-> the contracts.
-
-> See also: [@fadroma/ops/Build.ts](https://github.com/hackbg/fadroma/blob/v100/packages/ops/Build.ts)
-
-Uploads create `.json` files under `receipts/$FADROMA_CHAIN/uploads`.
-If a upload receipt's code hash matches the one in the `.wasm.sha256`
-for the corresponding contract, the upload becomes a no-op.
-
-> Set the `FADROMA_UPLOAD_ALWAYS` environment variable to always reupload
-> the compiled contracts.
-
-> See also: [@fadroma/ops/Upload.ts](https://github.com/hackbg/fadroma/blob/v100/packages/ops/Upload.ts)
+* **See [./Build](./Build.ts.md)** for info about how contracts are built.
+* **See [./Upload](./Upload.ts.md)** for info about how contracts are uploaded.
 
 </td><td valign="top">
 
 Adding `...canBuildAndUpload` to the start of a command
-enables building and uploading contracts from local sources for Secret Network 1.2.
-
-The connection variant (mainnet, testnet or devnet) is set via the
-`FADROMA_CHAIN` enviornment variable.
+enables building and uploading contracts: *from* local sources
+and *for* Secret Network 1.2.
 
 ```typescript
 const canBuildAndUpload = [
@@ -86,62 +66,25 @@ const canBuildAndUpload = [
   Fadroma.Build.Scrt_1_2,
   Fadroma.Upload.FromFile,
 ]
-```
-
-</td></tr><tr><!--spacer--></tr><tr><td valign="top">
-
-### Deploying
-
-> See also: [@fadroma/ops/Deploy.ts](https://github.com/hackbg/fadroma/blob/v100/packages/ops/Deploy.ts)
-
-The Sienna platform consists of multiple smart contracts that
-depend on each other's existence and configuration. A group of
-such contracts is called a **Deployment**.
-
-The `Deployment` is represented by a `.yml` file
-under `receipts/$FADROMA_CHAIN/deployments/`.
-The deployment file contains **Receipts** -
-snippets of YAML containing info about each contract.
-
-Each command may start a new Deployment, or append to the one that is currently selected.
-This is represented by the `Fadroma.Deploy.New` and `Fadroma.Deploy.Append` steps which
-you can add to the start of your command. Invoking either of them populates the
-`deployment` and `prefix` keys in the `MigrationContext` for subsequent steps.
-
-* Use `Fadroma.Deploy.New` when you want to start from a clean slate.
-  It will create a new deployment under `/receipts/$FADROMA_CHAIN/$TIMESTAMP`.
-
-* Use `Fadroma.Deploy.Append` when you want to add contracts to an
-  existing deployment.
-
-</td><td valign="top">
-
-```typescript
-Fadroma.command('new',
-  Fadroma.Deploy.New
-)
-
 const inNewDeployment = [
   ...canBuildAndUpload,
   Fadroma.Deploy.New
 ]
-
-Fadroma.command('select',
-  Fadroma.Chain.FromEnv,
-  Fadroma.Deploy.Select
-)
-
 const inCurrentDeployment = [
   ...canBuildAndUpload,
   Fadroma.Deploy.Append
 ]
 ```
 
-</td></tr></table>
+</td></tr><tr><!--spacer--></tr></table>
 
-## Pre-configured command steps
+# Pre-configured command steps
 
-<table><tr><td valign="top">
+> **See also:** [How commands work](./README#how-commands-work)
+
+```typescript
+const Sienna = {}
+```
 
 This is a collection of shorthands for pre-configured procedures,
 out of which the [deployment commands](#deployment-command-definitions) are composed.
@@ -150,14 +93,10 @@ The `function` syntax is used here to give proper `name`s
 to the pre-configured procedures, so that they can be printed
 to the console by the command runner.
 
-The implementations of these procedures follow below.
-Thank Eich for **hoisting**!
+The implementations of these procedures follow [*below*](#deploying-stages-of-the-project) -
+see [MDN: Function hoisting](https://developer.mozilla.org/en-US/docs/Glossary/Hoisting)
 
-```typescript
-const Sienna = {}
-```
-
-</td><td valign="top">
+<table><tr><!--spacer--></tr><tr><td valign="top">
 
 ### Deploying
 
@@ -207,9 +146,9 @@ Sienna.Deploy.Rewards.v3 =
 
 Sienna.Deploy.Lend = deployLend;
 
-Sienna.Deploy.NewToken = function new_token({ run }) {
-  return run(deployToken)
-}
+Sienna.Deploy.NewToken =
+  function deployNewToken ({ run }) {
+    return run(deployToken) }
 ```
 
 </td><td valign="top">
@@ -244,13 +183,11 @@ Sienna.Upgrade.Rewards.v2_to_v3 =
 
 </td></tr></table>
 
-> See: [Implementations of deployment and upgrade procedures](#implementations-of-deployment-and-upgrade-procedures)
-
-## Deploying individual stages of the project
+# Deploying stages of the project
 
 <table><tr><td valign="top">
 
-### Deploying vesting contracts
+## Deploying vesting contracts
 
 The **Sienna TGE (Token Generation Event)** is the
 core of the Sienna Platform. It contains a token (SIENNA)
@@ -322,6 +259,8 @@ and deploy just the TGE contracts.
 </td></tr><tr><!--spacer--></tr><tr><td valign="top">
 
 ```typescript
+import { bold, randomHex, buildAndUploadMany } from '@hackbg/fadroma'
+import { buildAndUpload } from '@hackbg/fadroma'
 import { testers, getRPTAccount } from './Configure'
 import { schedule } from '@sienna/settings'
 
@@ -650,7 +589,10 @@ async function deployToken(
   const indexName = cmdArgs.indexOf('name')
 
   if(indexDecimals == -1 || indexSymbol == -1 || indexName == -1) {
-    console.error('Need \"symbol\", \"name\" and \"decimals\" arguments. Example: pnpm deploy token symbol SCRT name SecretSCRT decimals 6')
+    console.error(
+      'Need \"symbol\", \"name\" and \"decimals\" arguments. '+
+      'Example: '+
+      '  pnpm deploy token symbol SCRT name SecretSCRT decimals 6')
 
     process.exit(0)
   }
@@ -772,6 +714,7 @@ as compared by `TOKEN0` and `TOKEN1`.
 </td><td valign="top">
 
 ```typescript
+import { buildAndUpload } from '@hackbg/fadroma'
 import { buildAMMTemplates } from './Build'
 import { uploadAMMTemplates } from './Upload'
 import * as Tokens from './Tokens'
