@@ -630,7 +630,7 @@ Fadroma.command(
 
 async function deployToken(
   context: MigrationContext
-): THIS_CAN_BE_LITERALLY_ANYTHING_WHERE_IS_TS {
+): TS_HAS_FORSAKEN_US {
   if(context.chain.isMainnet) {
     console.error('This command is for devnet and testnet only.')
 
