@@ -1,9 +1,11 @@
 [
     {
         "name": "Alter",
-        "rewards": {
+        
+        "rewards": {   
             "name": "Alter",
             "decimals": 6,
+            "timekeeper": "", 
             "address": "secret1vhfpcn5l0m9t0tsdheewzjfdzf5hw4vsww9t5n",
             "code_hash": "D4F32C1BCA133F15F69D557BD0722DA10F45E31E5475A12900CA1E62E63E8F76"
         },
@@ -39,6 +41,7 @@
         "rewards": {
             "name": "Shade",
             "decimals": 8,
+            "timekeeper": "",
             "address": "secret19ymc8uq799zf36wjsgu4t0pk8euddxtx5fggn8",
             "code_hash": "5266A630E2B8EF910FB2515E1D3B5BE95D4BD48358732788D8FCD984EE966BC1"
         },
