@@ -96,17 +96,23 @@ export async function getOrCreatePlaceholderTokens (context: MigrationContext & 
   /** Template for placeholder token. Default: AMMSnip20 */
   template:     Template
 }): Promise<SupportedTokens> {
-
   const {
-    chain, deployAgent, clientAgent,
+    chain,
+    deployAgent,
+    clientAgent,
     uploader,
     deployment,
-    placeholders = getSettings(chain.mode).placeholderTokens,
     knownTokens  = {}
     builder      = new Scrt_1_2.Builder()
     template     = await uploader.upload(await builder.build(source('amm-snip20')))
     admin        = clientAgent.address,
   } = context
+
+  if (!context.placeholders || Object.keys(context.placeholders).length == 0) {
+    context.placeholders = getSettings(chain.mode).placeholderTokens
+  }
+
+  const placeholders = context.placeholders
 
   // 1. Iterate over the list of placeholders in the settings,
   //    and collect the ones to be created in the following array:
@@ -114,7 +120,10 @@ export async function getOrCreatePlaceholderTokens (context: MigrationContext & 
   for (const [_, {label, initMsg}] of Object.entries(placeholders)) {
 
     // Tokens are keyed by symbol.
-    const { symbol } = initMsg
+    const {
+      symbol,
+      decimals
+    } = initMsg
 
     // If the token is already in the collection, do nothing.
     if (knownTokens[symbol]) {
@@ -127,8 +136,10 @@ export async function getOrCreatePlaceholderTokens (context: MigrationContext & 
     const name = `Placeholder.${symbol}`
     if (deployment.receipts[name]) {
       console.info(bold(name), 'exists in current deployment')
+
       const receipt = deployment.get(name)
       knownTokens[symbol] = new API.AMMSnip20Client({...receipt, agent: clientAgent})
+
       continue
     }
 
@@ -137,16 +148,14 @@ export async function getOrCreatePlaceholderTokens (context: MigrationContext & 
     console.info(bold('Placeholder:'), symbol, '- will deploy...')
     createPlaceholders.push([name, {
       prng_seed: randomHex(36),
-      decimals:  18,
+      decimals,
       config: { public_total_supply: true, enable_mint: true },
       ...initMsg,
       admin
     }])
-
   }
 
   if (createPlaceholders.length > 0) {
-
     // 2. Deploy missing placeholder tokens in 1 tx
     const createdPlaceholders =
       await deployment.initMany(deployAgent, template, createPlaceholders)
@@ -163,17 +172,15 @@ export async function getOrCreatePlaceholderTokens (context: MigrationContext & 
         knownTokens[symbol] = client
 
         // 5. Mint test balance in placeholder token for the admin
-        const amount = "100000000000000000000000"
+        const amount = "1000000" + "0".repeat(createPlaceholders[i][1].decimals)
         console.warn("Minting", bold(amount), bold(name), 'to', bold(admin))
         await client.setMinters([admin])
         await client.mint(amount, admin)
 
       }
     })
-
   }
 
   return knownTokens
-
 }
 ```
