@@ -631,24 +631,30 @@ Fadroma.command(
 async function deployToken(
   context: MigrationContext
 ): THIS_CAN_BE_LITERALLY_ANYTHING_WHERE_IS_TS {
+  if(context.chain.isMainnet) {
+    console.error('This command is for devnet and testnet only.')
+
+    process.exit(0)
+  }
+
   const {
     run,
     cmdArgs
   } = context
 
-  const i_decimals = cmdArgs.indexOf('decimals')
-  const i_symbol = cmdArgs.indexOf('symbol')
-  const i_name = cmdArgs.indexOf('name')
+  const indexDecimals = cmdArgs.indexOf('decimals')
+  const indexSymbol = cmdArgs.indexOf('symbol')
+  const indexName = cmdArgs.indexOf('name')
 
-  if(i_decimals == -1 || i_symbol == -1 || i_name == -1) {
+  if(indexDecimals == -1 || indexSymbol == -1 || indexName == -1) {
     console.error('Need \"symbol\", \"name\" and \"decimals\" arguments. Example: pnpm deploy token symbol SCRT name SecretSCRT decimals 6')
 
     process.exit(0)
   }
 
-  const decimals = parseInt(cmdArgs[i_decimals + 1])
-  const symbol = cmdArgs[i_symbol + 1]
-  const name = cmdArgs[i_name + 1]
+  const decimals = parseInt(cmdArgs[indexDecimals + 1])
+  const symbol = cmdArgs[indexSymbol + 1]
+  const name = cmdArgs[indexName + 1]
 
   if (isNaN(decimals) || decimals < 6 || decimals > 18) {
     console.error('Token decimals needs to be a number between 6 and 18')
