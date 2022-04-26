@@ -12,3 +12,19 @@ codeId:          8406
 codeHash:        0d83a559ab496537cfcadfa8ff23a7671d7f87df01fe23c1d303cc648be15dc3
 address:         secret1k4czf6zxglv9lnqkwg2tu4c8ypdv4r7jpnjpyg
 transactionHash: 69181DD6AB6D43344ED8BFE64DA0542F3761A3B23129F165C0789ACCDAE2D547
+---
+name:            Placeholder.SUST
+label:           name/Placeholder.SUST
+chainId:         pulsar-2
+codeId:          8593
+codeHash:        9a9833b991e928e4133c7d0895ead62f8cf0d2412435693fb92a52b29647a543
+address:         secret19929ys2rd67e004cetrsz7jw0vgtu5esfyjx6w
+transactionHash: 551361E0A8083129F7432E8C76A342C99B48C9F7625D2D56C268373696265AE2
+---
+name:            Placeholder.SLUNA
+label:           name/Placeholder.SLUNA
+chainId:         pulsar-2
+codeId:          8593
+codeHash:        9a9833b991e928e4133c7d0895ead62f8cf0d2412435693fb92a52b29647a543
+address:         secret16020v7p5r3yxx5xcazresywykglxemnx69q2xe
+transactionHash: C4441D90C5104C066BADC9FFEB68A26A73EE4FC300FEF69AA3392EE4C0596ACA
