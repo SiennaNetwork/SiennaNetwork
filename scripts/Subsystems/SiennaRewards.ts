@@ -1,6 +1,6 @@
 import { MigrationContext, Template, buildAndUpload, bold, randomHex, Console } from '@hackbg/fadroma'
 import * as API from '@sienna/api'
-import getSettings, { ONE_SIENNA } from '@sienna/settings'
+import getSettings, { ONE_SIENNA, workspace } from '@sienna/settings'
 import { linkStruct } from '../misc'
 import { adjustRPTConfig } from '../Configure'
 import { versions, contracts, source } from '../Build'
@@ -82,41 +82,34 @@ export async function deployRewards (context: RewardsDeployContext): Promise<Rew
 
 }
 
-export interface RewardPoolDeployContext extends MigrationContext {
-  name:     string
-  settings: { admin: string, timekeeper: string }
-  template: Template
-  staked:   { address: string, codeHash: string }
-  reward:   API.Snip20Client
-}
+export async function deployRewardPool (context: MigrationContext) {
 
-async function deployRewardPool (context: RewardPoolDeployContext) {
+  const { builder, uploader, deployment, agent } = context
 
-  const {
+  const template = await buildAndUpload(context.builder, context.uploader, {
+    workspace,
+    crate: 'sienna-rewards'
+  })
 
-    deployment, agent,
+  const name = 'Lend.sl-sSCRT.Rewards[v3.1]'
 
-    name = 'AMM[v2].stkd-SCRT-SIENNA.LP.Rewards[v3]',
+  const pool = await context.deployment.init(context.agent, template, name, {
+    admin: context.agent.address,
+    config: {
+      reward_vk:    null,
+      lp_token:     {
+        address:    'secret182338zh2h8rmn6kaqde03ydez9mqp5qqhghk06',
+        code_hash:  '46e5bca7904e5247952a831cfe426586f614767ec1485bfb2d78c40ae5bf10c8',
+      },
+      reward_token: {
+        address:    'secret182338zh2h8rmn6kaqde03ydez9mqp5qqhghk06',
+        code_hash:  '46e5bca7904e5247952a831cfe426586f614767ec1485bfb2d78c40ae5bf10c8',
+      },
+      timekeeper:   'secret1gt0q0kcayqy0a7ymplmq0lt2ye30jfhqfmczch',
+      bonding: 86400,
+    }
+  })
 
-    settings: { admin, timekeeper } = getSettings(agent.chain.mode),
-
-    template = {
-      chainId:  agent.chain.id,
-      codeId:   '363',
-      codeHash: '8e272c6d17a7b1d740fa0067113bff42934ebdcac461da4307021e1629d3e7ce'
-    },
-
-    staked = {
-      address:  'secret15987qz3j0lfua52lsnsq5snfap8sqt6xmdc3gn',
-      codeHash: '1ff4fa35a56444e4a7aac68365a6259a74cc58d61a2ae71efedb3109c65246b4',
-    },
-
-    reward = new API.Snip20Client({ ...deployment.get('SIENNA'), agent }),
-
-  } = context
-
-  const initMsg = makeRewardsInitMsg.v3(reward, staked, admin, timekeeper)
-  const pool    = await deployment.init(agent, template, name, initMsg)
   console.log({pool})
 
 }

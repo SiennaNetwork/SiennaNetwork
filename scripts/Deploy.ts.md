@@ -216,7 +216,7 @@ Deploy.RewardPool = deployRewardPool
 Fadroma.command('rewards wip', ...inCurrentDeployment, Deploy.Rewards)
 Fadroma.command('rewards v2',  ...inCurrentDeployment, Deploy.Rewards.v2)
 Fadroma.command('rewards v3',  ...inCurrentDeployment, Deploy.Rewards.v3)
-Fadroma.command('reward pool', ...inCurrentDeployment, Deploy.Reward.Pool)
+Fadroma.command('reward pool', ...inCurrentDeployment, Deploy.RewardPool)
 ```
 
 ## Upgrade Sienna Rewards
