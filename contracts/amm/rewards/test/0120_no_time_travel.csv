@@ -1,7 +1,7 @@
 Time,Sender,Recipient,Data
 ,,,
 4,LP_TOKEN,0120_no_time_travel_addr,"rewards:
-  deposit:
+  deposit_receiver:
     from: Alice
     amount: ""43"""
 log,0120_no_time_travel_addr,,deposit = 43

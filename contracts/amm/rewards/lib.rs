@@ -237,7 +237,7 @@ where
                 Auth::handle(core, env, AuthHandle::SetViewingKey { key, padding })
             }
             Handle::Rewards(msg) => Rewards::handle(core, env, msg),
-            Handle::Receive { from, amount, .. } => Rewards::handle(core, env, RewardsHandle::Deposit { from, amount }),
+            Handle::Receive { from, amount, .. } => Rewards::handle(core, env, RewardsHandle::DepositReceiver { from, amount }),
             Handle::Immigration(msg) => Immigration::handle(core, env, msg),
             Handle::Emigration(msg) => Emigration::handle(core, env, msg),
             Handle::Drain {

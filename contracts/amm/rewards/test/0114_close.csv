@@ -6,7 +6,7 @@ Time,Sender,Recipient,Data
 =>,err,Unauthorized,
 ,,,
 16,LP_TOKEN,0114_close_addr,"rewards:
-  deposit:
+  deposit_receiver:
     from: Alice
     amount: ""42798"""
 log,0114_close_addr,,deposit = 42798
@@ -17,7 +17,7 @@ log,0114_close_addr,,deposit = 42798
 =>,err,Unauthorized,
 ,,,
 32,LP_TOKEN,0114_close_addr,"rewards:
-  deposit:
+  deposit_receiver:
     from: Alice
     amount: ""38861"""
 log,0114_close_addr,,deposit = 38861
