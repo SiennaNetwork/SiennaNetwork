@@ -5,7 +5,7 @@ import { linkStruct } from '../misc'
 import { adjustRPTConfig } from '../Configure'
 import { versions, contracts, source } from '../Build'
 
-export interface RewardsDeployOptions {
+export interface RewardsDeployOptions extends MigrationContext {
   /** Which address will be admin
     * of the new reward pools.
     * Defaults to the executing agent. */
@@ -15,8 +15,6 @@ export interface RewardsDeployOptions {
   reward:      API.Snip20Client,
   /** Version of the reward pools to deploy. */
   version:     API.RewardsAPIVersion,
-  /** CodeId+CodeHash for Rewards[version]. */
-  template:    Template,
   /** The AMM version to which
     * the rewards will be attached. */
   ammVersion:  API.AMMVersion,
@@ -33,9 +31,7 @@ export interface RewardsDeployOptions {
 
 type RewardsDeployResult = API.RewardsClient[]
 
-async function deployRewards (
-  context: MigrationContext & RewardsDeployOptions
-): Promise<RewardsDeployResult> {
+async function deployRewards (context: RewardsDeployOptions): Promise<RewardsDeployResult> {
 
   const {
     run,
@@ -145,8 +141,7 @@ const makeRewardsInitMsg = {
 
 }
 
-type RewardsUpgradeOptions = {
-
+export interface RewardsUpgradeOptions extends MigrationContext {
   settings: {
     /** Which address will be admin
       * of the new reward pools.
@@ -157,7 +152,6 @@ type RewardsUpgradeOptions = {
       * Defaults to the value of `admin` */
     timekeeper:    string
   }
-
   /** The reward token.
     * Defaults to SIENNA */
   reward:        API.Snip20Client
@@ -172,13 +166,11 @@ type RewardsUpgradeOptions = {
   newAmmVersion: API.AMMVersion
 }
 
-type RewardsUpgradeResult = {
+export interface RewardsUpgradeResult {
   REWARD_POOLS: API.RewardsClient[]
 }
 
-async function upgradeRewards (
-  context: MigrationContext & RewardsUpgradeOptions
-): Promise<RewardsUpgradeResult> {
+async function upgradeRewards (context: RewardsUpgradeOptions): Promise<RewardsUpgradeResult> {
   const {
     run,
 

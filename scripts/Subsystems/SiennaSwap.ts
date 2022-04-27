@@ -1,10 +1,11 @@
-import { MigrationContext, Template, bold } from '@hackbg/fadroma'
+import { MigrationContext, Template, Instance, bold, randomHex, buildAndUpload } from '@hackbg/fadroma'
 import * as API from '@sienna/api'
+import getSettings from '@sienna/settings'
 import { buildAMMTemplates } from '../Build'
 import { uploadAMMTemplates } from '../Upload'
 import * as Tokens from '../Tokens'
 
-export interface AMMDeployOptions {
+export interface AMMDeployOptions extends MigrationContext {
   /** The version of the AMM to deploy */
   ammVersion: API.AMMVersion
 }
@@ -18,7 +19,15 @@ export interface AMMDeployResult {
   LP_TOKENS: API.LPTokenClient[]
 }
 
-export interface AMMFactoryDeployOptions {
+export async function deployAMM (context: AMMDeployOptions): Promise<AMMDeployResult> {
+  const { run, ammVersion, ref } = context
+  console.info('deployAMM', { ref })
+  const FACTORY = await run(deployAMMFactory, { version: ammVersion, ref })
+  const { EXCHANGES, LP_TOKENS } = await run(deployAMMExchanges, { FACTORY, ammVersion, ref })
+  return { FACTORY, EXCHANGES, LP_TOKENS }
+}
+
+export interface AMMFactoryDeployOptions extends MigrationContext {
   /** Version of the factory to deploy. */
   version:    API.AMMVersion,
   /** Code id and hash for the factory to deploy */
@@ -33,63 +42,12 @@ export interface AMMFactoryDeployOptions {
   }
   /** Code ids+hashes of contracts
     * that the new factory can instantiate. */
-  templates?: AMMFactoryTemplates,
+  extraTemplates?: API.AMMFactoryTemplates,
 }
 
-export interface AMMExchangesDeployOptions {
-  settings: { swapPairs: string[] }
-  knownTokens: any,
-  FACTORY:     API.AMMFactoryClient,
-  ammVersion:  API.AMMVersion
-}
-
-export interface AMMUpgradeOptions {
-  builder:            Builder
-  generateMigration:  boolean
-  vOld:               API.AMMVersion
-  oldFactoryName:     string
-  oldFactory:         API.AMMFactoryClient
-  oldExchanges:       API.AMMExchangeClient[]
-  oldTemplates:       any,
-  vNew:               API.AMMVersion,
-  newRef:             string,
-  newFactoryTemplate: Template
-  name: string,
-}
-
-export type AMMUpgradeResult = ScrtBundle | {
-  // The factory that was created by the upgrade.
-  FACTORY:   API.AMMFactoryClient
-  // The exchanges that were created by the upgrade.
-  EXCHANGES: API.ExchangeInfo[]
-  // what about the LP tokens?
-}
-
-export interface RedeployAMMExchangeOptions {
-  NEW_FACTORY:   unknown,
-  OLD_EXCHANGES: unknown,
-  ammVersion:    AMMVersion
-}
-
-export interface RedeployAMMExchangeResult {
-  NEW_EXCHANGES: unknown
-}
-
-export async function deployAMM (
-  context: MigrationContext & AMMDeployOptions
-): Promise<AMMDeployResult> {
-  const { run, ammVersion, ref } = context
-  console.info('deployAMM', { ref })
-  const FACTORY =
-    await run(deployAMMFactory, { version: ammVersion, ref })
-  const { EXCHANGES, LP_TOKENS } =
-    await run(deployAMMExchanges, { FACTORY, ammVersion, ref })
-  return { FACTORY, EXCHANGES, LP_TOKENS }
-}
-
-export async function deployAMMFactory (
-  context: MigrationContext & AMMFactoryDeployOptions
-): Promise<AMMFactoryClient> {
+export async function deployAMMFactory (context: AMMFactoryDeployOptions):
+  Promise<API.AMMFactoryClient>
+{
   // Default settings:
   const {
     version   = 'v2',
@@ -101,7 +59,7 @@ export async function deployAMMFactory (
 
     uploader,
     template  = await uploader.upload(artifact),
-    templates = await buildAMMTemplates(uploader, version, ref),
+    extraTemplates = await buildAMMTemplates(uploader, version, ref),
 
     deployAgent, deployment, prefix,
 
@@ -116,22 +74,25 @@ export async function deployAMMFactory (
   console.info('deployAMMFactory', { ref })
   // If the templates are copied from v1, remove the extra templates
   if (version !== 'v1') {
-    delete templates.snip20_contract
-    delete templates.ido_contract
-    delete templates.launchpad_contract
+    delete extraTemplates.snip20_contract
+    delete extraTemplates.ido_contract
+    delete extraTemplates.launchpad_contract
   }
   // Instantiate the new factory and return a client to it
   const name     = `AMM[${version}].Factory`
-  const initMsg  = { ...config, ...templates }
-  const instance = await deployment.init(
-    deployAgent, template, name, initMsg
-  )
-  return new API.AMMFactoryClient[version]({
-    ...deployment.get(name), agent
-  })
+  const initMsg  = { ...config, ...extraTemplates }
+  const instance = await deployment.init(deployAgent, template, name, initMsg)
+  return new API.AMMFactoryClient[version]({ ...deployment.get(name), agent })
 }
 
-export async function deployAMMExchanges (options: MigrationContext & AMMExchangesDeployOptions) {
+export interface AMMExchangesDeployOptions extends MigrationContext {
+  settings: { swapPairs: string[] }
+  knownTokens: any,
+  FACTORY:     API.AMMFactoryClient,
+  ammVersion:  API.AMMVersion
+}
+
+export async function deployAMMExchanges (options: AMMExchangesDeployOptions) {
   const {
     run, agent, deployment,
     settings: { swapPairs } = getSettings(agent.chain.mode),
@@ -144,7 +105,7 @@ export async function deployAMMExchanges (options: MigrationContext & AMMExchang
     await agent.bundle().wrap(async bundle=>{
       const agent = FACTORY.agent
       FACTORY.agent = bundle
-      const factory = new API.AMMFactoryClient({...FACTORY})
+      const factory = new API.AMMFactoryClient[ammVersion]({...FACTORY})
       for (const name of swapPairs) {
         const { token0, token1 } = Tokens.fromPairName(knownTokens, name)
         await factory.createExchange(token0, token1)
@@ -200,13 +161,15 @@ async function deployAMMExchange (options) {
   }
 }
 
-export async function deployRouter (
-  context: MigrationContext
-): Promise {
+export interface RouterDeployContext extends MigrationContext {}
+
+export async function deployRouter (context: RouterDeployContext):
+  Promise<{ router: Instance }>
+{
 
   const { builder
         , uploader
-        , ref = versions.HEAD
+        , ref      = versions.HEAD
         , template = await buildAndUpload(builder, uploader, source('router', ref))
         , deployAgent, deployment, prefix
         , agent
@@ -223,9 +186,30 @@ export async function deployRouter (
   return { router }
 }
 
-export async function upgradeAMM (
-  context: MigrationContext & AMMUpgradeOptions
-): Promise<AMMUpgradeResult> {
+export interface AMMUpgradeOptions extends MigrationContext {
+  generateMigration:  boolean
+  vOld:               API.AMMVersion
+  oldFactoryName:     string
+  oldFactory:         API.AMMFactoryClient
+  oldExchanges:       API.AMMExchangeClient[]
+  oldTemplates:       any,
+  vNew:               API.AMMVersion,
+  newRef:             string,
+  newFactoryTemplate: Template
+  name: string,
+}
+
+export type AMMUpgradeResult = ScrtBundle | {
+  // The factory that was created by the upgrade.
+  FACTORY:   API.AMMFactoryClient
+  // The exchanges that were created by the upgrade.
+  EXCHANGES: API.ExchangeInfo[]
+  // what about the LP tokens?
+}
+
+export async function upgradeAMM (context: AMMUpgradeOptions):
+  Promise<AMMUpgradeResult>
+{
 
   const {
     run,
@@ -341,9 +325,19 @@ export async function cloneAMMExchanges_v1_to_v2 (context) {
   return { v1, v2 }
 }
 
-export async function redeployAMMExchanges (
-  context: MigrationContext & RedeployAMMExchangeOptions
-): Promise<RedeployAMMExchangeResult> {
+export interface RedeployAMMExchangeOptions extends MigrationContext {
+  NEW_FACTORY:   unknown,
+  OLD_EXCHANGES: unknown,
+  ammVersion:    API.AMMVersion
+}
+
+export interface RedeployAMMExchangeResult {
+  NEW_EXCHANGES: unknown
+}
+
+export async function redeployAMMExchanges (context: RedeployAMMExchangeOptions):
+  Promise<RedeployAMMExchangeResult>
+{
   const {
     agent, deployment,
     ammVersion, NEW_FACTORY, OLD_EXCHANGES = [],

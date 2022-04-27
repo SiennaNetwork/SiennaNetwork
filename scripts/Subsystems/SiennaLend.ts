@@ -1,4 +1,4 @@
-import { MigrationContext, randomHex } from '@hackbg/fadroma'
+import { MigrationContext, randomHex, buildAndUploadMany } from '@hackbg/fadroma'
 import * as API from '@sienna/api'
 import { versions, contracts, sources } from '../Build'
 import { templateStruct } from '../misc'

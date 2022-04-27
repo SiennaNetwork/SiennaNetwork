@@ -1,27 +1,26 @@
+import * as API from '@sienna/api'
+import { Schedule } from './SiennaTGE'
+
 type VestingKind = 'tge' | 'vesting'
 
-export type VestingDeployOptions = {
+export interface VestingDeployOptions {
   /** Which kind of vesting to deploy **/
   version: VestingKind
   /** Address of the admin. */
   admin:   string
   /** The schedule for the new MGMT.
     * Defaults to production schedule. */
-  settings?: { schedule?: typeof settings.schedule }
+  settings?: { schedule?: Schedule }
 }
 
-export type VestingDeployResult = {
+export interface VestingDeployResult {
   /** The deployed MGMT contract. */
   MGMT:   API.MGMTClient
   /** The deployed RPT contract. */
   RPT:    API.RPTClient
-} & ({
-  /** The deployed SIENNA SNIP20 token contract. */
-  SIENNA: API.Snip20Client
-} | {
   /** The deployed SIENNA SNIP20 token contract. */
   VESTED: API.Snip20Client
-})
+}
 
 export async function deployVesting (
   context: MigrationContext & VestingDeployOptions
