@@ -401,6 +401,11 @@ address:  secret14luc6w2upzhs7xges3e20f7vcnhhqux7yu9x3v
 codeId:   '4973'
 codeHash: 8e272c6d17a7b1d740fa0067113bff42934ebdcac461da4307021e1629d3e7ce
 ---
+name:     Lend[v1].sl-SCRT.Rewards[v3.1]
+label:    20220203_161134/Lend[v1].sl-SCRT.Rewards[v3.1]
+chainId:  pulsar-2
+tx:       CFFCC25C3C0D7448EE354A48C7175659FE66F0F622C8F2C0B5575CD5B2AEFFD8
+---
 name:                AMM[v2].SSCRT-SETH
 exchange:
   address:           secret16nnz8yqqcs28jkfltdm2hyeqsazr4zmtyywxle
