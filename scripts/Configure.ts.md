@@ -5,35 +5,6 @@ import { Console, bold } from '@hackbg/fadroma'
 const console = new Console('@sienna/scripts/Configure')
 ```
 
-## RPT and LPF accounts
-
-* The **RPT account** (Remaining Pool Tokens) is a special entry 
-  in MGMT's vesting schedule; its funds are vested to **the RPT contract's address**,
-  and the RPT contract uses them to fund the Reward pools.
-  However, the RPT address is only available after deploying the RPT contract,
-  which in turn nees MGMT's address, therefore establishing a
-  circular dependency. To resolve it, the RPT account in the schedule
-  is briefly mutated to point to the deployer's address (before any funds are vested).
-
-```typescript
-export function getRPTAccount (schedule: Schedule) {
-  return schedule.pools
-    .filter((x:any)=>x.name==='MintingPool')[0].accounts
-    .filter((x:any)=>x.name==='RPT')[0] }
-```
-
-* The **LPF account** (Liquidity Provision Fund) is an entry in MGMT's vesting schedule
-  which is vested immediately in full. On devnet and testnet, this can be used
-  to provide funding for tester accounts. In practice, testers are funded with an extra
-  mint operation in `deployTGE`.
-
-```typescript
-export function getLPFAccount (schedule: Schedule) {
-  return schedule.pools
-    .filter((x:any)=>x.name==='MintingPool')[0].accounts
-    .filter((x:any)=>x.name==='LPF')[0] }
-```
-
 ## Minting testnet tokens
 
 * List of testers that are funded during deployment:
