@@ -28,3 +28,11 @@ codeId:          8593
 codeHash:        9a9833b991e928e4133c7d0895ead62f8cf0d2412435693fb92a52b29647a543
 address:         secret16020v7p5r3yxx5xcazresywykglxemnx69q2xe
 transactionHash: C4441D90C5104C066BADC9FFEB68A26A73EE4FC300FEF69AA3392EE4C0596ACA
+---
+name:            Placeholder.SBTC
+label:           name/Placeholder.SBTC
+chainId:         pulsar-2
+codeId:          8593
+codeHash:        9a9833b991e928e4133c7d0895ead62f8cf0d2412435693fb92a52b29647a543
+address:         secret1m6l0shk34l7krqvvmhf7cfzlr0uznqtrs7zd95
+transactionHash: 0D240A7C2F2B9978CD544DF1D2EE8004AD0AC6591DB1D1C367565DEAF2F6B5B9
