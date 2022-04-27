@@ -570,6 +570,11 @@ pub trait Market {
     }
 
     #[query]
+    fn interest_model() -> StdResult<ContractLink<HumanAddr>> {
+        Contracts::load_interest_model(deps)
+    }
+
+    #[query]
     fn borrow_rate(block: Option<u64>) -> StdResult<Decimal256> {
         let underlying_asset = Contracts::load_underlying(deps)?;
 
