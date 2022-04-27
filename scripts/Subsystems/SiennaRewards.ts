@@ -37,10 +37,10 @@ async function deployRewards (context: RewardsDeployOptions): Promise<RewardsDep
     run,
 
     version  = 'v3' as API.RewardsAPIVersion,
-    ref      = versions.Rewards[version]
+    ref      = versions.Rewards[version],
     builder,
     uploader,
-    src      = source('sienna-rewards', ref)
+    src      = source('sienna-rewards', ref),
     template = await buildAndUpload(builder, uploader, src),
 
     deployAgent, deployment,
@@ -180,8 +180,8 @@ async function upgradeRewards (context: RewardsUpgradeOptions): Promise<RewardsU
     src        = source('sienna-rewards', ref),
     builder,
     uploader,
-    template   = await buildAndUpload(builder, uploader, src)
-    newAmmVersion = 'v2'
+    template   = await buildAndUpload(builder, uploader, src),
+    newAmmVersion = 'v2',
 
     deployAgent, deployment, prefix, timestamp,
     settings: {

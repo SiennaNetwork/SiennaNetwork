@@ -18,7 +18,7 @@ export interface LaunchpadDeployResult {
 }
 
 export async function deployLaunchpad (context: LaunchpadDeployOptions):
-    Promise<LaunchpadDeployResult>
+  Promise<LaunchpadDeployResult>
 {
   const {
     ref = versions.HEAD,

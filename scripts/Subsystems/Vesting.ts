@@ -1,30 +1,51 @@
+import { MigrationContext, Instance, buildAndUploadMany, randomHex } from '@hackbg/fadroma'
 import * as API from '@sienna/api'
+import getSettings from '@sienna/settings'
+import { versions, contracts, source, sources } from '../Build'
+import { linkStruct } from '../misc'
 import { Schedule } from './SiennaTGE'
 
 type VestingKind = 'tge' | 'vesting'
 
-export interface VestingDeployOptions {
+export interface VestingDeployContext extends MigrationContext {
+
   /** Which kind of vesting to deploy **/
-  version: VestingKind
+  version:   VestingKind
   /** Address of the admin. */
-  admin:   string
+  admin:     string
   /** The schedule for the new MGMT.
     * Defaults to production schedule. */
   settings?: { schedule?: Schedule }
+
+  MGMTClient?:       API.MGMTClient
+  RPTClient?:        API.RPTClient
+  RewardsClient?:    API.RewardsClient
+
+  tokens?:           unknown[]
+  tokenClients?:     API.Snip20Client[]
+
+  mgmtConfigs?:      unknown[]
+  mgmtInstances?:    Instance[]
+  mgmtClients?:      (typeof this.MGMTClient)[]
+
+  rewardsConfigs?:   unknown[]
+  rewardsInstances?: Instance[]
+  rewardsClients?:   (typeof this.RewardsClient)[]
+
+  rptConfigs?:       unknown[]
+  rptInstances?:     Instance[]
+  rptClients?:       (typeof this.RPTClient)[]
+
 }
 
 export interface VestingDeployResult {
-  /** The deployed MGMT contract. */
-  MGMT:   API.MGMTClient
-  /** The deployed RPT contract. */
-  RPT:    API.RPTClient
-  /** The deployed SIENNA SNIP20 token contract. */
-  VESTED: API.Snip20Client
+  mgmtClients:    API.MGMTClient[],
+  rptClients:     API.RPTClient[],
+  tokenClients:   API.Snip20Client[],
+  rewardsClients: API.RewardsClient[]
 }
 
-export async function deployVesting (
-  context: MigrationContext & VestingDeployOptions
-): Promise<VestingDeployResult> {
+export async function deployVesting (context: VestingDeployContext): Promise<VestingDeployResult> {
 
   const {
     deployment,
@@ -59,80 +80,35 @@ export async function deployVesting (
     settings: {
       schedule,
       vesting
-    } = getSettings(agent.chain.mode)
+    } = getSettings(agent.chain.mode),
 
-    tokens = isDevnet ? await initMockTokens(
-      deployment,
-      agent,
-      tokenTemplate,
-      vesting
-    ) : [],
-    tokenClients = tokens.map(
-      instance => agent.getClient(API.SiennaSnip20Client, instance)
-    )
+    tokens           = isDevnet ? await initMockTokens(deployment, agent, tokenTemplate, vesting) : [],
+    tokenClients     = tokens.map(instance => agent.getClient(API.Snip20Client, instance)),
 
-    mgmtConfigs = generateMgmtConfigs(
-      vesting,
-      admin,
-      tokens
-    ),
-    mgmtInstances = await deployment.initMany(
-      agent,
-      mgmtTemplate,
-      mgmtConfigs
-    ),
-    mgmtClients = mgmtInstances.map(
-      instance => agent.getClient(MGMTClient, instance)
-    )
+    mgmtConfigs      = generateMgmtConfigs(vesting, admin, tokens),
+    mgmtInstances    = await deployment.initMany(agent, mgmtTemplate, mgmtConfigs),
+    mgmtClients      = mgmtInstances.map(instance => agent.getClient(MGMTClient, instance)),
 
-    rewardsConfigs = generateRewardsConfigs(
-      admin,
-      vesting,
-      tokens
-    ),
-    rewardsInstances = await deployment.initMany(
-      agent,
-      rewardsTemplate,
-      rewardsConfigs
-    ),
-    rewardsClients = rewardsInstances.map(
-      instance => agent.getClient(RewardsClient, instance)
-    )
+    rewardsConfigs   = generateRewardsConfigs(admin, vesting, tokens),
+    rewardsInstances = await deployment.initMany(agent, rewardsTemplate, rewardsConfigs),
+    rewardsClients   = rewardsInstances.map(instance => agent.getClient(RewardsClient, instance)),
 
-    rptConfigs = generateRptConfigs(
-      mgmtInstances,
-      admin,
-      vesting,
-      rewardsInstances,
-      tokens
-    ),
-    rptInstances = await deployment.initMany(
-      agent,
-      rptTemplate,
-      rptConfigs
-    )
-    rptClients = rptInstances.map(
-      instance => agent.getClient(RPTClient, instance)
-    )
+    rptConfigs       = generateRptConfigs(mgmtInstances, admin, vesting, rewardsInstances, tokens),
+    rptInstances     = await deployment.initMany( agent, rptTemplate, rptConfigs),
+    rptClients       = rptInstances.map(instance => agent.getClient(RPTClient, instance)),
 
   } = context
 
   await agent.bundle().wrap(async bundle => {
-    const mgmtBundleClients = mgmtInstances.map(
-      instance => bundle.getClient(MGMTClient, instance)
-    )
+    const mgmtBundleClients = mgmtInstances.map(instance => bundle.getClient(MGMTClient, instance))
     await Promise.all(vesting.map(async ({ schedule, account }, i) => {
       account.address = rptInstances[i].address
       await mgmtBundleClients[i].add(schedule.pools[0].name, account)
     }))
   })
 
-  return {
-    mgmtClients,
-    rptClients,
-    tokenClients,
-    rewardsClients
-  }
+  return { mgmtClients, rptClients, tokenClients, rewardsClients }
+
 }
 
 async function initMockTokens (deployment, agent, tokenTemplate, vesting) {
