@@ -1,9 +1,11 @@
-import { MigrationContext, Template, buildAndUpload, bold, randomHex } from '@hackbg/fadroma'
+import { MigrationContext, Template, buildAndUpload, bold, randomHex, Console } from '@hackbg/fadroma'
 import * as API from '@sienna/api'
 import getSettings, { ONE_SIENNA } from '@sienna/settings'
 import { linkStruct } from '../misc'
 import { adjustRPTConfig } from '../Configure'
 import { versions, contracts, source } from '../Build'
+
+const console = Console('Sienna Rewards')
 
 export interface RewardsDeployContext extends MigrationContext {
   /** Which address will be admin

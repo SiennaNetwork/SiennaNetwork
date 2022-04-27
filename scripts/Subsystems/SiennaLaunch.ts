@@ -1,7 +1,9 @@
 import * as API from '@sienna/api'
-import { MigrationContext, buildAndUploadMany } from '@hackbg/fadroma'
+import { MigrationContext, buildAndUploadMany, Console } from '@hackbg/fadroma'
 import { versions, contracts, sources } from '../Build'
 import { linkTuple } from '../misc'
+
+const console = Console('Sienna Launch')
 
 export type Address = string
 export type Binary  = string

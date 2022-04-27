@@ -1,10 +1,12 @@
-import { MigrationContext, Template, Instance, bold, randomHex, buildAndUpload } from '@hackbg/fadroma'
+import { MigrationContext, Template, Instance, Console, bold, randomHex, buildAndUpload } from '@hackbg/fadroma'
 import * as API from '@sienna/api'
 import getSettings from '@sienna/settings'
 import { versions, source, buildAMMTemplates } from '../Build'
 import { uploadAMMTemplates } from '../Upload'
 import * as Tokens from '../Tokens'
 import * as Receipts from '../Receipts'
+
+const console = Console('Sienna Swap')
 
 export interface AMMDeployContext extends MigrationContext {
   /** The version of the AMM to deploy */

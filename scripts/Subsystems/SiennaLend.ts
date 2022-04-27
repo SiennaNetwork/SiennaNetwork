@@ -1,7 +1,9 @@
-import { MigrationContext, randomHex, buildAndUploadMany } from '@hackbg/fadroma'
+import { MigrationContext, Console, randomHex, buildAndUploadMany } from '@hackbg/fadroma'
 import * as API from '@sienna/api'
 import { versions, contracts, sources } from '../Build'
 import { templateStruct } from '../misc'
+
+const console = Console('Sienna Lend')
 
 export interface LendInterestModelOptions {
   base_rate_year:       string
@@ -60,12 +62,14 @@ export async function deployLend (context: LendDeployContext): Promise<LendContr
 
   const [
     interestModelTemplate,
-    oracleTemplate,
     marketTemplate,
-    overseerTemplate,
     mockOracleTemplate,
+    oracleTemplate,
+    overseerTemplate,
     tokenTemplate,
   ] = templates
+
+  console.debug({templates})
 
   // Define names for deployed contracts
   const v = 'v1'
@@ -80,51 +84,56 @@ export async function deployLend (context: LendDeployContext): Promise<LendContr
 
   // Deploy placeholder tokens
   const tokenConfig = {
-    enable_burn: true,
-    enable_deposit: true,
-    enable_mint: true,
-    enable_redeem: true,
+    enable_burn:         true,
+    enable_deposit:      true,
+    enable_mint:         true,
+    enable_redeem:       true,
     public_total_supply: true,
   }
-  const token1 = await deployment.init(
-    deployAgent, tokenTemplate, names.token1, {
-      name:     "slToken1",
-      symbol:   "SLATOM",
-      decimals:  18,
-      prng_seed: randomHex(36),
-      config:    tokenConfig,
-    })
-  const token2 = await deployment.init(
-    deployAgent, tokenTemplate, names.token2, {
-      name:     "slToken2",
-      symbol:   "SLSCRT",
-      decimals:  18,
-      prng_seed: randomHex(36),
-      config:    tokenConfig,
-    })
+  const token1 = await deployment.init(deployAgent, tokenTemplate, names.token1, {
+    name:     "slToken1",
+    symbol:   "SLATOM",
+    decimals:  18,
+    prng_seed: randomHex(36),
+    config:    tokenConfig,
+  })
+  const token2 = await deployment.init(deployAgent, tokenTemplate, names.token2, {
+    name:     "slToken2",
+    symbol:   "SLSCRT",
+    decimals:  18,
+    prng_seed: randomHex(36),
+    config:    tokenConfig,
+  })
 
   // Create the interest model
-  await deployment.init(
-    deployAgent, interestModelTemplate, names.interestModel, {
-      base_rate_year,
-      blocks_year,
-      jump_multiplier_year,
-      jump_threshold,
-      multiplier_year
-    })
+  console.info('Deploying interest model')
+  const interestModelInitMsg = {
+    base_rate_year,
+    blocks_year,
+    jump_multiplier_year,
+    jump_threshold,
+    multiplier_year
+  }
+  console.debug(interestModelInitMsg)
+  await deployment.init(deployAgent, interestModelTemplate, names.interestModel, interestModelInitMsg)
 
   // Create the mock oracle
-  const mockOracle = await deployment.init(
-    deployAgent, mockOracleTemplate, names.mockOracle, {})
+  console.info('Deploying mock oracle')
+  const mockOracle = await deployment.init(deployAgent, mockOracleTemplate, names.mockOracle, {})
 
   // Create the overseer
-  await deployment.init(
-    deployAgent, overseerTemplate, names.overseer, {
-      entropy, prng_seed, close_factor, premium,
-      market_contract: templateStruct(marketTemplate),
-      oracle_contract: templateStruct(oracleTemplate),
-      oracle_source:   templateStruct(mockOracle)
-    })
+  console.info('Deploying overseer')
+  const overseerInitMsg = {
+    entropy,
+    prng_seed: prng_seed || randomHex(36),
+    close_factor,
+    premium,
+    market_contract: templateStruct(marketTemplate),
+    oracle_contract: templateStruct(oracleTemplate),
+    oracle_source:   templateStruct(mockOracle)
+  }
+  console.debug(overseerInitMsg)
+  await deployment.init(deployAgent, overseerTemplate, names.overseer, overseerInitMsg)
 
   // Return clients to the instantiated contracts
 

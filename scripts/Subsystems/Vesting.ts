@@ -1,9 +1,11 @@
-import { MigrationContext, Instance, buildAndUploadMany, randomHex } from '@hackbg/fadroma'
+import { Console, MigrationContext, Instance, buildAndUploadMany, randomHex } from '@hackbg/fadroma'
 import * as API from '@sienna/api'
 import getSettings from '@sienna/settings'
 import { versions, contracts, source, sources } from '../Build'
 import { linkStruct } from '../misc'
 import { Schedule } from './SiennaTGE'
+
+const console = Console('Sienna Vesting')
 
 type VestingKind = 'tge' | 'vesting'
 

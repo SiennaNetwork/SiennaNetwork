@@ -1,4 +1,6 @@
-import { MigrationContext } from '@hackbg/fadroma'
+import { MigrationContext, Console } from '@hackbg/fadroma'
+
+const console = Console('Deploy Token')
 
 type TS_HAS_FORSAKEN_US = Promise<never>
 
