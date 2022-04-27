@@ -8,7 +8,7 @@
     "@sienna/settings": "workspace:^1",
 
     "@sienna/snip20-sienna": "workspace:^1",
-    "@sienna/rpt":           "workspace:^1",
+    "@sienna/rpt":           "workspace:^1||^2",
     "@sienna/factory":       "workspace:^2",
     "@sienna/exchange":      "workspace:^1",
     "@sienna/lp-token":      "workspace:^1"

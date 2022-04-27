@@ -72,7 +72,7 @@ importers:
       '@sienna/exchange': workspace:^1
       '@sienna/factory': workspace:^2
       '@sienna/lp-token': workspace:^1
-      '@sienna/rpt': workspace:^1
+      '@sienna/rpt': workspace:^1||^2
       '@sienna/settings': workspace:^1
       '@sienna/snip20-sienna': workspace:^1
     dependencies:
@@ -161,8 +161,8 @@ importers:
   contracts/tge/rpt:
     specifiers:
       '@hackbg/fadroma': workspace:../../../deps/fadroma
-      '@sienna/mgmt': workspace:^2.0.0
-      '@sienna/settings': workspace:^1.0.0
+      '@sienna/mgmt': workspace:^3
+      '@sienna/settings': workspace:^1
     dependencies:
       '@hackbg/fadroma': link:../../../deps/fadroma
       '@sienna/mgmt': link:../mgmt
@@ -558,7 +558,7 @@ importers:
     specifiers:
       '@hackbg/fadroma': hackbg/fadroma#v100
     dependencies:
-      '@hackbg/fadroma': github.com/hackbg/fadroma/c9b4c789d386afadcaa32d624e64c9a2bc979661
+      '@hackbg/fadroma': github.com/hackbg/fadroma/721247f36315ba66499d0fb8a349dbf357c319c3
 
   frontends/api:
     specifiers:
@@ -575,11 +575,11 @@ importers:
       '@sienna/lend-oracle': workspace:*
       '@sienna/lend-overseer': workspace:*
       '@sienna/lp-token': workspace:^1
-      '@sienna/mgmt': workspace:^2.0.0
+      '@sienna/mgmt': workspace:^3
       '@sienna/rewards': workspace:^3
       '@sienna/router': workspace:^0
-      '@sienna/rpt': workspace:^1.0.0
-      '@sienna/snip20-sienna': workspace:^1.0.0
+      '@sienna/rpt': workspace:^2
+      '@sienna/snip20-sienna': workspace:^1
       '@waiting/base64': ^4.2.9
       bip39: ^3.0.4
       debug: ^4.3.2
@@ -17507,8 +17507,8 @@ packages:
       ethereumjs-util: 6.2.1
     dev: true
 
-  github.com/hackbg/fadroma/c9b4c789d386afadcaa32d624e64c9a2bc979661:
-    resolution: {tarball: https://codeload.github.com/hackbg/fadroma/tar.gz/c9b4c789d386afadcaa32d624e64c9a2bc979661}
+  github.com/hackbg/fadroma/721247f36315ba66499d0fb8a349dbf357c319c3:
+    resolution: {tarball: https://codeload.github.com/hackbg/fadroma/tar.gz/721247f36315ba66499d0fb8a349dbf357c319c3}
     name: '@hackbg/fadroma'
     version: 100.0.0-pre
     hasBin: true
