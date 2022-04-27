@@ -104,7 +104,7 @@ export const versions = {
   HEAD:    'HEAD',
   AMM:     { v1: 'legacy/amm-v1', v2: 'legacy/amm-v2-rewards-v3' },
   Rewards: { v2: 'legacy/rewards-v2', v3: 'legacy/amm-v2-rewards-v3' },
-  TGE:     { vest: 'HEAD', legacy: 'c34bfbcfe' } // TOOO: Is this the correct commit for legacy deploy? 
+  TGE:     { vest: 'HEAD', legacy: 'legacy/tge' }
 }
 ```
 
@@ -170,11 +170,11 @@ enabling you to recreate the whole history of the smart contract system.
 
 ```typescript
 build['history'] = () => [
+  ...sources(versions.TGE.legacy, contracts.TGE),
   ...sources(versions.AMM.v1,     contracts.AMM, contracts.Launchpad, contracts.Tokens),
   ...sources(versions.Rewards.v2, contracts.Rewards),
   ...sources(versions.AMM.v2,     contracts.AMM, contracts.Tokens),
   ...sources(versions.Rewards.v3, contracts.Rewards)
-  ...sources(versions.HEAD,       contracts.all)
 ]
 ```
 
