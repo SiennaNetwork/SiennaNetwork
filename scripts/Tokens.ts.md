@@ -2,7 +2,7 @@
 
 ```typescript
 import { Console, bold } from '@hackbg/fadroma'
-const console = new Console('@sienna/scripts/Tokens')
+const console = new Console('Placeholder Tokens')
 ```
 
 ## Get token descriptors (addr+hash) from token names

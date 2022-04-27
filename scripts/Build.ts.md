@@ -1,5 +1,21 @@
 # Building the Sienna smart contracts
 
+> **Build command:** [@fadroma/cli/build](https://github.com/hackbg/fadroma/blob/v100/packages/commands/build.ts)
+> **Source and Artifact types:** [@fadroma/ops/Core](https://github.com/hackbg/fadroma/blob/v100/packages/ops/Core.ts)
+> **General builder logic:** [@fadroma/ops/Build](https://github.com/hackbg/fadroma/blob/v100/packages/ops/Build.ts)
+> **Secret Network builder logic:** [@fadroma/scrt/ScrtBuild](https://github.com/hackbg/fadroma/blob/v100/packages/scrt/ScrtBuild.ts)
+
+## Build artifact caching
+
+Builds create pairs of `contract@commit.wasm` and `contract@commit.wasm.sha256` files
+under `artifacts/`. The `.wasm` file is called a **build artifact** and the `.wasm.sha256`
+file is called an **artifact checksum file**.
+
+**If a corresponding `.wasm` file is present, building that contract from that commit becomes a no-op,
+even if the source has changed.**
+
+* **Env var:** `FADROMA_BUILD_ALWAYS`: set this to a non-empty value to always rebuild the contracts.
+
 ## Overview and usage
 
 The command **`pnpm -w build`** prints all the available [*build sets*](#build-sets).
@@ -86,9 +102,9 @@ contracts.all = [...new Set([
 ```typescript
 export const versions = {
   HEAD:    'HEAD',
-  AMM:     { v1: 'legacy/amm-v1', v2: 'legacy/amm-v2-rewards-v3' },
+  AMM:     { v1: 'legacy/amm-v1',     v2: 'legacy/amm-v2-rewards-v3' },
   Rewards: { v2: 'legacy/rewards-v2', v3: 'legacy/amm-v2-rewards-v3' },
-  TGE:     { vest: 'HEAD', legacy: 'c34bfbcfe' } // TOOO: Is this the correct commit for legacy deploy? 
+  TGE:     { vest: 'HEAD',        legacy: 'legacy/amm-v2-rewards-v3' }
 }
 ```
 
@@ -154,11 +170,11 @@ enabling you to recreate the whole history of the smart contract system.
 
 ```typescript
 build['history'] = () => [
+  ...sources(versions.TGE.legacy, contracts.TGE),
   ...sources(versions.AMM.v1,     contracts.AMM, contracts.Launchpad, contracts.Tokens),
   ...sources(versions.Rewards.v2, contracts.Rewards),
   ...sources(versions.AMM.v2,     contracts.AMM, contracts.Tokens),
   ...sources(versions.Rewards.v3, contracts.Rewards)
-  ...sources(versions.HEAD,       contracts.all)
 ]
 ```
 

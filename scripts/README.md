@@ -25,6 +25,14 @@ The procedures defined in this directory are executed by the [Komandi](https://g
 library based on the command line arguments (see [Entry point](#entry-point)). Or, you can
 use them from another script by importing this module.
 
+> See also: [@fadroma/cli/index.ts](https://github.com/hackbg/fadroma/blob/v100/packages/cli/index.ts)
+
+Each call to `Fadroma.command('name', ...steps)` binds
+one or more build steps to a command accessible from the terminal.
+The steps are async functions that are run sequentially.
+The paramerer, `context`, is populated from the return values
+of previous build steps.
+
 ## Chains
 
 The active [`Chain`](https://github.com/hackbg/fadroma/blob/22.01/packages/ops/Chain.ts)
