@@ -5,9 +5,9 @@
   "type":    "module",
   "dependencies": {
 
-    "@sienna/snip20-sienna": "workspace:^1.0.0",
-    "@sienna/mgmt":          "workspace:^2.0.0",
-    "@sienna/rpt":           "workspace:^1.0.0",
+    "@sienna/snip20-sienna": "workspace:^1",
+    "@sienna/mgmt":          "workspace:^3",
+    "@sienna/rpt":           "workspace:^2",
 
     "@sienna/amm-snip20":    "workspace:^1",
     "@sienna/exchange":      "workspace:^1",
