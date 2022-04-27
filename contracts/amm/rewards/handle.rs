@@ -23,7 +23,8 @@ pub enum ClaimRecipient {
 #[serde(rename_all = "snake_case")]
 pub enum RewardsHandle {
     // Public transactions
-    Deposit { from: HumanAddr, amount: Amount },
+    Deposit { amount: Amount },
+    DepositReceiver { from: HumanAddr, amount: Amount },
     Withdraw { amount: Amount },
     Claim { to: Option<ClaimRecipient> },
     // Authorized transactions
@@ -43,15 +44,18 @@ where
     fn dispatch_handle(self, core: &mut C, env: Env) -> StdResult<HandleResponse> {
         match self {
             // Public transactions
-            RewardsHandle::Deposit { from, amount } => {
+            RewardsHandle::DepositReceiver { from, amount } => {
                 let lp_token = RewardsConfig::lp_token(core)?;
 
                 if lp_token.link.address == env.message.sender {
                     Account::from_addr(core, &from, env.block.time)?
-                        .deposit(core, amount)
+                        .deposit(core, amount, false)
                 } else {
                     Err(StdError::unauthorized())                    
                 }
+            }
+            RewardsHandle::Deposit { amount } => {
+                Account::from_env(core, &env)?.deposit(core, amount, true)
             }
             RewardsHandle::Withdraw { amount } => {
                 Account::from_env(core, &env)?.withdraw(core, amount)

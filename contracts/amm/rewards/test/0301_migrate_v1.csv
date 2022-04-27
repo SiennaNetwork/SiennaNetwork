@@ -3,7 +3,7 @@ Time,Sender,Recipient,Data
 1,0301_migrate_v1_addr,Alice,total.staked                 = 0
 ,,,
 1,LP_TOKEN,0301_migrate_v1_addr,"rewards:
-  deposit:
+  deposit_receiver:
     from: Alice
     amount: ""85596"""
 log,0301_migrate_v1_addr,,deposit = 85596
@@ -13,7 +13,7 @@ log,0301_migrate_v1_addr,,deposit = 85596
 1,0301_migrate_v1_addr,Bob,total.staked                 = 85596
 ,,,
 1,LP_TOKEN,0301_migrate_v1_addr,"rewards:
-  deposit:
+  deposit_receiver:
     from: Bob
     amount: ""77722"""
 log,0301_migrate_v1_addr,,deposit = 77722

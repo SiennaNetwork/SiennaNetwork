@@ -19,7 +19,7 @@ Time,Sender,Recipient,Data
 19,0104_bonding_addr,Alice,account.bonding              = 197
 ,,,
 19,LP_TOKEN,0104_bonding_addr,"rewards:
-  deposit:
+  deposit_receiver:
     from: Alice
     amount: ""42798"""
 log,0104_bonding_addr,,deposit = 42798

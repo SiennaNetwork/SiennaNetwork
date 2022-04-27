@@ -440,13 +440,8 @@ use crate::{
     // And transfers any claimable rewards to the user
     context.later().user("Alice")
         .branch("then_lock", |mut context| {
-            // YES, THIS IS A HACK - DEAL WITH IT
-            let old_sender = context.env.message.sender.clone();
-            context.env.message.sender = context.lp_token.link.address.clone();
-
             context.test_handle(
                 Handle::Rewards(RewardsHandle::Deposit {
-                    from: HumanAddr::from("Alice"),
                     amount: 100u128.into()
                 }),
                 HandleResponse::default()
@@ -455,8 +450,6 @@ use crate::{
                     .log("close_time",   &format!("{}", when)).unwrap()
                     .log("close_reason", why)
             );
-
-            context.env.message.sender = old_sender;
         })
         .branch("then_retrieve", |mut context| {
             context.test_handle(

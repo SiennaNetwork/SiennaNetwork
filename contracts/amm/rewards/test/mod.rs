@@ -455,7 +455,7 @@ impl Context {
         self.env.message.sender = self.lp_token.link.address.clone();
 
         self.test_handle(
-            Handle::Rewards(RewardsHandle::Deposit {
+            Handle::Rewards(RewardsHandle::DepositReceiver {
                 from: self.initiator.clone(),
                 amount: amount.into()
             }),

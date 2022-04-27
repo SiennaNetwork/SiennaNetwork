@@ -1,7 +1,7 @@
 Time,Sender,Recipient,Data
 ,,,
 19,LP_TOKEN,0102_stake_addr,"rewards:
-  deposit:
+  deposit_receiver:
     from: Alice
     amount: ""43"""
 log,0102_stake_addr,,deposit = 43
@@ -29,7 +29,7 @@ log,0102_stake_addr,,deposit = 43
 29,0102_stake_addr,Alice,account.volume               = 430
 ,,,
 29,LP_TOKEN,0102_stake_addr,"rewards:
-  deposit:
+  deposit_receiver:
     from: Alice
     amount: ""26"""
 log,0102_stake_addr,,deposit = 26
