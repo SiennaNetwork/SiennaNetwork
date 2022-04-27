@@ -198,7 +198,7 @@ Fadroma.command('launchpad', ...inCurrentDeployment, Deploy.Launchpad)
 # Deploy Sienna Rewards
 
 ```typescript
-import { deployRewards } from './Subsystems/SiennaRewards'
+import { deployRewards, deployRewardPool } from './Subsystems/SiennaRewards'
 Deploy.Rewards = Object.assign(
   function deployRewards_HEAD ({ run }) {
     return run(deployRewards,   { version:   'v3', adjustRPT: true, ref: 'HEAD' })
@@ -211,10 +211,12 @@ Deploy.Rewards = Object.assign(
     }
   }
 )
+Deploy.RewardPool = deployRewardPool
 
 Fadroma.command('rewards wip', ...inCurrentDeployment, Deploy.Rewards)
 Fadroma.command('rewards v2',  ...inCurrentDeployment, Deploy.Rewards.v2)
 Fadroma.command('rewards v3',  ...inCurrentDeployment, Deploy.Rewards.v3)
+Fadroma.command('reward pool', ...inCurrentDeployment, Deploy.Reward.Pool)
 ```
 
 ## Upgrade Sienna Rewards
