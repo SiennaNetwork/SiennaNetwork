@@ -151,8 +151,8 @@ export function generateMgmtConfigs (vesting, admin, tokens) {
 export function generateRptConfigs (mgmts, admin, vesting, pools, tokens) {
   return vesting.map(({ name, schedule, rewards, lp, account }, i) => [
     `${rewards.name}.RPT[v2]`.replace(/\s/g, ''), {
-      mgmt:    linkStruct(mgmts[i])
-      token:   linkStruct(tokens[i] || rewards)
+      mgmt:    linkStruct(mgmts[i]),
+      token:   linkStruct(tokens[i] || rewards),
       portion: account.portion_size,
       distribution: [[pools[i].address, account.portion_size]],
     }

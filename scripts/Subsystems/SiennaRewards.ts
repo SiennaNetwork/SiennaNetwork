@@ -5,7 +5,7 @@ import { linkStruct } from '../misc'
 import { adjustRPTConfig } from '../Configure'
 import { versions, contracts, source } from '../Build'
 
-export interface RewardsDeployOptions extends MigrationContext {
+export interface RewardsDeployContext extends MigrationContext {
   /** Which address will be admin
     * of the new reward pools.
     * Defaults to the executing agent. */
@@ -29,9 +29,9 @@ export interface RewardsDeployOptions extends MigrationContext {
   }
 }
 
-type RewardsDeployResult = API.RewardsClient[]
+export type RewardsDeployResult = API.RewardsClient[]
 
-async function deployRewards (context: RewardsDeployOptions): Promise<RewardsDeployResult> {
+export async function deployRewards (context: RewardsDeployContext): Promise<RewardsDeployResult> {
 
   const {
     run,
@@ -82,7 +82,7 @@ async function deployRewards (context: RewardsDeployOptions): Promise<RewardsDep
 
 /** Rewards v2 and v3 have different APIs,
   * including different init message formats: */
-const makeRewardsInitMsg = {
+export const makeRewardsInitMsg = {
 
   "v2" (reward, staked, admin) {
 
@@ -141,7 +141,7 @@ const makeRewardsInitMsg = {
 
 }
 
-export interface RewardsUpgradeOptions extends MigrationContext {
+export interface RewardsUpgradeContext extends MigrationContext {
   settings: {
     /** Which address will be admin
       * of the new reward pools.
@@ -170,7 +170,7 @@ export interface RewardsUpgradeResult {
   REWARD_POOLS: API.RewardsClient[]
 }
 
-async function upgradeRewards (context: RewardsUpgradeOptions): Promise<RewardsUpgradeResult> {
+export async function upgradeRewards (context: RewardsUpgradeContext): Promise<RewardsUpgradeResult> {
   const {
     run,
 

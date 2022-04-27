@@ -28,7 +28,7 @@ export interface Schedule {
   }>
 }
 
-export interface VestingDeployOptions extends MigrationContext {
+export interface VestingDeployContext extends MigrationContext {
   /** Which kind of vesting to deploy **/
   version: VestingKind
   /** Address of the admin. */
@@ -47,7 +47,7 @@ export interface TGEDeployResult {
   SIENNA: API.Snip20Client
 }
 
-export async function deployTGE (context: VestingDeployOptions): Promise<TGEDeployResult> {
+export async function deployTGE (context: VestingDeployContext): Promise<TGEDeployResult> {
   const {
     deployment,
     prefix,

@@ -7,7 +7,7 @@ export type Address = string
 export type Binary  = string
 export type GitRef  = string
 
-export interface LaunchpadDeployOptions extends MigrationContext {
+export interface LaunchpadDeployContext extends MigrationContext {
   /** Address of the admin. */
   admin: Address
 }
@@ -17,7 +17,7 @@ export interface LaunchpadDeployResult {
   LPD: API.LaunchpadClient
 }
 
-export async function deployLaunchpad (context: LaunchpadDeployOptions):
+export async function deployLaunchpad (context: LaunchpadDeployContext):
   Promise<LaunchpadDeployResult>
 {
   const {

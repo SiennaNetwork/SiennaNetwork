@@ -1,12 +1,12 @@
 import { MigrationContext, Template, Instance, bold, randomHex, buildAndUpload } from '@hackbg/fadroma'
 import * as API from '@sienna/api'
 import getSettings from '@sienna/settings'
-import { buildAMMTemplates } from '../Build'
+import { versions, source, buildAMMTemplates } from '../Build'
 import { uploadAMMTemplates } from '../Upload'
-import { versions, source } from '../Build'
 import * as Tokens from '../Tokens'
+import * as Receipts from '../Receipts'
 
-export interface AMMDeployOptions extends MigrationContext {
+export interface AMMDeployContext extends MigrationContext {
   /** The version of the AMM to deploy */
   ammVersion: API.AMMVersion
 }
@@ -20,7 +20,7 @@ export interface AMMDeployResult {
   LP_TOKENS: API.LPTokenClient[]
 }
 
-export async function deployAMM (context: AMMDeployOptions): Promise<AMMDeployResult> {
+export async function deployAMM (context: AMMDeployContext): Promise<AMMDeployResult> {
   const { run, ammVersion, ref } = context
   console.info('deployAMM', { ref })
   const FACTORY = await run(deployAMMFactory, { version: ammVersion, ref })
@@ -28,7 +28,7 @@ export async function deployAMM (context: AMMDeployOptions): Promise<AMMDeployRe
   return { FACTORY, EXCHANGES, LP_TOKENS }
 }
 
-export interface AMMFactoryDeployOptions extends MigrationContext {
+export interface AMMFactoryDeployContext extends MigrationContext {
   /** Version of the factory to deploy. */
   version:    API.AMMVersion,
   /** Code id and hash for the factory to deploy */
@@ -46,7 +46,7 @@ export interface AMMFactoryDeployOptions extends MigrationContext {
   extraTemplates?: API.AMMFactoryTemplates,
 }
 
-export async function deployAMMFactory (context: AMMFactoryDeployOptions):
+export async function deployAMMFactory (context: AMMFactoryDeployContext):
   Promise<API.AMMFactoryClient>
 {
   // Default settings:
@@ -86,14 +86,14 @@ export async function deployAMMFactory (context: AMMFactoryDeployOptions):
   return new API.AMMFactoryClient[version]({ ...deployment.get(name), agent })
 }
 
-export interface AMMExchangesDeployOptions extends MigrationContext {
+export interface AMMExchangesDeployContext extends MigrationContext {
   settings: { swapPairs: string[] }
   knownTokens: any,
   FACTORY:     API.AMMFactoryClient,
   ammVersion:  API.AMMVersion
 }
 
-export async function deployAMMExchanges (options: AMMExchangesDeployOptions) {
+export async function deployAMMExchanges (options: AMMExchangesDeployContext) {
   const {
     run, agent, deployment,
     settings: { swapPairs } = getSettings(agent.chain.mode),
@@ -187,7 +187,7 @@ export async function deployRouter (context: RouterDeployContext):
   return { router }
 }
 
-export interface AMMUpgradeOptions extends MigrationContext {
+export interface AMMUpgradeContext extends MigrationContext {
   generateMigration:  boolean
   vOld:               API.AMMVersion
   oldFactoryName:     string
@@ -208,7 +208,7 @@ export type AMMUpgradeResult = ScrtBundle | {
   // what about the LP tokens?
 }
 
-export async function upgradeAMM (context: AMMUpgradeOptions):
+export async function upgradeAMM (context: AMMUpgradeContext):
   Promise<AMMUpgradeResult>
 {
 
@@ -326,7 +326,7 @@ export async function cloneAMMExchanges_v1_to_v2 (context) {
   return { v1, v2 }
 }
 
-export interface RedeployAMMExchangeOptions extends MigrationContext {
+export interface RedeployAMMExchangeContext extends MigrationContext {
   NEW_FACTORY:   unknown,
   OLD_EXCHANGES: unknown,
   ammVersion:    API.AMMVersion
@@ -336,7 +336,7 @@ export interface RedeployAMMExchangeResult {
   NEW_EXCHANGES: unknown
 }
 
-export async function redeployAMMExchanges (context: RedeployAMMExchangeOptions):
+export async function redeployAMMExchanges (context: RedeployAMMExchangeContext):
   Promise<RedeployAMMExchangeResult>
 {
   const {

@@ -2,9 +2,7 @@ import { MigrationContext } from '@hackbg/fadroma'
 
 type TS_HAS_FORSAKEN_US = Promise<never>
 
-export async function deployToken(
-  context: MigrationContext
-): TS_HAS_FORSAKEN_US {
+export async function deployToken (context: MigrationContext): TS_HAS_FORSAKEN_US {
   if(context.chain.isMainnet) {
     console.error('This command is for devnet and testnet only.')
 
@@ -50,4 +48,5 @@ export async function deployToken(
   }
   
   return Tokens.getOrCreatePlaceholderTokens(context)
+
 }

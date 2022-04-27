@@ -28,9 +28,10 @@ export interface LendContracts {
   TOKEN2?:        API.AMMSnip20Client
 }
 
-export async function deployLend (
-  context: MigrationContext & LendInterestModelOptions & LendOverseerOptions
-): Promise<LendContracts> {
+export type LendDeployContext =
+  MigrationContext & LendInterestModelOptions & LendOverseerOptions
+
+export async function deployLend (context: LendDeployContext): Promise<LendContracts> {
 
   // 1. Expand dependencies and settings from context
   const { ref = versions.HEAD

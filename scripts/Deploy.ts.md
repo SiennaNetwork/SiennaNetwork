@@ -100,7 +100,7 @@ Fadroma.command('vesting',
   ...canBuildAndUpload,
   deployNewOnDevnetAppendOtherwise
   Deploy.Vesting,
-  Deploy.Status
+  Deployment.Status
 )
 
 function deployNewOnDevnetAppendOtherwise (context) {
@@ -142,15 +142,18 @@ Deploy.AMM = {
   },
   v1: function deployAMM_v1 ({ run }) {
     return run(deployAMM, { ammVersion: 'v1' })
-  }
+  },
   v2: function deployAMM_v2 ({ run }) {
     return run(deployAMM, { ammVersion: 'v2' })
   },
-  Router: deployRouter
 }
+
+Deploy.Router = deployRouter
   
-Fadroma.command('amm',        ...inCurrentDeployment, Deploy.AMM.v2)
+Fadroma.command('amm latest', ...inCurrentDeployment, Deploy.AMM.Latest)
+Fadroma.command('amm stable', ...inCurrentDeployment, Deploy.AMM.v2)
 Fadroma.command('amm legacy', ...inCurrentDeployment, Deploy.AMM.v1)
+Fadroma.command('router',     ...inCurrentDeployment, Deploy.Router)
 ```
 
 ## Upgrade Sienna Swap
@@ -187,12 +190,15 @@ Fadroma.command('amm v1_to_v2_exchanges', ...inCurrentDeployment, Upgrade.AMM.Ex
 # Deploy Launchpad
 
 ```typescript
+import { deployLaunchpad } from './Subsystems/SiennaLaunch'
+Deploy.Launchpad = deployLaunchpad
 Fadroma.command('launchpad', ...inCurrentDeployment, Deploy.Launchpad)
 ```
 
 # Deploy Sienna Rewards
 
 ```typescript
+import { deployRewards } from './Subsystems/SiennaRewards'
 Deploy.Rewards = Object.assign(
   function deployRewards_HEAD ({ run }) {
     return run(deployRewards,   { version:   'v3', adjustRPT: true, ref: 'HEAD' })
@@ -229,6 +235,7 @@ Fadroma.command('rewards v2_to_v3', ...inCurrentDeployment, Upgrade.Rewards.v2_t
 
 ```typescript
 import { deployLend } from './Subsystems/SiennaLend'
+Deploy.Lend = deployLend
 Fadroma.command("lend", ...inCurrentDeployment, deployLend)
 ```
 
@@ -247,12 +254,12 @@ It deploys the latest development versions of everything.
 Fadroma.command('latest',
   ...inNewDeployment,
   Deploy.TGE,
-  Deploy.AMM,
+  Deploy.AMM.Latest,
   Deploy.Rewards,
   Deploy.Router,
   Deploy.Lend,
   Deploy.Launchpad,
-  Deploy.Status
+  Deployment.Status
 )
 ```
 
