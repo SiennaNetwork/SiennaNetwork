@@ -80,9 +80,7 @@ and deploy just the TGE contracts.
 
 ```typescript
 import { deployTGE } from './Subsystems/SiennaTGE'
-Deploy.TGE = function deployTGE_HEAD ({ run }) {
-  return run(deployTGE)
-}
+Deploy.TGE = deployTGE
 
 Fadroma.command('tge', ...inNewDeployment, Deploy.TGE)
 ```

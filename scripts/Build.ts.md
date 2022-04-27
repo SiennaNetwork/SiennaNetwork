@@ -102,9 +102,9 @@ contracts.all = [...new Set([
 ```typescript
 export const versions = {
   HEAD:    'HEAD',
-  AMM:     { v1: 'legacy/amm-v1', v2: 'legacy/amm-v2-rewards-v3' },
+  AMM:     { v1: 'legacy/amm-v1',     v2: 'legacy/amm-v2-rewards-v3' },
   Rewards: { v2: 'legacy/rewards-v2', v3: 'legacy/amm-v2-rewards-v3' },
-  TGE:     { vest: 'HEAD', legacy: 'legacy/tge' }
+  TGE:     { vest: 'HEAD',        legacy: 'legacy/amm-v2-rewards-v3' }
 }
 ```
 

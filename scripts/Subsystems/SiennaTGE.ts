@@ -76,16 +76,15 @@ export async function deployTGE (context: VestingDeployOptions): Promise<TGEDepl
   const tokenInstance = await deployment.init(agent, tokenTemplate, 'SIENNA', tokenInitMsg)
   // 3. Mutate the vesting schedule to use
   // the admin address as a temporary RPT address
-  const tokenLink     = linkTuple(tokenInstance)
-  const rptAccount    = Object.assign(getRPTAccount(schedule), { address: admin })
-  const portion       = rptAccount.portion_size
+  const tokenLink    = linkTuple(tokenInstance)
+  const rptAccount   = Object.assign(getRPTAccount(schedule), { address: admin })
+  const portion      = rptAccount.portion_size
   // 4. Instantiate the vesting contract (MGMT)
-  const mgmtInitMsg   = { admin: admin, token: tokenLink, schedule}
-  console.debug(mgmtInitMsg)
-  const mgmtInstance  = await deployment.init(agent, mgmtTemplate, 'MGMT', mgmtInitMsg)
-  const mgmtLink      = linkTuple(mgmtInstance)
+  const mgmtInitMsg  = { admin: admin, token: tokenLink, schedule}
+  const mgmtInstance = await deployment.init(agent, mgmtTemplate, 'MGMT', mgmtInitMsg)
+  const mgmtLink     = linkTuple(mgmtInstance)
   // 5. Instantiate the RPT contract
-  const rptInstance   = await deployment.init(agent, rptTemplate, 'RPT', {
+  const rptInstance  = await deployment.init(agent, rptTemplate, 'RPT', {
     portion,
     config: [[admin, portion]],
     token:  tokenLink,
