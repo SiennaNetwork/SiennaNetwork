@@ -43,11 +43,3 @@ yarn.lock
 #!.yarn/sdks
 #!.yarn/versions
 #.pnp.*
-
-artifacts/enigma-pub-testnet-3/*
-artifacts/supernova-1-localnet/*
-receipts/enigma-pub-testnet-3/*
-receipts/supernova-1/*
-receipts/fadroma-scrt-*/*
-receipts/mocknet/*
-receipts/fadroma-devnet
