@@ -63,18 +63,12 @@ Fadroma.command('status', Fadroma.Chain.FromEnv, Fadroma.Deploy.Status)
 
 ## Selecting a different deployment
 
-> Do this with `pnpm deployment select $NAME_OF_DEPLOYMENT`
+> List deployments with `pnpm deployment select`,
+>
+> then activate one with `pnpm deployment select $NAME_OF_DEPLOYMENT`
 
 ```typescript
 Fadroma.command('select', Fadroma.Chain.FromEnv, Fadroma.Deploy.Select)
-```
-
-## Listing deployments
-
-> Do this with `pnpm deployment list`
-
-```typescript
-Fadroma.command('list', Fadroma.Chain.FromEnv, Fadroma.Deploy.List)
 ```
 
 ## Adding contracts to the selected deployment
