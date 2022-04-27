@@ -3,6 +3,7 @@ import * as API from '@sienna/api'
 import getSettings from '@sienna/settings'
 import { buildAMMTemplates } from '../Build'
 import { uploadAMMTemplates } from '../Upload'
+import { versions, source } from '../Build'
 import * as Tokens from '../Tokens'
 
 export interface AMMDeployOptions extends MigrationContext {
