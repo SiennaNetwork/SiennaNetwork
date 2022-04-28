@@ -149,6 +149,7 @@ pub struct Market<A> {
     pub contract: ContractLink<A>,
     /// The symbol of the underlying asset.
     pub symbol: String,
+    pub decimals: u8,
     /// The percentage rate at which tokens can be borrowed given the size of the collateral.
     pub ltv_ratio: Decimal256,
 }
@@ -156,11 +157,13 @@ pub struct Market<A> {
 #[derive(Serialize, Deserialize, schemars::JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub struct MarketInitConfig {
-    // Underlying asset address.
+    /// Optional admin address that will be set for the market.
+    pub admin: Option<HumanAddr>,
+    /// Underlying asset address.
     pub underlying_asset: ContractLink<HumanAddr>,
     /// The percentage rate at which tokens can be borrowed given the size of the collateral.
     pub ltv_ratio: Decimal256,
-    // Interest model contract address.
+    /// Interest model contract address.
     pub interest_model_contract: ContractLink<HumanAddr>,
     pub config: MarketConfig,
     /// Symbol of the underlying asset. Must be the same as what the oracle expects.
@@ -242,6 +245,7 @@ impl Canonize for Market<HumanAddr> {
             symbol: self.symbol,
             contract: self.contract.canonize(api)?,
             ltv_ratio: self.ltv_ratio,
+            decimals: self.decimals,
         })
     }
 }
@@ -254,6 +258,7 @@ impl Humanize for Market<CanonicalAddr> {
             symbol: self.symbol,
             contract: self.contract.humanize(api)?,
             ltv_ratio: self.ltv_ratio,
+            decimals: self.decimals,
         })
     }
 }

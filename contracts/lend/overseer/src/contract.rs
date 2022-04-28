@@ -13,19 +13,20 @@ use lend_shared::{
             InitResponse, Querier, StdError, StdResult, Storage, WasmMsg,
         },
         derive_contract::*,
-        require_admin, Callback, ContractInstantiationInfo, ContractLink, Decimal256, Humanize,
-        Uint256,
+        require_admin,
+        secret_toolkit::snip20,
+        Callback, ContractInstantiationInfo, ContractLink, Decimal256, Humanize, Uint256,
+        BLOCK_SIZE,
     },
     interfaces::{
         market::{query_account, query_exchange_rate, InitMsg as MarketInitMsg, MarketAuth},
         oracle::{
-            query_price, Asset, AssetType, OverseerRef,
-            HandleMsg as OracleHandleMsg,
-            InitMsg as OracleInitMsg,
+            query_price, Asset, AssetType, HandleMsg as OracleHandleMsg, InitMsg as OracleInitMsg,
+            OverseerRef,
         },
         overseer::{
-            AccountLiquidity, Config, HandleMsg, Market, MarketInitConfig, OverseerAuth,
-            OverseerPermissions, MarketsResponse
+            AccountLiquidity, Config, HandleMsg, Market, MarketInitConfig, MarketsResponse,
+            OverseerAuth, OverseerPermissions,
         },
     },
 };
@@ -87,7 +88,7 @@ pub trait Overseer {
                 overseer: OverseerRef::NewInstance(Callback {
                     contract: self_ref,
                     msg: to_binary(&HandleMsg::RegisterOracle {})?,
-                }) 
+                }),
             })?,
         }));
 
@@ -118,11 +119,27 @@ pub trait Overseer {
     #[handle]
     #[require_admin]
     fn whitelist(config: MarketInitConfig) -> StdResult<HandleResponse> {
+        let info = Whitelisting::load_market_contract(&deps.storage)?;
+        let label = format!(
+            "Sienna Lend {}({}) market with overseer: {}",
+            config.underlying_asset.address.clone(),
+            config.token_symbol,
+            env.contract.address
+        );
+
+        let underlying_info = snip20::token_info_query(
+            &deps.querier,
+            BLOCK_SIZE,
+            config.underlying_asset.code_hash.clone(),
+            config.underlying_asset.address.clone(),
+        )?;
+
         let price = query_price(
             &deps.querier,
             Contracts::load_oracle(deps)?,
             config.token_symbol.clone().into(),
             QUOTE_SYMBOL.into(),
+            underlying_info.decimals,
             None,
         )?;
 
@@ -132,14 +149,6 @@ pub trait Overseer {
             ));
         }
 
-        let info = Whitelisting::load_market_contract(&deps.storage)?;
-        let label = format!(
-            "Sienna Lend {}({}) market with overseer: {}",
-            config.underlying_asset.address,
-            config.token_symbol,
-            env.contract.address
-        );
-
         let market = Market {
             contract: ContractLink {
                 address: HumanAddr::default(),
@@ -147,6 +156,7 @@ pub trait Overseer {
             },
             symbol: config.token_symbol,
             ltv_ratio: config.ltv_ratio,
+            decimals: underlying_info.decimals,
         };
         market.validate()?;
 
@@ -159,7 +169,7 @@ pub trait Overseer {
                 callback_code_hash: info.code_hash,
                 send: vec![],
                 msg: to_binary(&MarketInitMsg {
-                    admin: env.message.sender,
+                    admin: config.admin.unwrap_or(env.message.sender),
                     prng_seed: config.prng_seed,
                     entropy: config.entropy,
                     interest_model_contract: config.interest_model_contract,
@@ -294,6 +304,7 @@ pub trait Overseer {
                 Contracts::load_oracle(deps)?,
                 symbol.clone().into(),
                 QUOTE_SYMBOL.into(),
+                stored_market.decimals,
                 None,
             )?;
 
@@ -348,7 +359,7 @@ pub trait Overseer {
     fn change_config(
         premium_rate: Option<Decimal256>,
         close_factor: Option<Decimal256>,
-        oracle: Option<ContractLink<HumanAddr>>
+        oracle: Option<ContractLink<HumanAddr>>,
     ) -> StdResult<HandleResponse> {
         let mut constants = Constants::load(&deps.storage)?;
 
@@ -466,6 +477,9 @@ pub trait Overseer {
     ) -> StdResult<Uint256> {
         let premium = Constants::load(&deps.storage)?.premium();
 
+        let (_, borrow_market) = Markets::get_by_addr(deps, &borrowed)?;
+        let (_, collateral_market) = Markets::get_by_addr(deps, &collateral)?;
+
         // Read oracle prices for borrowed and collateral markets
         let oracle = Contracts::load_oracle(deps)?;
         let price_borrowed = query_price(
@@ -473,6 +487,7 @@ pub trait Overseer {
             oracle.clone(),
             AssetType::Address(borrowed),
             QUOTE_SYMBOL.into(),
+            borrow_market.decimals,
             None,
         )?;
         let price_collateral = query_price(
@@ -480,12 +495,12 @@ pub trait Overseer {
             oracle,
             AssetType::Address(collateral.clone()),
             QUOTE_SYMBOL.into(),
+            collateral_market.decimals,
             None,
         )?;
 
         // Get the exchange rate and calculate the number of collateral tokens to seize
-        let (_, market) = Markets::get_by_addr(deps, &collateral)?;
-        let exchange_rate = query_exchange_rate(&deps.querier, market.contract, None)?;
+        let exchange_rate = query_exchange_rate(&deps.querier, collateral_market.contract, None)?;
         let ratio = ((premium * price_borrowed.rate)? / (price_collateral.rate * exchange_rate)?)?;
 
         repay_amount.decimal_mul(ratio)
@@ -497,7 +512,7 @@ pub trait Overseer {
 
         Ok(MarketsResponse {
             total,
-            entries: markets
+            entries: markets,
         })
     }
 
@@ -560,6 +575,7 @@ fn calc_liquidity<S: Storage, A: Api, Q: Querier>(
             oracle.clone(),
             market.symbol.into(),
             QUOTE_SYMBOL.into(),
+            market.decimals,
             None,
         )?;
 
@@ -571,7 +587,7 @@ fn calc_liquidity<S: Storage, A: Api, Q: Querier>(
         let sl_token_conversion = snapshot.sl_token_balance.decimal_mul(conversion_factor)?;
         let borrow_conversion = snapshot.borrow_balance.decimal_mul(price.rate)?;
 
-        // This check is needed to check validity of price 
+        // This check is needed to check validity of price
         // in case `redeem_amount` and `borrow_amount` are both 0.
         if !is_zero_ltv && !snapshot.sl_token_balance.is_zero() && sl_token_conversion.is_zero() {
             return Err(StdError::generic_err(INVALID_PRICE_ERR));

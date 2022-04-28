@@ -50,17 +50,27 @@ impl BorrowSnapshot {
         Ok(())
     }
 
+    /// Returns the remainder after subtracting the `amount` from the current balance.
     pub fn subtract_balance(
         &mut self,
         borrow_index: Decimal256,
         amount: Uint256
-    ) -> StdResult<()> {
+    ) -> StdResult<Uint256> {
         let balance = self.current_balance(borrow_index)?;
 
-        self.info.principal = balance.0.saturating_sub(amount.0).into();
+        let remainder = if amount > balance {
+            self.info.principal = Uint256::zero();
+
+            (amount.0 - balance.0).into()
+        } else {
+            self.info.principal = (balance.0 - amount.0).into();
+
+            Uint256::zero()
+        };
+
         self.info.interest_index = borrow_index;
 
-        Ok(())
+        Ok(remainder)
     }
 }
 

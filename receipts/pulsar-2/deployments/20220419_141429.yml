@@ -1,0 +1,38 @@
+---
+name:            Lend[v1].InterestModel
+chainId:         pulsar-2
+codeId:          8403
+codeHash:        19825424640602a1f8fdb7b9d15e9eb4d86e5488b9ec1cba63a991a1c3dfb651
+address:         secret1cn006aajzku89266f30u96rx9jxuazp3rqux4r
+transactionHash: 879400543FF40D8EC8655CEF622E759A349F9CEBD67BD65E8F0E40B387823D6F
+---
+name:            Lend[v1].Overseer
+chainId:         pulsar-2
+codeId:          8406
+codeHash:        0d83a559ab496537cfcadfa8ff23a7671d7f87df01fe23c1d303cc648be15dc3
+address:         secret1k4czf6zxglv9lnqkwg2tu4c8ypdv4r7jpnjpyg
+transactionHash: 69181DD6AB6D43344ED8BFE64DA0542F3761A3B23129F165C0789ACCDAE2D547
+---
+name:            Placeholder.SUST
+label:           name/Placeholder.SUST
+chainId:         pulsar-2
+codeId:          8593
+codeHash:        9a9833b991e928e4133c7d0895ead62f8cf0d2412435693fb92a52b29647a543
+address:         secret19929ys2rd67e004cetrsz7jw0vgtu5esfyjx6w
+transactionHash: 551361E0A8083129F7432E8C76A342C99B48C9F7625D2D56C268373696265AE2
+---
+name:            Placeholder.SLUNA
+label:           name/Placeholder.SLUNA
+chainId:         pulsar-2
+codeId:          8593
+codeHash:        9a9833b991e928e4133c7d0895ead62f8cf0d2412435693fb92a52b29647a543
+address:         secret16020v7p5r3yxx5xcazresywykglxemnx69q2xe
+transactionHash: C4441D90C5104C066BADC9FFEB68A26A73EE4FC300FEF69AA3392EE4C0596ACA
+---
+name:            Placeholder.SBTC
+label:           name/Placeholder.SBTC
+chainId:         pulsar-2
+codeId:          8593
+codeHash:        9a9833b991e928e4133c7d0895ead62f8cf0d2412435693fb92a52b29647a543
+address:         secret1m6l0shk34l7krqvvmhf7cfzlr0uznqtrs7zd95
+transactionHash: 0D240A7C2F2B9978CD544DF1D2EE8004AD0AC6591DB1D1C367565DEAF2F6B5B9

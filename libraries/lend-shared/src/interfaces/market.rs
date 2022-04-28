@@ -13,7 +13,10 @@ use crate::interfaces::overseer::{
 };
 use crate::core::{MasterKey, AuthMethod, Pagination};
 
-#[interface(component(path = "admin"), component(path = "killswitch"))]
+#[interface(
+    component(path = "admin"),
+    component(path = "killswitch")
+)]
 pub trait Market {
     #[init]
     fn new(
@@ -49,6 +52,22 @@ pub trait Market {
 
     #[handle]
     fn transfer(recipient: HumanAddr, amount: Uint256) -> StdResult<HandleResponse>;
+
+    #[handle]
+    fn send(
+        recipient: HumanAddr,
+        recipient_code_hash: Option<String>,
+        amount: Uint256,
+        msg: Option<Binary>,
+        memo: Option<String>,
+        padding: Option<String>,
+    ) -> StdResult<HandleResponse>;
+
+    #[handle]
+    fn register_receive(
+        code_hash: String, 
+        padding: Option<String>
+    ) -> StdResult<HandleResponse>;
 
     #[handle]
     fn accrue_interest() -> StdResult<HandleResponse>;
@@ -90,6 +109,9 @@ pub trait Market {
 
     #[query]
     fn underlying_asset() -> StdResult<ContractLink<HumanAddr>>;
+
+    #[query]
+    fn interest_model() -> StdResult<ContractLink<HumanAddr>>;
 
     #[query]
     fn borrow_rate(block: Option<u64>) -> StdResult<Decimal256>;

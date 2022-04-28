@@ -3,14 +3,15 @@ use std::str::FromStr;
 use lend_shared::{
     core::Pagination,
     fadroma::{
+        admin,
         decimal::one_token,
         ensemble::{ContractHarness, MockDeps, MockEnv},
         from_binary,
         snip20_impl::msg::HandleMsg as Snip20HandleMsg,
-        to_binary, Binary, Composable, Decimal256, Env, HandleResponse, HumanAddr, InitResponse,
-        Permit, StdError, StdResult, Uint128, Uint256, ContractLink
+        to_binary, Binary, Composable, ContractLink, Decimal256, Env, HandleResponse, HumanAddr,
+        InitResponse, Permit, StdError, StdResult, Uint128, Uint256,
     },
-    interfaces::{market, overseer::*, oracle},
+    interfaces::{market, oracle, overseer::*},
 };
 
 use crate::setup::{Lend, LendConfig, ADMIN};
@@ -55,6 +56,7 @@ fn whitelist() {
     let res = lend.ensemble.execute(
         &HandleMsg::Whitelist {
             config: MarketInitConfig {
+                admin: None,
                 token_symbol: underlying_1_symbol.into(),
                 prng_seed: Binary::from(b"seed_for_base_market"),
                 entropy: Binary::from(b"entropy_for_base_market"),
@@ -73,8 +75,26 @@ fn whitelist() {
 
     assert_eq!(StdError::unauthorized(), res.unwrap_err());
 
-    lend.whitelist_market(underlying_1.clone(), Decimal256::percent(90), None, None)
-        .unwrap();
+    let admin = HumanAddr::from("joe");
+    lend.ensemble.execute(
+        &HandleMsg::Whitelist {
+            config: MarketInitConfig {
+                admin: Some(admin.clone()),
+                token_symbol: underlying_1_symbol.into(),
+                prng_seed: Binary::from(b"seed_for_base_market"),
+                entropy: Binary::from(b"entropy_for_base_market"),
+                underlying_asset: underlying_1.clone(),
+                ltv_ratio: Decimal256::percent(90),
+                config: market::Config {
+                    initial_exchange_rate: Decimal256::one(),
+                    reserve_factor: Decimal256::one(),
+                    seize_factor: Decimal256::one(),
+                },
+                interest_model_contract: lend.interest_model.clone(),
+            },
+        },
+        MockEnv::new(ADMIN, lend.overseer.clone()),
+    ).unwrap();
 
     lend.whitelist_market(underlying_2.clone(), Decimal256::percent(90), None, None)
         .unwrap();
@@ -93,7 +113,21 @@ fn whitelist() {
         .unwrap();
 
     assert_eq!(res.total, 2);
-    assert_eq!(res.entries.len(), 2)
+    assert_eq!(res.entries.len(), 2);
+
+    let admin_res: HumanAddr = lend.ensemble.query(
+        res.entries[0].contract.address.clone(),
+        market::QueryMsg::Admin(admin::QueryMsg::Admin {})
+    ).unwrap();
+
+    assert_eq!(admin_res, admin);
+
+    let admin_res: HumanAddr = lend.ensemble.query(
+        res.entries[1].contract.address.clone(),
+        market::QueryMsg::Admin(admin::QueryMsg::Admin {})
+    ).unwrap();
+
+    assert_eq!(admin_res, ADMIN.into());
 }
 
 #[test]
@@ -255,8 +289,8 @@ fn returns_right_liquidity() {
         )
         .unwrap();
 
-    // should return amount * collateralFactor * exchangeRate * underlyingPrice
-    let expected = ((Uint256::from(1_000_000u128)
+    // should return amount * collateralFactor * exchangeRate * underlyingPrice with 18 decimals
+    let expected = ((Uint256::from(1_000_000_000_000_000_000u128)
         .decimal_mul(Decimal256::percent(50))
         .unwrap()
         * Uint256::from(1u128))
@@ -343,12 +377,7 @@ fn liquidity_collateral_factor() {
         )
         .unwrap();
 
-    assert_eq!(
-        Uint256::from(1000000u128)
-            .decimal_mul(Decimal256::percent(50))
-            .unwrap(),
-        res.liquidity,
-    );
+    assert_eq!(Uint256::from(5_000_000_000_000_000_00u128), res.liquidity,);
     assert_eq!(Uint256::from(0u128), res.shortfall);
 
     // borrow amount, should shortfall over collateralFactor
@@ -363,12 +392,7 @@ fn liquidity_collateral_factor() {
         .unwrap();
 
     assert_eq!(Uint256::from(0u128), res.liquidity);
-    assert_eq!(
-        Uint256::from(1000000u128)
-            .decimal_mul(Decimal256::percent(50))
-            .unwrap(),
-        res.shortfall
-    );
+    assert_eq!(Uint256::from(5_000_000_000_000_000_00u128), res.shortfall);
 
     // hypothetically redeem `amount`, should be back to even
     let res = lend
@@ -389,13 +413,13 @@ fn liquidity_collateral_factor() {
 fn liquidity_entering_markets() {
     // allows entering 3 markets, supplying to 2 and borrowing up to collateralFactor in the 3rd
     let mut lend = Lend::default();
-    let underlying_1 = lend.new_underlying_token("ONE", 6).unwrap();
-    let underlying_2 = lend.new_underlying_token("TWO", 3).unwrap();
-    let underlying_3 = lend.new_underlying_token("TRES", 6).unwrap();
+    let underlying_1 = lend.new_underlying_token("ONE", 18).unwrap();
+    let underlying_2 = lend.new_underlying_token("TWO", 18).unwrap();
+    let underlying_3 = lend.new_underlying_token("TRES", 18).unwrap();
 
-    lend.prefund_user(BORROWER, Uint128(5 * one_token(6)), underlying_1.clone());
-    lend.prefund_user(BORROWER, Uint128(5 * one_token(3)), underlying_2.clone());
-    lend.prefund_user(BORROWER, Uint128(5 * one_token(6)), underlying_3.clone());
+    lend.prefund_user(BORROWER, Uint128(5 * one_token(18)), underlying_1.clone());
+    lend.prefund_user(BORROWER, Uint128(5 * one_token(18)), underlying_2.clone());
+    lend.prefund_user(BORROWER, Uint128(5 * one_token(18)), underlying_3.clone());
 
     let market_one = lend
         .whitelist_market(underlying_1.clone(), Decimal256::percent(50), None, None)
@@ -546,11 +570,11 @@ fn calculate_amount_seize() {
     let config = LendConfig::new().market(Box::new(MarketImpl));
     let mut lend = Lend::new(config);
 
-    let underlying_1 = lend.new_underlying_token("ONE", 6).unwrap();
-    let underlying_2 = lend.new_underlying_token("TWO", 3).unwrap();
+    let underlying_1 = lend.new_underlying_token("ONE", 18).unwrap();
+    let underlying_2 = lend.new_underlying_token("TWO", 18).unwrap();
 
-    lend.prefund_user(BORROWER, Uint128(5 * one_token(6)), underlying_1.clone());
-    lend.prefund_user(BORROWER, Uint128(5 * one_token(3)), underlying_2.clone());
+    lend.prefund_user(BORROWER, Uint128(5 * one_token(18)), underlying_1.clone());
+    lend.prefund_user(BORROWER, Uint128(5 * one_token(18)), underlying_2.clone());
 
     let collateral_market = lend
         .whitelist_market(underlying_1.clone(), Decimal256::percent(50), None, None)
@@ -623,7 +647,7 @@ fn calculate_amount_seize() {
                 &HandleMsg::ChangeConfig {
                     premium_rate: Some(*premium),
                     close_factor: None,
-                    oracle: None
+                    oracle: None,
                 },
                 MockEnv::new(ADMIN, lend.overseer.clone()),
             )
@@ -753,8 +777,7 @@ fn test_ltv() {
         )
         .unwrap();
 
-    lend
-        .ensemble
+    lend.ensemble
         .execute(
             &Snip20HandleMsg::Send {
                 recipient: market1.contract.address.clone(),
@@ -768,8 +791,7 @@ fn test_ltv() {
         )
         .unwrap();
 
-    lend
-        .ensemble
+    lend.ensemble
         .execute(
             &Snip20HandleMsg::Send {
                 recipient: market2.contract.address.clone(),
@@ -938,30 +960,38 @@ fn test_ltv() {
     );
 
     // try to transfer
-    let res = lend.ensemble.execute(
-        &market::HandleMsg::Transfer {
-            recipient: "MALLORY".into(),
-            amount: Uint256::from(1_000_000u128),
-        },
-        MockEnv::new(BORROWER, market2.contract.clone()),
-    ).unwrap_err();
+    let res = lend
+        .ensemble
+        .execute(
+            &market::HandleMsg::Transfer {
+                recipient: "MALLORY".into(),
+                amount: Uint256::from(1_000_000u128),
+            },
+            MockEnv::new(BORROWER, market2.contract.clone()),
+        )
+        .unwrap_err();
     assert_eq!(
         res,
         StdError::generic_err("Invalid price reported by the oracle.")
     );
 
     // set valid price and try to transfer again
-    lend.set_oracle_price(market2.symbol.as_bytes(), Uint128(1_000_000_000_000_000_000u128))
-        .unwrap();
+    lend.set_oracle_price(
+        market2.symbol.as_bytes(),
+        Uint128(1_000_000_000_000_000_000u128),
+    )
+    .unwrap();
 
     // should be ok
-    lend.ensemble.execute(
-        &market::HandleMsg::Transfer {
-            recipient: "MALLORY".into(),
-            amount: Uint256::from(1_000_000u128),
-        },
-        MockEnv::new(BORROWER, market2.contract.clone()),
-    ).unwrap();
+    lend.ensemble
+        .execute(
+            &market::HandleMsg::Transfer {
+                recipient: "MALLORY".into(),
+                amount: Uint256::from(1_000_000u128),
+            },
+            MockEnv::new(BORROWER, market2.contract.clone()),
+        )
+        .unwrap();
 }
 
 #[test]
@@ -975,60 +1005,59 @@ fn faulty_oracle_price_causes_liquidity_check_to_error() {
     let underlying_1 = lend.new_underlying_token("SLATOM", 18).unwrap();
     let underlying_2 = lend.new_underlying_token("SLSCRT", 18).unwrap();
 
-    let market_1 = lend.whitelist_market(
-        underlying_1.clone(),
-        Decimal256::percent(70),
-        Some(Decimal256::percent(20)),
-        Some(Decimal256::one())
-    ).unwrap();
+    let market_1 = lend
+        .whitelist_market(
+            underlying_1.clone(),
+            Decimal256::percent(70),
+            Some(Decimal256::percent(20)),
+            Some(Decimal256::one()),
+        )
+        .unwrap();
 
-    let market_2 = lend.whitelist_market(
-        underlying_2,
-        Decimal256::percent(70),
-        Some(Decimal256::percent(20)),
-        Some(Decimal256::one())
-    ).unwrap();
+    let market_2 = lend
+        .whitelist_market(
+            underlying_2,
+            Decimal256::percent(70),
+            Some(Decimal256::percent(20)),
+            Some(Decimal256::one()),
+        )
+        .unwrap();
 
-    lend.set_oracle_price(market_1.symbol.as_bytes(), Uint128(1 * one_token(18))).unwrap();
-    lend.set_oracle_price(market_2.symbol.as_bytes(), Uint128(10000)).unwrap();
+    lend.set_oracle_price(market_1.symbol.as_bytes(), Uint128(1 * one_token(18)))
+        .unwrap();
+    lend.set_oracle_price(market_2.symbol.as_bytes(), Uint128(10000))
+        .unwrap();
 
-    lend.prefund_user(
-        bob,
-        Uint128(1000),
-        underlying_1.clone()
+    lend.prefund_user(bob, Uint128(1000), underlying_1.clone());
+
+    lend.prefund_user(mallory, Uint128(300), underlying_1);
+
+    lend.prefund_and_deposit(alice, Uint128(100), market_2.contract.address.clone());
+
+    lend.ensemble
+        .execute(
+            &HandleMsg::Enter {
+                markets: vec![
+                    market_1.contract.address.clone(),
+                    market_2.contract.address.clone(),
+                ],
+            },
+            MockEnv::new(bob, lend.overseer.clone()),
+        )
+        .unwrap();
+
+    let err = lend
+        .ensemble
+        .execute(
+            &market::HandleMsg::Borrow { amount: 100.into() },
+            MockEnv::new(bob, market_2.contract),
+        )
+        .unwrap_err();
+
+    assert_eq!(
+        err,
+        StdError::generic_err("Invalid price reported by the oracle.")
     );
-
-    lend.prefund_user(
-        mallory,
-        Uint128(300),
-        underlying_1
-    );
-
-    lend.prefund_and_deposit(
-        alice,
-        Uint128(100),
-        market_2.contract.address.clone()
-    );
-
-    lend.ensemble.execute(
-        &HandleMsg::Enter {
-            markets: vec![
-                market_1.contract.address.clone(),
-                market_2.contract.address.clone()
-            ],
-        },
-        MockEnv::new(bob, lend.overseer.clone()),
-    )
-    .unwrap();
-
-    let err = lend.ensemble.execute(
-        &market::HandleMsg::Borrow {
-            amount: 100.into()
-        },
-        MockEnv::new(bob, market_2.contract)
-    ).unwrap_err();
-
-    assert_eq!(err, StdError::generic_err("Invalid price reported by the oracle."));
 }
 
 struct MockBand;
@@ -1045,11 +1074,7 @@ impl ContractHarness for MockBand {
         })
     }
 
-    fn query(
-        &self,
-        deps: &MockDeps,
-        msg: Binary
-    ) -> StdResult<Binary> {
+    fn query(&self, deps: &MockDeps, msg: Binary) -> StdResult<Binary> {
         let msg = from_binary(&msg).unwrap();
 
         match msg {
@@ -1067,7 +1092,7 @@ impl ContractHarness for MockBand {
                     ))),
                 }
             }
-            _ => unimplemented!()
+            _ => unimplemented!(),
         }
     }
 }
@@ -1085,145 +1110,347 @@ fn change_oracle() {
     let underlying_1 = lend.new_underlying_token("ATOM", 18).unwrap();
     let underlying_2 = lend.new_underlying_token("SSCRT", 18).unwrap();
 
-    let market_1 = lend.whitelist_market(
-        underlying_1.clone(),
-        Decimal256::one(),
-        Some(Decimal256::percent(20)),
-        Some(Decimal256::one())
-    ).unwrap();
+    let market_1 = lend
+        .whitelist_market(
+            underlying_1.clone(),
+            Decimal256::one(),
+            Some(Decimal256::percent(20)),
+            Some(Decimal256::one()),
+        )
+        .unwrap();
 
-    let market_2 = lend.whitelist_market(
-        underlying_2,
-        Decimal256::one(),
-        Some(Decimal256::percent(20)),
-        Some(Decimal256::one())
-    ).unwrap();
+    let market_2 = lend
+        .whitelist_market(
+            underlying_2,
+            Decimal256::one(),
+            Some(Decimal256::percent(20)),
+            Some(Decimal256::one()),
+        )
+        .unwrap();
 
-    lend.set_oracle_price(market_1.symbol.as_bytes(), Uint128(1 * one_token(18))).unwrap();
-    lend.set_oracle_price(market_2.symbol.as_bytes(), Uint128(1 * one_token(18))).unwrap();
+    lend.set_oracle_price(market_1.symbol.as_bytes(), Uint128(1 * one_token(18)))
+        .unwrap();
+    lend.set_oracle_price(market_2.symbol.as_bytes(), Uint128(1 * one_token(18)))
+        .unwrap();
 
     lend.prefund_and_deposit(
         alice,
         prefund_amount.into(),
-        market_2.contract.address.clone()
+        market_2.contract.address.clone(),
     );
 
     lend.prefund_and_deposit(
         mallory,
         prefund_amount.into(),
-        market_1.contract.address.clone()
+        market_1.contract.address.clone(),
     );
 
-    lend.ensemble.execute(
-        &HandleMsg::Enter {
-            markets: vec![
-                market_1.contract.address.clone(),
-                market_2.contract.address.clone()
-            ],
-        },
-        MockEnv::new(mallory, lend.overseer.clone()),
-    )
-    .unwrap();
+    lend.ensemble
+        .execute(
+            &HandleMsg::Enter {
+                markets: vec![
+                    market_1.contract.address.clone(),
+                    market_2.contract.address.clone(),
+                ],
+            },
+            MockEnv::new(mallory, lend.overseer.clone()),
+        )
+        .unwrap();
 
-    let liquidity = lend.get_liquidity(
-        mallory,
-        None,
-        Uint256::zero(),
-        Uint256::zero(),
-        None
-    ).unwrap();
+    let liquidity = lend
+        .get_liquidity(mallory, None, Uint256::zero(), Uint256::zero(), None)
+        .unwrap();
 
     assert_eq!(liquidity.liquidity, prefund_amount.into());
     assert_eq!(liquidity.shortfall, Uint256::zero());
 
-    lend.ensemble.execute(
-        &market::HandleMsg::Borrow {
-            amount: borrow_amount.into()
-        },
-        MockEnv::new(mallory, market_2.contract.clone())
-    ).unwrap();
+    lend.ensemble
+        .execute(
+            &market::HandleMsg::Borrow {
+                amount: borrow_amount.into(),
+            },
+            MockEnv::new(mallory, market_2.contract.clone()),
+        )
+        .unwrap();
 
     let info = lend.ensemble.register(Box::new(MockBand));
-    lend.mock_band = lend.ensemble.instantiate(
-        info.id,
-        &{},
-        MockEnv::new(
-            ADMIN,
-            ContractLink {
-                address: "mock_band_new".into(),
-                code_hash: info.code_hash.clone(),
-            }
+    lend.mock_band = lend
+        .ensemble
+        .instantiate(
+            info.id,
+            &{},
+            MockEnv::new(
+                ADMIN,
+                ContractLink {
+                    address: "mock_band_new".into(),
+                    code_hash: info.code_hash.clone(),
+                },
+            ),
         )
-    ).unwrap();
+        .unwrap();
 
-    lend.set_oracle_price(market_1.symbol.as_bytes(), Uint128(1 * one_token(18))).unwrap();
+    lend.set_oracle_price(market_1.symbol.as_bytes(), Uint128(1 * one_token(18)))
+        .unwrap();
 
-    let consumer = lend.ensemble.instantiate(
-        2,
-        &oracle::InitMsg {
-            admin: None,
-            source: lend.mock_band.clone(),
-            initial_assets: vec![],
-            overseer: oracle::OverseerRef::ExistingInstance(lend.overseer.clone())
-        },
-        MockEnv::new(ADMIN, ContractLink {
-            address: "new_oracle".into(),
-            code_hash: info.code_hash
-        })
-    ).unwrap();
+    let consumer = lend
+        .ensemble
+        .instantiate(
+            2,
+            &oracle::InitMsg {
+                admin: None,
+                source: lend.mock_band.clone(),
+                initial_assets: vec![],
+                overseer: oracle::OverseerRef::ExistingInstance(lend.overseer.clone()),
+            },
+            MockEnv::new(
+                ADMIN,
+                ContractLink {
+                    address: "new_oracle".into(),
+                    code_hash: info.code_hash,
+                },
+            ),
+        )
+        .unwrap();
 
-    let old: ContractLink<HumanAddr> = lend.ensemble.query(
-        lend.overseer.address.clone(),
-        QueryMsg::OracleContract { }
-    ).unwrap();
+    let old: ContractLink<HumanAddr> = lend
+        .ensemble
+        .query(lend.overseer.address.clone(), QueryMsg::OracleContract {})
+        .unwrap();
 
-    lend.ensemble.execute(
-        &HandleMsg::ChangeConfig {
-            premium_rate: None,
-            close_factor: None,
-            oracle: Some(consumer.clone())
-        },
-        MockEnv::new(ADMIN, lend.overseer.clone())
-    ).unwrap();
+    lend.ensemble
+        .execute(
+            &HandleMsg::ChangeConfig {
+                premium_rate: None,
+                close_factor: None,
+                oracle: Some(consumer.clone()),
+            },
+            MockEnv::new(ADMIN, lend.overseer.clone()),
+        )
+        .unwrap();
 
-    let new: ContractLink<HumanAddr> = lend.ensemble.query(
-        lend.overseer.address.clone(),
-        QueryMsg::OracleContract {  }
-    ).unwrap();
+    let new: ContractLink<HumanAddr> = lend
+        .ensemble
+        .query(lend.overseer.address.clone(), QueryMsg::OracleContract {})
+        .unwrap();
 
     assert_ne!(old, new);
     assert_eq!(new, consumer);
 
-    let err = lend.get_liquidity(
-        mallory,
-        None,
-        Uint256::zero(),
-        Uint256::zero(),
-        None
-    ).unwrap_err();
+    let err = lend
+        .get_liquidity(mallory, None, Uint256::zero(), Uint256::zero(), None)
+        .unwrap_err();
 
     assert_eq!(
         err,
         StdError::generic_err(format!("No price for {} found.", market_2.symbol))
     );
 
-    let err = lend.ensemble.execute(
-        &market::HandleMsg::Borrow {
-            amount: borrow_amount.into()
-        },
-        MockEnv::new(mallory, market_2.contract)
-    ).unwrap_err();
+    let err = lend
+        .ensemble
+        .execute(
+            &market::HandleMsg::Borrow {
+                amount: borrow_amount.into(),
+            },
+            MockEnv::new(mallory, market_2.contract),
+        )
+        .unwrap_err();
 
     assert_eq!(
         err,
         StdError::generic_err(format!("No price for {} found.", market_2.symbol))
     );
 
-    let config: oracle::ConfigResponse = lend.ensemble.query(
-        new.address,
-        oracle::QueryMsg::Config { }
-    ).unwrap();
+    let config: oracle::ConfigResponse = lend
+        .ensemble
+        .query(new.address, oracle::QueryMsg::Config {})
+        .unwrap();
 
     assert_eq!(config.overseer, lend.overseer);
     assert_eq!(config.source, lend.mock_band);
+}
+
+#[test]
+fn different_tokens_liquidity() {
+    let mut lend = Lend::default();
+
+    let alice = "ALICE";
+
+    let underlying1 = lend.new_underlying_token("ATOM", 8).unwrap();
+    let underlying2 = lend.new_underlying_token("SCRT", 6).unwrap();
+    let underlying3 = lend.new_underlying_token("LUNA", 9).unwrap();
+    let underlying4 = lend.new_underlying_token("ETH", 18).unwrap();
+
+    // ltv 70%, ex rate 0.02
+    let market1 = lend
+        .whitelist_market(
+            underlying1.clone(),
+            Decimal256::percent(70),
+            Some(Decimal256::percent(2)),
+            Some(Decimal256::zero()),
+        )
+        .unwrap();
+
+    // ltv 70%, ex rate 0.02
+    let market2 = lend
+        .whitelist_market(
+            underlying2.clone(),
+            Decimal256::percent(70),
+            Some(Decimal256::percent(2)),
+            Some(Decimal256::zero()),
+        )
+        .unwrap();
+
+    // ltv 70%, ex rate 0.02
+    let market3 = lend
+        .whitelist_market(
+            underlying3.clone(),
+            Decimal256::percent(70),
+            Some(Decimal256::percent(2)),
+            Some(Decimal256::zero()),
+        )
+        .unwrap();
+
+    // ltv 70%, ex rate 0.02
+    let market4 = lend
+        .whitelist_market(
+            underlying4.clone(),
+            Decimal256::percent(70),
+            Some(Decimal256::percent(2)),
+            Some(Decimal256::zero()),
+        )
+        .unwrap();
+
+    // set prices
+    lend.set_oracle_price(market1.symbol.as_bytes(), Uint128(24 * one_token(18)))
+        .unwrap();
+    lend.set_oracle_price(market2.symbol.as_bytes(), Uint128(5 * one_token(18)))
+        .unwrap();
+    lend.set_oracle_price(market3.symbol.as_bytes(), Uint128(84 * one_token(18)))
+        .unwrap();
+    lend.set_oracle_price(market4.symbol.as_bytes(), Uint128(3000 * one_token(18)))
+        .unwrap();
+
+    // Deposit 10 ATOM and 10 SCRT
+    lend.prefund_and_deposit(
+        alice,
+        Uint128(10 * one_token(8)),
+        market1.contract.address.clone(),
+    );
+
+    lend.prefund_and_deposit(
+        alice,
+        Uint128(10 * one_token(6)),
+        market2.contract.address.clone(),
+    );
+
+    // Enter markets
+    lend.ensemble
+        .execute(
+            &HandleMsg::Enter {
+                markets: vec![
+                    market1.contract.address.clone(),
+                    market2.contract.address.clone(),
+                ],
+            },
+            MockEnv::new(alice, lend.overseer.clone()),
+        )
+        .unwrap();
+
+    // Verify liquidity is correct
+    // (10 / 0.02 * (0.7 * 0.02 * 24)) + (10 / 0.02 * (0.7 * 0.02 * 5)) = 203$
+    let liquidity = lend
+        .get_liquidity(alice, None, Uint256::zero(), Uint256::zero(), None)
+        .unwrap();
+
+    assert_eq!(
+        liquidity.liquidity,
+        Uint256::from(203_000_000_000_000_000_000u128)
+    );
+
+    // Hypothetical liquidity after borrowing 5 SCRT = 178$
+    let liquidity = lend
+        .get_liquidity(
+            alice,
+            Some(market2.contract.address.clone()),
+            Uint256::zero(),
+            Uint256::from(5_000_000u128),
+            None,
+        )
+        .unwrap();
+
+    assert_eq!(
+        liquidity.liquidity,
+        Uint256::from(178_000_000_000_000_000_000u128)
+    );
+
+    // Can't borrow more than liquidity
+    // Attempt to borrow 41 SCRT should fall 0.4 SCRT short * 5$ = 2$
+    let liquidity = lend
+        .get_liquidity(
+            alice,
+            Some(market2.contract.address.clone()),
+            Uint256::zero(),
+            Uint256::from(41_000_000u128),
+            None,
+        )
+        .unwrap();
+
+    assert_eq!(
+        liquidity.shortfall,
+        Uint256::from(2_000_000_000_000_000_000u128)
+    );
+
+    // Hypothetical liquidity after borrowing 5 ATOM(120$) = 83$
+    let liquidity = lend
+        .get_liquidity(
+            alice,
+            Some(market1.contract.address.clone()),
+            Uint256::zero(),
+            Uint256::from(5_000_000_00u128),
+            None,
+        )
+        .unwrap();
+
+    assert_eq!(
+        liquidity.liquidity,
+        Uint256::from(83_000_000_000_000_000_000u128)
+    );
+
+    // Deposit some 10 LUNA and 10 ETH
+     lend.prefund_and_deposit(
+        alice,
+        Uint128(10 * one_token(9)),
+        market3.contract.address.clone(),
+    );
+
+    lend.prefund_and_deposit(
+        alice,
+        Uint128(10 * one_token(18)),
+        market4.contract.address.clone(),
+    );
+    
+    // Enter markets
+     lend.ensemble
+        .execute(
+            &HandleMsg::Enter {
+                markets: vec![
+                    market3.contract.address.clone(),
+                    market4.contract.address.clone(),
+                ],
+            },
+            MockEnv::new(alice, lend.overseer.clone()),
+        )
+        .unwrap();
+
+    // Liquidity now should be
+    // (10 / 0.02 * (0.7 * 0.02 * 24)) + (10 / 0.02 * (0.7 * 0.02 * 5)) +
+    // (10 / 0.02 * (0.7 * 0.02 * 84)) + (10 / 0.02 * (0.7 * 0.02 * 3000)) = 21791$
+    let liquidity = lend
+        .get_liquidity(alice, None, Uint256::zero(), Uint256::zero(), None)
+        .unwrap();
+
+    assert_eq!(
+        liquidity.liquidity,
+        Uint256::from(21791_000_000_000_000_000_000u128)
+    );
 }

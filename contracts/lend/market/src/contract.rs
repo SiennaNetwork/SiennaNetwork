@@ -14,24 +14,26 @@ use lend_shared::{
         },
         cosmwasm_std,
         cosmwasm_std::{
-            log, Api, Binary, CosmosMsg, Env, Extern, HandleResponse, HumanAddr, InitResponse,
-            Querier, StdError, StdResult, Storage, WasmMsg,
+            Api, Binary, CosmosMsg, Env, Extern, HandleResponse,
+            HumanAddr, InitResponse, Querier, StdError, StdResult,
+            Storage, WasmMsg, log
         },
         derive_contract::*,
         from_binary, killswitch, require_admin,
         secret_toolkit::snip20,
         snip20_impl::msg as snip20_msg,
+        snip20_impl::receiver::Snip20ReceiveMsg,
         to_binary, Callback, ContractLink, Decimal256, Uint128, Uint256, BLOCK_SIZE,
     },
     interfaces::{
         interest_model::{query_borrow_rate, query_supply_rate},
         market::{
-            AccountInfo, Borrower, Config, HandleMsg, MarketAuth, MarketPermissions,
-            ReceiverCallbackMsg, State, BorrowersResponse
+            AccountInfo, Borrower, Config, HandleMsg, MarketAuth,
+            MarketPermissions, ReceiverCallbackMsg, State, BorrowersResponse
         },
         overseer::{
-            query_account_liquidity, query_can_transfer, query_entered_markets, query_market,
-            query_seize_amount,
+            query_account_liquidity, query_can_transfer, query_entered_markets,
+            query_market, query_seize_amount,
         },
     },
 };
@@ -44,7 +46,8 @@ const TOKEN_PREFIX: &str = "sl-";
 
 use ops::{accrue_interest, accrued_interest_at, LatestInterest};
 use state::{
-    load_borrowers, Account, BorrowerId, Constants, Contracts, Global, TotalBorrows, TotalSupply,
+    load_borrowers, Account, BorrowerId, Constants, Contracts,
+    Global, TotalBorrows, TotalSupply, ReceiverRegistry
 };
 use token::calc_exchange_rate;
 
@@ -183,6 +186,7 @@ pub trait Market {
                 } else {
                     Account::of(deps, &from)?
                 },
+                from,
                 amount.into(),
             ),
             ReceiverCallbackMsg::Liquidate {
@@ -262,35 +266,74 @@ pub trait Market {
 
     #[handle]
     fn transfer(recipient: HumanAddr, amount: Uint256) -> StdResult<HandleResponse> {
-        let sender = Account::of(deps, &env.message.sender)?;
-
-        let can_transfer = query_can_transfer(
-            &deps.querier,
-            Contracts::load_overseer(deps)?,
-            MasterKey::load(&deps.storage)?,
-            env.message.sender,
-            env.contract.address,
-            env.block.height,
-            amount,
-        )?;
-
-        if !can_transfer {
-            return Err(StdError::generic_err(
-                "Account has negative liquidity and cannot transfer.",
-            ));
-        }
-
-        sender.subtract_balance(&mut deps.storage, amount)?;
-
-        let recipient = Account::of(deps, &recipient)?;
-        recipient.add_balance(&mut deps.storage, amount)?;
+        do_transfer(deps, env, &recipient, amount)?;
 
         Ok(HandleResponse {
             messages: vec![],
             log: vec![],
             // SNIP-20 spec compliance.
             data: Some(to_binary(&snip20_msg::HandleAnswer::Transfer {
-                status: snip20_msg::ResponseStatus::Success,
+                status: snip20_msg::ResponseStatus::Success
+            })?),
+        })
+    }
+
+    #[handle]
+    fn send(
+        recipient: HumanAddr,
+        recipient_code_hash: Option<String>,
+        amount: Uint256,
+        msg: Option<Binary>,
+        memo: Option<String>,
+        _padding: Option<String>,
+    ) -> StdResult<HandleResponse> {
+        let sender = env.message.sender.clone();
+
+        do_transfer(deps, env, &recipient, amount)?;
+
+        let code_hash = if recipient_code_hash.is_some() {
+            recipient_code_hash
+        } else {
+            ReceiverRegistry::get(deps, &recipient)?
+        };
+
+        let messages = if let Some(code_hash) = code_hash {
+            vec![
+                Snip20ReceiveMsg {
+                    amount: amount.low_u128().into(),
+                    from: sender.clone(),
+                    sender,
+                    msg,
+                    memo
+                }.into_cosmos_msg(code_hash, recipient)?
+            ]
+        } else {
+            vec![]
+        };
+
+        Ok(HandleResponse {
+            messages,
+            log: vec![],
+            // SNIP-20 spec compliance.
+            data: Some(to_binary(&snip20_msg::HandleAnswer::Send {
+                status: snip20_msg::ResponseStatus::Success
+            })?),
+        })
+    }
+
+    #[handle]
+    fn register_receive(
+        code_hash: String, 
+        _padding: Option<String>
+    ) -> StdResult<HandleResponse> {
+        ReceiverRegistry::set(deps, &env.message.sender, &code_hash)?;
+
+        Ok(HandleResponse {
+            messages: vec![],
+            log: vec![log("register_status", "success")],
+            // SNIP-20 spec compliance.
+            data: Some(to_binary(&snip20_msg::HandleAnswer::RegisterReceive {
+                status: snip20_msg::ResponseStatus::Success
             })?),
         })
     }
@@ -527,6 +570,11 @@ pub trait Market {
     }
 
     #[query]
+    fn interest_model() -> StdResult<ContractLink<HumanAddr>> {
+        Contracts::load_interest_model(deps)
+    }
+
+    #[query]
     fn borrow_rate(block: Option<u64>) -> StdResult<Decimal256> {
         let underlying_asset = Contracts::load_underlying(deps)?;
 
@@ -701,19 +749,69 @@ pub trait Market {
     }
 }
 
+fn do_transfer<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    env: Env,
+    recipient: &HumanAddr,
+    amount: Uint256
+) -> StdResult<()> {
+    let sender = Account::of(deps, &env.message.sender)?;
+    let recipient = Account::of(deps, &recipient)?;
+
+    let can_transfer = query_can_transfer(
+        &deps.querier,
+        Contracts::load_overseer(deps)?,
+        MasterKey::load(&deps.storage)?,
+        env.message.sender,
+        env.contract.address,
+        env.block.height,
+        amount,
+    )?;
+
+    if !can_transfer {
+        return Err(StdError::generic_err(
+            "Account has negative liquidity and cannot transfer.",
+        ));
+    }
+
+    sender.subtract_balance(&mut deps.storage, amount)?;
+    
+    recipient.add_balance(&mut deps.storage, amount)
+}
+
 fn repay<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     mut interest: LatestInterest,
     borrower: Account,
+    sender: HumanAddr,
     amount: Uint256,
 ) -> StdResult<HandleResponse> {
     let mut snapshot = borrower.get_borrow_snapshot(&deps.storage)?;
-    snapshot.subtract_balance(interest.borrow_index(&deps.storage)?, amount)?;
+    let remainder = snapshot.subtract_balance(interest.borrow_index(&deps.storage)?, amount)?;
     borrower.save_borrow_snapshot(&mut deps.storage, snapshot)?;
 
+    let amount = (amount.0 - remainder.0).into();
     TotalBorrows::decrease(&mut deps.storage, amount)?;
 
-    Ok(HandleResponse::default())
+    if remainder > Uint256::zero() {
+        let underlying = Contracts::load_underlying(deps)?;
+
+        Ok(HandleResponse {
+            messages: vec![snip20::transfer_msg(
+                sender,
+                remainder.low_u128().into(),
+                None,
+                None,
+                BLOCK_SIZE,
+                underlying.code_hash,
+                underlying.address
+            )?],
+            log: vec![],
+            data: None
+        })
+    } else {
+        Ok(HandleResponse::default())
+    }
 }
 
 fn liquidate<S: Storage, A: Api, Q: Querier>(

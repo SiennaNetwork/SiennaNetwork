@@ -933,6 +933,7 @@ dependencies = [
  "lend-overseer",
  "lend-shared",
  "serde",
+ "sienna-rewards",
 ]
 
 [[package]]
