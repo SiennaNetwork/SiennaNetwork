@@ -4036,3 +4036,24 @@ codeId:   363
 codeHash: 8e272c6d17a7b1d740fa0067113bff42934ebdcac461da4307021e1629d3e7ce
 address:  secret1lwt90s5dexa9cy5dva6kjg2d7m9fmg7ldue5qw
 initTx:   D4B5DDA939973628D92F69014AAA0B2129DDE0242676D460D675744CB266E031
+---
+name:            Lend[v1].InterestModelStable
+chainId:         secret-4
+codeId:          500
+codeHash:        44A0B850EDECF1345E526D84D6F3F0CA9A672E1E3C9CE25584877D64C603D457
+address:         secret1300qz3kzlpxxt47l0q25npdug8j9s0plaac28g
+transactionHash: 7B8BB8017884AD1ADA51011410AE0BCC981668E6D70224E47186078676BCEB09
+---
+name:            Lend[v1].InterestModelOther
+chainId:         secret-4
+codeId:          500
+codeHash:        44A0B850EDECF1345E526D84D6F3F0CA9A672E1E3C9CE25584877D64C603D457
+address:         secret122x2ng3z4vxghsc0mvf6e2ly9j25heu594hh3t
+transactionHash: F4918195A24D35C9C982D80626B686DF81F08A2BD95E3016FED79D31D3C8C788
+---
+name:            Lend[v1].Overseer
+chainId:         secret-4
+codeId:          510
+codeHash:        BD573658377D724C691715E267C4765B4643999E35F2C143F03D57F00FDE4454
+address:         secret1zvplvju4dcsta0smka30j7a4aggn4dewsg9efm
+transactionHash: 5A168498091D9C8E34842E705B7D91A819C5F49C5CDD9A69845795E7EC264AD7
