@@ -169,7 +169,7 @@ pub trait Overseer {
                 callback_code_hash: info.code_hash,
                 send: vec![],
                 msg: to_binary(&MarketInitMsg {
-                    admin: env.message.sender,
+                    admin: config.admin.unwrap_or(env.message.sender),
                     prng_seed: config.prng_seed,
                     entropy: config.entropy,
                     interest_model_contract: config.interest_model_contract,

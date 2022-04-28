@@ -3,6 +3,7 @@ use std::str::FromStr;
 use lend_shared::{
     core::Pagination,
     fadroma::{
+        admin,
         decimal::one_token,
         ensemble::{ContractHarness, MockDeps, MockEnv},
         from_binary,
@@ -55,6 +56,7 @@ fn whitelist() {
     let res = lend.ensemble.execute(
         &HandleMsg::Whitelist {
             config: MarketInitConfig {
+                admin: None,
                 token_symbol: underlying_1_symbol.into(),
                 prng_seed: Binary::from(b"seed_for_base_market"),
                 entropy: Binary::from(b"entropy_for_base_market"),
@@ -73,8 +75,26 @@ fn whitelist() {
 
     assert_eq!(StdError::unauthorized(), res.unwrap_err());
 
-    lend.whitelist_market(underlying_1.clone(), Decimal256::percent(90), None, None)
-        .unwrap();
+    let admin = HumanAddr::from("joe");
+    lend.ensemble.execute(
+        &HandleMsg::Whitelist {
+            config: MarketInitConfig {
+                admin: Some(admin.clone()),
+                token_symbol: underlying_1_symbol.into(),
+                prng_seed: Binary::from(b"seed_for_base_market"),
+                entropy: Binary::from(b"entropy_for_base_market"),
+                underlying_asset: underlying_1.clone(),
+                ltv_ratio: Decimal256::percent(90),
+                config: market::Config {
+                    initial_exchange_rate: Decimal256::one(),
+                    reserve_factor: Decimal256::one(),
+                    seize_factor: Decimal256::one(),
+                },
+                interest_model_contract: lend.interest_model.clone(),
+            },
+        },
+        MockEnv::new(ADMIN, lend.overseer.clone()),
+    ).unwrap();
 
     lend.whitelist_market(underlying_2.clone(), Decimal256::percent(90), None, None)
         .unwrap();
@@ -93,7 +113,21 @@ fn whitelist() {
         .unwrap();
 
     assert_eq!(res.total, 2);
-    assert_eq!(res.entries.len(), 2)
+    assert_eq!(res.entries.len(), 2);
+
+    let admin_res: HumanAddr = lend.ensemble.query(
+        res.entries[0].contract.address.clone(),
+        market::QueryMsg::Admin(admin::QueryMsg::Admin {})
+    ).unwrap();
+
+    assert_eq!(admin_res, admin);
+
+    let admin_res: HumanAddr = lend.ensemble.query(
+        res.entries[1].contract.address.clone(),
+        market::QueryMsg::Admin(admin::QueryMsg::Admin {})
+    ).unwrap();
+
+    assert_eq!(admin_res, ADMIN.into());
 }
 
 #[test]
