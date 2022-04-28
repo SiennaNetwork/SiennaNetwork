@@ -9,11 +9,9 @@ use amm_shared::{
         ensemble::{ContractEnsemble, ContractHarness, MockDeps, MockEnv},
         snip20_impl::{
             msg::{
-                InitMsg as Snip20InitMsg,
-                HandleMsg as Snip20HandleMsg,
-                QueryMsg as Snip20QueryMsg,
-                QueryPermission as Snip20Permission,
-                QueryWithPermit, InitialBalance, QueryAnswer, InitConfig
+                HandleMsg as Snip20HandleMsg, InitConfig, InitMsg as Snip20InitMsg, InitialBalance,
+                QueryAnswer, QueryMsg as Snip20QueryMsg, QueryPermission as Snip20Permission,
+                QueryWithPermit,
             },
             snip20_handle, snip20_init, snip20_query, Snip20, SymbolValidation,
         },
@@ -25,7 +23,7 @@ use amm_shared::{
 use exchange::contract as exchange;
 use factory::contract as factory;
 use lp_token;
-use rewards::{auth::AuthHandle, Response};
+use rewards::{account::Account, auth::AuthHandle, query::RewardsPermissions, Response};
 
 #[cfg(feature = "gov")]
 use rewards::gov::{
@@ -300,17 +298,19 @@ impl Amm {
         &mut self,
         token: ContractLink<HumanAddr>,
         recipient: impl Into<HumanAddr>,
-        amount: Uint128
+        amount: Uint128,
     ) {
-        self.ensemble.execute(
-            &Snip20HandleMsg::Mint {
-                recipient: recipient.into(),
-                amount,
-                memo: None,
-                padding: None
-            },
-            MockEnv::new(ADMIN, token)
-        ).unwrap();
+        self.ensemble
+            .execute(
+                &Snip20HandleMsg::Mint {
+                    recipient: recipient.into(),
+                    amount,
+                    memo: None,
+                    padding: None,
+                },
+                MockEnv::new(ADMIN, token),
+            )
+            .unwrap();
     }
 
     pub fn get_lp_balance(&self, address: impl Into<HumanAddr>, pair: HumanAddr) -> Uint128 {
@@ -376,7 +376,7 @@ impl Amm {
                     amount,
                     msg: None,
                     memo: None,
-                    padding: None
+                    padding: None,
                 },
                 MockEnv::new(address, config.lp_token.unwrap()),
             )
@@ -389,45 +389,55 @@ impl Amm {
         self.mint(
             config.reward_token.unwrap(),
             self.rewards.address.clone(),
-            amount
+            amount,
         )
     }
 
     pub fn get_rewards_config(&self) -> rewards::config::RewardsConfig {
-        let resp: rewards::Response = self.ensemble.query(
-            self.rewards.address.clone(),
-            rewards::Query::Rewards(rewards::query::RewardsQuery::Config)
-        ).unwrap();
+        let resp: rewards::Response = self
+            .ensemble
+            .query(
+                self.rewards.address.clone(),
+                rewards::Query::Rewards(rewards::query::RewardsQuery::Config),
+            )
+            .unwrap();
 
         match resp {
             rewards::Response::Rewards(resp) => match resp {
                 rewards::query::RewardsResponse::Config(config) => config,
-                _ => panic!("Expecting rewards::query::RewardsResponse::Config")
+                _ => panic!("Expecting rewards::query::RewardsResponse::Config"),
             },
-            _ => panic!("sienna_rewards::Response::Rewards")
+            _ => panic!("sienna_rewards::Response::Rewards"),
         }
     }
 
-    pub fn get_rewards_user(&self, address: impl Into<HumanAddr>, at: u64) -> rewards::account::Account {
-        let resp: rewards::Response = self.ensemble.query(
-            self.rewards.address.clone(),
-            rewards::Query::Rewards(rewards::query::RewardsQuery::WithPermit {
-                query: rewards::query::QueryWithPermit::UserInfo { at },
-                permit: rewards::permit::Permit::new(
-                    address.into(),
-                    vec![ rewards::query::RewardsPermissions::UserInfo ],
-                    vec![ self.rewards.address.clone() ],
-                    "user_info"
-                )
-            })
-        ).unwrap();
+    pub fn get_rewards_user(
+        &self,
+        address: impl Into<HumanAddr>,
+        at: u64,
+    ) -> rewards::account::Account {
+        let resp: rewards::Response = self
+            .ensemble
+            .query(
+                self.rewards.address.clone(),
+                rewards::Query::Rewards(rewards::query::RewardsQuery::WithPermit {
+                    query: rewards::query::QueryWithPermit::UserInfo { at },
+                    permit: rewards::permit::Permit::new(
+                        address.into(),
+                        vec![rewards::query::RewardsPermissions::UserInfo],
+                        vec![self.rewards.address.clone()],
+                        "user_info",
+                    ),
+                }),
+            )
+            .unwrap();
 
         match resp {
             Response::Rewards(resp) => match resp {
                 rewards::query::RewardsResponse::UserInfo(account) => account,
-                _ => panic!("Expecting rewards::query::RewardsResponse")
+                _ => panic!("Expecting rewards::query::RewardsResponse"),
             },
-            _ => panic!("Expecting rewards::Response")
+            _ => panic!("Expecting rewards::Response"),
         }
     }
 
@@ -447,7 +457,7 @@ impl Amm {
                 self.rewards.address.clone(),
                 &rewards::Query::Balance {
                     address: address.into(),
-                    key
+                    key,
                 },
             )
             .unwrap();
@@ -455,6 +465,30 @@ impl Amm {
         match response {
             Response::Balance { amount } => amount,
             _ => panic!("wrong type returned for balance"),
+        }
+    }
+    pub fn query_account_info_permit(&mut self, address: impl Into<HumanAddr>, at: u64) -> Account {
+        let response: Response = self
+            .ensemble
+            .query(
+                self.rewards.address.clone(),
+                &rewards::Query::Rewards(rewards::query::RewardsQuery::WithPermit {
+                    query: rewards::query::QueryWithPermit::UserInfo { at },
+                    permit: rewards::permit::Permit::<RewardsPermissions>::new(
+                        address,
+                        vec![RewardsPermissions::UserInfo],
+                        vec![self.rewards.address.clone()],
+                        "test_permit",
+                    ),
+                }),
+            )
+            .unwrap();
+        match response {
+            Response::Rewards(resp) => match resp {
+                rewards::query::RewardsResponse::UserInfo(account) => account,
+                _ => panic!("Expecting rewards::query::RewardsResponse::UserInfo"),
+            },
+            _ => panic!("Expecting rewards::Response"),
         }
     }
 }
