@@ -81,8 +81,8 @@ where
     /// Reset the user's liquidity conribution
     fn reset(&mut self, core: &mut C) -> StdResult<()>;
     /// Check if a deposit is possible, then perform it
-    fn deposit(&mut self, core: &mut C, amount: Uint128) -> StdResult<HandleResponse>;
-    /// Check if a withdrawal is possible, then perform it.
+    fn deposit(&mut self, core: &mut C, amount: Uint128, transfer: bool) -> StdResult<HandleResponse>;
+    /// Check if a withdrawal is possible, then perform it
     fn withdraw(&mut self, core: &mut C, amount: Uint128) -> StdResult<HandleResponse>;
     /// Check if a claim is possible, then perform it
     fn claim(&mut self, core: &mut C, to: Option<ClaimRecipient>) -> StdResult<HandleResponse>;
@@ -206,7 +206,8 @@ where
         core.set_ns(Self::UPDATED, self.id.as_slice(), self.updated)?;
         Ok(())
     }
-    fn deposit(&mut self, core: &mut C, amount: Uint128) -> StdResult<HandleResponse> {
+
+    fn deposit(&mut self, core: &mut C, amount: Uint128, transfer: bool) -> StdResult<HandleResponse> {
         if let Some((ref when, ref why)) = self.total.closed {
             let when = *when;
             let why = why.clone();
@@ -215,8 +216,21 @@ where
         } else {
             self.commit_deposit(core, amount)?;
 
-            HandleResponse::default()
-                .log("deposit", &amount.to_string())
+            if transfer {
+                let lp_token = RewardsConfig::lp_token(core)?;
+                let self_link = RewardsConfig::self_link(core)?;
+    
+                HandleResponse::default()
+                    .msg(lp_token.transfer_from(
+                        &self.address,
+                        &self_link.address,
+                        amount,
+                    )?)?
+                    .log("deposit", &amount.to_string())
+            } else {
+                HandleResponse::default()
+                    .log("deposit", &amount.to_string())
+            }
         }
     }
     fn withdraw(&mut self, core: &mut C, amount: Uint128) -> StdResult<HandleResponse> {

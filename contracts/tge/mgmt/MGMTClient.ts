@@ -1,8 +1,6 @@
 import { Client, Snip20Client } from '@hackbg/fadroma'
 
-
 type Link = { address: string, code_hash: string }
-
 
 export abstract class MGMTClient extends Client {
 

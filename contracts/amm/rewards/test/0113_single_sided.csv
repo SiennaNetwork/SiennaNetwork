@@ -1,7 +1,7 @@
 Time,Sender,Recipient,Data
 ,,,
 14,SIENNA,0113_single_sided_addr,"rewards:
-  deposit:
+  deposit_receiver:
     from: Alice
     amount: ""42798"""
 log,0113_single_sided_addr,,deposit = 42798

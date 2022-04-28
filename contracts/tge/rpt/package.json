@@ -1,11 +1,11 @@
 {
   "name": "@sienna/rpt",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "module",
   "main": "./RPTClient.ts",
   "dependencies": {
     "@hackbg/fadroma":  "workspace:../../../deps/fadroma",
-    "@sienna/mgmt":     "workspace:^2.0.0",
-    "@sienna/settings": "workspace:^1.0.0"
+    "@sienna/mgmt":     "workspace:^3",
+    "@sienna/settings": "workspace:^1"
   }
 }

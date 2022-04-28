@@ -1,7 +1,7 @@
 Time,Sender,Recipient,Data
 ,,,
 9,LP_TOKEN,0110_overlap_addr,"rewards:
-  deposit:
+  deposit_receiver:
     from: Alice
     amount: ""42798"""
 log,0110_overlap_addr,,deposit = 42798
@@ -14,7 +14,7 @@ log,0110_overlap_addr,,deposit = 42798
 206,0110_overlap_addr,Bob,account.starting_pool_volume = 8431206
 ,,,
 206,LP_TOKEN,0110_overlap_addr,"rewards:
-  deposit:
+  deposit_receiver:
     from: Bob
     amount: ""38861"""
 log,0110_overlap_addr,,deposit = 38861
