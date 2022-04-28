@@ -1531,11 +1531,11 @@ export async function deployLend (
         , agent
 
         // Interest model settings:
-        , base_rate_year       =      "0.2"
+        , base_rate_year       =      "0.1"
         , blocks_year          = 6311520
-        , jump_multiplier_year =      "0"
-        , jump_threshold       =      "0"
-        , multiplier_year      =      "0.9"
+        , jump_multiplier_year =      "2"
+        , jump_threshold       =      "0.8"
+        , multiplier_year      =      "0.22"
 
         // Overseer settings:
         , entropy      =  randomHex(36)
@@ -1582,7 +1582,7 @@ export async function deployLend (
       entropy, prng_seed, close_factor, premium,
       market_contract: templateStruct(marketTemplate),
       oracle_contract: templateStruct(oracleTemplate),
-      oracle_source:   linkStruct(mockOracle)
+      oracle_source:   isDevnet ? linkStruct(mockOracle) : {address: "secret150e2n880rvlv9cm6aqsusu40jfl7x5zt6rt7na", code_hash: "55f701d7e86ad1758f6a812ac35174a4f911bc9a1e1066c3ca3ee63736408005"}
     }
   )
 
