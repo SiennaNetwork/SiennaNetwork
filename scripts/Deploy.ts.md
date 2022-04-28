@@ -1531,11 +1531,11 @@ export async function deployLend (
         , agent
 
         // Interest model settings:
-        , base_rate_year       =      "0.1"
-        , blocks_year          = 6311520
-        , jump_multiplier_year =      "2"
+        , base_rate_year       =      "0.02"
+        , blocks_year          = 5259600
+        , jump_multiplier_year =      "4"
         , jump_threshold       =      "0.8"
-        , multiplier_year      =      "0.22"
+        , multiplier_year      =      "0.225"
 
         // Overseer settings:
         , entropy      =  randomHex(36)
