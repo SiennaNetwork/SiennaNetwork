@@ -491,6 +491,30 @@ impl Amm {
             _ => panic!("Expecting rewards::Response"),
         }
     }
+    pub fn query_balance_with_permit(&mut self, address: impl Into<HumanAddr>) -> Uint128 {
+        let response: Response = self
+            .ensemble
+            .query(
+                self.rewards.address.clone(),
+                &rewards::Query::Rewards(rewards::query::RewardsQuery::WithPermit {
+                    query: rewards::query::QueryWithPermit::Balance {},
+                    permit: rewards::permit::Permit::<RewardsPermissions>::new(
+                        address,
+                        vec![RewardsPermissions::Balance],
+                        vec![self.rewards.address.clone()],
+                        "test_permit_balance",
+                    ),
+                }),
+            )
+            .unwrap();
+        match response {
+            Response::Rewards(resp) => match resp {
+                rewards::query::RewardsResponse::Balance { amount } => amount,
+                _ => panic!("Expecting rewards::query::RewardsResponse::Balance"),
+            },
+            _ => panic!("Expecting rewards::Response"),
+        }
+    }
 }
 
 pub struct Token;

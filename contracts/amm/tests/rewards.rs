@@ -55,3 +55,12 @@ fn query_account_info_permitted() {
     let account = amm.query_account_info_permit(USERS[0], time);
     assert_eq!(100, account.staked.u128());
 }
+#[test]
+fn query_balance_permitted() {
+    let mut amm = Amm::new();
+    amm.deposit_lp_into_rewards(USERS[0], Uint128(100));
+    amm.set_rewards_viewing_key(USERS[0], "whatever".into());
+
+    let balance = amm.query_balance_with_permit(USERS[0]);
+    assert_eq!(100, balance.u128());
+}
