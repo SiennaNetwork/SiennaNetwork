@@ -92,8 +92,8 @@ fn deposit_to_rewards() {
 
     lend.ensemble.execute(
         &snip20::HandleMsg::Send {
-            recipient: rewards.address,
-            recipient_code_hash: Some(rewards.code_hash),
+            recipient: rewards.address.clone(),
+            recipient_code_hash: Some(rewards.code_hash.clone()),
             amount,
             msg: None,
             memo: None,
@@ -103,8 +103,20 @@ fn deposit_to_rewards() {
     )
     .unwrap();
 
-    let info = lend.account_info(joe, market.address);
+    let info = lend.account_info(joe, market.address.clone());
     
     assert_eq!(info.borrow_balance, Uint256::zero());
     assert_eq!(info.sl_token_balance, Uint256::zero());
+
+    lend.ensemble.execute(
+        &rewards::Handle::Rewards(
+            rewards::handle::RewardsHandle::Withdraw { amount }
+        ),
+        MockEnv::new(joe, rewards)
+    ).unwrap();
+
+    let info = lend.account_info(joe, market.address);
+    
+    assert_eq!(info.borrow_balance, Uint256::zero());
+    assert_eq!(info.sl_token_balance, amount.into());
 }
