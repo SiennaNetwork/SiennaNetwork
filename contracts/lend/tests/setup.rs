@@ -289,6 +289,7 @@ impl Lend {
         self.ensemble.execute(
             &overseer::HandleMsg::Whitelist {
                 config: MarketInitConfig {
+                    admin: None,
                     token_symbol,
                     prng_seed: Binary::from(b"seed_for_sienna_market"),
                     entropy: Binary::from(b"entropy_for_sienna_market"),
