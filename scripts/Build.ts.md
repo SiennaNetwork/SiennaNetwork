@@ -198,6 +198,7 @@ build['router']    = () => sources(versions.HEAD, contracts.AMM, contracts.Route
 build['launchpad'] = () => sources(versions.HEAD, contracts.Launchpad)
 build['vesting']   = () => sources(versions.TGE.vest, contracts.TGE)
 build['tge']       = () => sources(versions.TGE.legacy, contracts.TGE)
+build['rewards']   = () => sources(versions.HEAD, contracts.Rewards)
 ```
 
 ## Special case: building the templates for the AMM Factory

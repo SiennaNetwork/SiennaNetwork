@@ -1,6 +1,6 @@
 import { MigrationContext, Template, buildAndUpload, bold, randomHex, Console } from '@hackbg/fadroma'
 import * as API from '@sienna/api'
-import getSettings, { ONE_SIENNA } from '@sienna/settings'
+import getSettings, { ONE_SIENNA, workspace } from '@sienna/settings'
 import { linkStruct } from '../misc'
 import { adjustRPTConfig } from '../Configure'
 import { versions, contracts, source } from '../Build'
@@ -79,6 +79,38 @@ export async function deployRewards (context: RewardsDeployContext): Promise<Rew
   }
 
   return clients
+
+}
+
+export async function deployRewardPool (context: MigrationContext) {
+
+  const { builder, uploader, deployment, agent } = context
+
+  const template = await buildAndUpload(context.builder, context.uploader, {
+    workspace,
+    crate: 'sienna-rewards'
+  })
+
+  const name = 'Lend.sl-sSCRT.Rewards[v3.1]'
+
+  const pool = await context.deployment.init(context.agent, template, name, {
+    admin: context.agent.address,
+    config: {
+      reward_vk:    null,
+      lp_token:     {
+        address:    'secret182338zh2h8rmn6kaqde03ydez9mqp5qqhghk06',
+        code_hash:  '46e5bca7904e5247952a831cfe426586f614767ec1485bfb2d78c40ae5bf10c8',
+      },
+      reward_token: {
+        address:    'secret182338zh2h8rmn6kaqde03ydez9mqp5qqhghk06',
+        code_hash:  '46e5bca7904e5247952a831cfe426586f614767ec1485bfb2d78c40ae5bf10c8',
+      },
+      timekeeper:   'secret1gt0q0kcayqy0a7ymplmq0lt2ye30jfhqfmczch',
+      bonding: 86400,
+    }
+  })
+
+  console.log({pool})
 
 }
 
