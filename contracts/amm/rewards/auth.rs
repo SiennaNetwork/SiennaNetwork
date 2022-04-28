@@ -132,8 +132,8 @@ where
         Ok(())
     }
     fn save_contract_address(&mut self, address: &HumanAddr) -> StdResult<()> {
-        let address = self.api().canonical_address(address)?;
-        self.storage_mut().set(CONTRACT, address.as_slice());
+        let address = self.canonize(address)?;
+        self.set(CONTRACT, address)?;
         Ok(())
     }
     fn load_contract_address(&self) -> StdResult<HumanAddr> {

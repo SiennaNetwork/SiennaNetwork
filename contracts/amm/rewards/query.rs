@@ -1,5 +1,5 @@
 use crate::{
-    account::{Account, IAccount},
+    account::{self, Account, Amount, IAccount},
     auth::{Auth, AuthMethod},
     config::{IRewardsConfig, RewardsConfig},
     permit::Permit,
@@ -7,7 +7,7 @@ use crate::{
     total::{ITotal, Total},
     Rewards,
 };
-use fadroma::{Api, HumanAddr, Querier, QueryDispatch, StdResult, Storage};
+use fadroma::{Api, HumanAddr, Querier, QueryDispatch, StdResult, Storage, Uint128};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -49,19 +49,24 @@ where
                 RewardsResponse::user_info(core, at, &account)
             }
             RewardsQuery::PoolInfo { at } => RewardsResponse::pool_info(core, at),
-            RewardsQuery::WithPermit { query, permit } => {
-                let account = Auth::authenticate(
-                    core,
-                    AuthMethod::Permit(permit),
-                    RewardsPermissions::UserInfo,
-                )?;
-
-                match query {
-                    QueryWithPermit::UserInfo { at } => {
-                        RewardsResponse::user_info(core, at, &account)
-                    }
+            RewardsQuery::WithPermit { query, permit } => match query {
+                QueryWithPermit::UserInfo { at } => {
+                    let account = Auth::authenticate(
+                        core,
+                        AuthMethod::Permit(permit),
+                        RewardsPermissions::UserInfo,
+                    )?;
+                    RewardsResponse::user_info(core, at, &account)
                 }
-            }
+                QueryWithPermit::Balance {} => {
+                    let account = Auth::authenticate(
+                        core,
+                        AuthMethod::Permit(permit),
+                        RewardsPermissions::Balance,
+                    )?;
+                    RewardsResponse::balance(core, &account)
+                }
+            },
         }
     }
 }
@@ -71,6 +76,7 @@ pub enum RewardsResponse {
     UserInfo(Account),
     PoolInfo(Total),
     Config(RewardsConfig),
+    Balance { amount: Amount },
 }
 pub trait IRewardsResponse<S, A, Q, C>: Sized
 where
@@ -85,6 +91,7 @@ where
     fn pool_info(core: &C, time: Moment) -> StdResult<Self>;
     /// Populate a response with the contract's configuration
     fn config(core: &C) -> StdResult<Self>;
+    fn balance(core: &C, address: &HumanAddr) -> StdResult<Self>;
 }
 impl<S, A, Q, C> IRewardsResponse<S, A, Q, C> for RewardsResponse
 where
@@ -105,16 +112,26 @@ where
     fn config(core: &C) -> StdResult<RewardsResponse> {
         Ok(RewardsResponse::Config(RewardsConfig::from_storage(core)?))
     }
+
+    fn balance(core: &C, address: &HumanAddr) -> StdResult<Self> {
+        let id = core.canonize(address)?;
+        let amount = core
+            .get_ns(Account::STAKED, id.as_slice())?
+            .unwrap_or_default();
+        Ok(RewardsResponse::Balance { amount })
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum QueryWithPermit {
     UserInfo { at: Moment },
+    Balance {},
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum RewardsPermissions {
     UserInfo,
+    Balance,
 }
