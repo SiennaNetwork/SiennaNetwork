@@ -18,8 +18,10 @@ for the up-to-date mainnet addresses of all production contracts.
 ## Development quickstart
 
 ```sh
-git clone git@git.sienna.network:siennanetwork/contracts.git sienna-contracts
-cd sienna-contracts
+git clone <this-repo>
+```
+
+```sh
 git submodule update --init --recursive
 nix-shell # optional, or bring your own Cargo and PNPM
 pnpm i
@@ -37,7 +39,7 @@ See also:
 
 -   **[Git submodules](https://git-scm.com/book/en/v2/Git-Tools-Submodules)** documentation,
     and most importantly the `git submodule update --init --recursive` command.
--   THe **[pnpm](https://pnpm.io/)** package manager, and most importantly
+-   The **[pnpm](https://pnpm.io/)** package manager, and most importantly
     its [Workspaces feature](https://pnpm.io/workspaces).
 
 ## Repository content
@@ -74,7 +76,7 @@ See also:
 
 * [**deps**](./deps) contains submodules of our foundational frameworks.
   * [fadroma](./deps/fadroma) is a Git submodule pointing to the top of
-    the Fadroma deployment framework, which takes care of building and uploading the
+    the [Fadroma deployment framework](https://github.com/hackbg/fadroma), which takes care of building and uploading the
     contracts behind the scenes.
 
 * [**frontends**](./frontends) contains clients for the smart contracts, written in JS/TS.
@@ -93,12 +95,23 @@ See also:
 * [**receipts**](./receipts) contains the responses to upload and init transactions
   performed by the framework, grouped by chain ID. This lets you keep track of uploaded
   contracts.
-  * [secret-4/deployments/prod](./receipts/secret-4/deployments/prod) - current mainnet deployment
+  * [secret-4/deployments/prod](./receipts/secret-4/deployments/prod.yml) - current mainnet deployment
   * [pulsar-2/deployments/.active](./receipts/pulsar-2/deployments/.active) - current testnet deployment
 
 * [**scripts**](./scripts) contains utility scripts pertaining to the whole repo.
-  * [Dev.ts.md](./scripts/Dev.ts.md) - build and test with `pnpm -w dev`
-  * [Ops.ts.md](./scripts/Ops.ts.md) - test and deploy with `pnpm -w ops`
+  * [Build.ts.md](./scripts/Build.ts.md) - build with `pnpm build`
+  * [Chain.ts.md](./scripts/Chain.ts.md)
+  * [Configure.ts.md](./scripts/Configure.ts.md)
+  * [Deploy.ts.md](./scripts/Deploy.ts.md) - deploy with `pnpm deploy`
+  * [Deployment.ts.md](./scripts/Deployment.ts.md)
+  * [Generate.ts.md](./scripts/Generate.ts.md)
+  * [Live.ts.md](./scripts/Live.ts.md)
+  * [Receipts.ts.md](./scripts/Receipts.ts.md)
+  * [Schema.ts.md](./scripts/Schema.ts.md)
+  * [Status.ts.md](./scripts/Status.ts.md)
+  * [Test.ts.md](./scripts/Test.ts.md) - test with `pnpm test`
+  * [Tokens.ts.md](./scripts/Tokens.ts.md)
+  * [Upload.ts.md](./scripts/Upload.ts.md)
 
 * [**settings**](./settings) contains the values of configurable properties for each
   smart contract, again grouped by chain ID. This is a NPM module that can be imported
