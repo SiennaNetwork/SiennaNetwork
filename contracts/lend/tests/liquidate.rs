@@ -348,6 +348,15 @@ fn borrower_accrues_interest_and_goes_underwater() {
 
     assert_eq!(err, StdError::generic_err("Borrower cannot be liquidated."));
 
+    let err = lend.simulate_liquidation(
+        market_2.contract.address.clone(),
+        borrowers.entries[0].id.clone(),
+        market_1.contract.address.clone(),
+        borrow_amount.into()
+    ).unwrap_err();
+
+    assert_eq!(err, StdError::generic_err("Borrower cannot be liquidated."));
+
     lend.ensemble.block().height += 1000000;
     let height = lend.ensemble.block().height;
 
@@ -379,6 +388,16 @@ fn borrower_accrues_interest_and_goes_underwater() {
     assert_eq!(borrowers.entries.len(), 1);
 
     let interest = (borrowers.entries[0].actual_balance - borrowers.entries[0].principal_balance).unwrap();
+
+    let liquidate_result = lend.simulate_liquidation(
+        market_2.contract.address.clone(),
+        borrowers.entries[0].id.clone(),
+        market_1.contract.address.clone(),
+        borrow_amount.into()
+    ).unwrap();
+
+    assert_eq!(liquidate_result.seize_amount, borrow_amount.into());
+    assert_eq!(liquidate_result.shortfall, Uint256::zero());
 
     lend.ensemble.execute(
         &Snip20HandleMsg::Send {
