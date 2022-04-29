@@ -8,8 +8,8 @@ use fadroma::{
     require_admin,
     schemars::{self, JsonSchema},
     secret_toolkit::snip20,
-    space_pad, to_binary, to_cosmos_msg, Api, ContractLink, Env, Extern, HumanAddr, LogAttribute,
-    Querier, StdError, Storage, WasmQuery, BLOCK_SIZE,
+    space_pad, to_binary, to_cosmos_msg, Api, ContractLink, CosmosMsg, Env, Extern, HumanAddr,
+    LogAttribute, Querier, StdError, Storage, WasmQuery, BLOCK_SIZE,
 };
 pub mod state;
 use fadroma::{derive_contract::*, killswitch};
@@ -94,7 +94,7 @@ pub trait RPT {
 
         Ok(HandleResponse::default())
     }
-    
+
     #[handle]
     fn vest() -> StdResult<HandleResponse> {
         let mgmt = State::load_mgmt(deps)?;
@@ -105,31 +105,7 @@ pub trait RPT {
         let portions = claimable / portion;
         let remainder = claimable % portion;
 
-        let transfers = distribution
-            .0
-            .iter()
-            .map(|(addr, amount)| {
-                snip20::batch::TransferAction::new(
-                    addr.clone(),
-                    Uint128(amount.u128() * portions),
-                    None,
-                )
-            })
-            .collect::<Vec<_>>();
-
-        let batch_transfer_msg = snip20::batch_transfer_msg(
-            transfers,
-            None,
-            BLOCK_SIZE,
-            token.code_hash.clone(),
-            token.address.clone(),
-        )?;
-
-        let claim_msg = to_cosmos_msg(
-            mgmt.address.clone(),
-            mgmt.code_hash.clone(),
-            &MGMTHandle::Claim {},
-        )?;
+        let messages = build_messages(distribution, portions, token, mgmt)?;
 
         let mut logs = vec![];
         if remainder > 0 {
@@ -143,7 +119,7 @@ pub trait RPT {
         Ok(HandleResponse {
             data: None,
             log: logs,
-            messages: vec![claim_msg, batch_transfer_msg],
+            messages,
         })
     }
 }
@@ -173,6 +149,79 @@ where
             msg,
         }))?;
     Ok(progress.unlocked.sub(progress.claimed)?)
+}
+
+#[cfg(feature = "batch_transfer")]
+fn build_messages(
+    distribution: Distribution<HumanAddr>,
+    portions: u128,
+    token: ContractLink<HumanAddr>,
+    mgmt: ContractLink<HumanAddr>,
+) -> StdResult<Vec<CosmosMsg>> {
+    let transfers = distribution
+        .0
+        .iter()
+        .map(|(addr, amount)| {
+            snip20::batch::TransferAction::new(
+                addr.clone(),
+                Uint128(amount.u128() * portions),
+                None,
+            )
+        })
+        .collect::<Vec<_>>();
+
+    let batch_transfer_msg = snip20::batch_transfer_msg(
+        transfers,
+        None,
+        BLOCK_SIZE,
+        token.code_hash.clone(),
+        token.address.clone(),
+    )?;
+
+    let claim_msg = to_cosmos_msg(
+        mgmt.address.clone(),
+        mgmt.code_hash.clone(),
+        &MGMTHandle::Claim {},
+    )?;
+
+    Ok(vec![claim_msg, batch_transfer_msg])
+}
+#[cfg(not(feature = "batch_transfer"))]
+fn build_messages(
+    distribution: Distribution<HumanAddr>,
+    portions: u128,
+    token: ContractLink<HumanAddr>,
+    mgmt: ContractLink<HumanAddr>,
+) -> StdResult<Vec<CosmosMsg>> {
+    let mut transfers = distribution
+        .0
+        .iter()
+        .map(|(addr, amount)| {
+            let transfer = snip20::transfer_msg(
+                addr.clone(),
+                Uint128(amount.u128() * portions),
+                None,
+                None,
+                BLOCK_SIZE,
+                token.code_hash.clone(),
+                token.address.clone(),
+            )
+            .unwrap();
+
+            transfer
+        })
+        .collect::<Vec<_>>();
+
+    let claim_msg = to_cosmos_msg(
+        mgmt.address.clone(),
+        mgmt.code_hash.clone(),
+        &MGMTHandle::Claim {},
+    )?;
+
+    let mut messages = vec![claim_msg];
+    messages.append(&mut transfers);
+
+    Ok(messages)
 }
 
 fn validate<T>(portion: Uint128, config: &Distribution<T>) -> StdResult<()> {

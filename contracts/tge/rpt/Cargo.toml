@@ -23,4 +23,5 @@ kukumba = { git = "https://github.com/hackbg/kukumba", branch = "21.04" }
 snip20-sienna = { path = "../snip20-sienna" }
 
 [features]
-default = []
+default = ["batch_transfer"]
+batch_transfer = []
