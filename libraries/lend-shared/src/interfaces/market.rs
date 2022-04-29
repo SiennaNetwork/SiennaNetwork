@@ -96,6 +96,21 @@ pub trait Market {
     fn set_viewing_key(key: String, padding: Option<String>) -> StdResult<HandleResponse>;
 
     #[query]
+    fn simulate_liquidation(
+        block: u64,
+        borrower: Binary,
+        collateral: HumanAddr,
+        amount: Uint256
+    ) -> StdResult<SimulateLiquidationResult>;
+
+    #[query]
+    fn simulate_seize(
+        key: MasterKey,
+        borrower: HumanAddr,
+        amount: Uint256
+    ) -> StdResult<Uint256>;
+
+    #[query]
     fn token_info() -> StdResult<Snip20Response>;
 
     #[query]
@@ -235,6 +250,15 @@ pub struct BorrowerInfo {
     pub interest_index: Decimal256,
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct SimulateLiquidationResult {
+    /// The amount that would be seized by that liquidation minus protocol fees.
+    pub seize_amount: Uint256,
+    /// If the liquidation would be unsuccessful this will contain amount by which the seize amount falls flat. Otherwise, it's 0.
+    pub shortfall: Uint256
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 #[serde(deny_unknown_fields)]
@@ -282,5 +306,19 @@ pub fn query_account(
         contract_addr: market.address,
         callback_code_hash: market.code_hash,
         msg: to_binary(&QueryMsg::Account { method, block })?,
+    }))
+}
+
+pub fn query_simulate_seize(
+    querier: &impl Querier,
+    market: ContractLink<HumanAddr>,
+    key: MasterKey,
+    borrower: HumanAddr,
+    amount: Uint256
+) -> StdResult<Uint256> {
+    querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+        contract_addr: market.address,
+        callback_code_hash: market.code_hash,
+        msg: to_binary(&QueryMsg::SimulateSeize { key, borrower, amount })?,
     }))
 }
