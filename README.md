@@ -12,7 +12,7 @@
 
 ## Mainnet addresses
 
-MOVED: See [**`receipts/secret-4/deployments/prod.yml`**](./receipts/secret-4/deployments.prod.yml)
+MOVED: See [**`receipts/secret-4/deployments/prod.yml`**](./receipts/secret-4/deployments/prod.yml)
 for the up-to-date mainnet addresses of all production contracts.
 
 ## Development quickstart
