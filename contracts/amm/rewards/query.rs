@@ -1,5 +1,5 @@
 use crate::{
-    account::{self, Account, Amount, IAccount},
+    account::{Account, Amount, IAccount},
     auth::{Auth, AuthMethod},
     config::{IRewardsConfig, RewardsConfig},
     permit::Permit,
@@ -7,7 +7,7 @@ use crate::{
     total::{ITotal, Total},
     Rewards,
 };
-use fadroma::{Api, HumanAddr, Querier, QueryDispatch, StdResult, Storage, Uint128};
+use fadroma::{Api, HumanAddr, Querier, QueryDispatch, StdResult, Storage};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
