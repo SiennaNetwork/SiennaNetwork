@@ -3275,6 +3275,13 @@ codeHash:        BD573658377D724C691715E267C4765B4643999E35F2C143F03D57F00FDE445
 address:         secret1pf88n9hm64mn58aw48jxfs2fsvzr07svnrrdlv
 transactionHash: F166C03C94EB66E815506A1517F331A30F99D7B49DE42B815E2C8251780F7704
 ---
+name:            Lend[v1].Rewards.SIENNA-sl-SSCRT
+chainId:         secret-4
+codeId:          511
+codeHash:        000df0c6900013df8087c94164fd40604ea57babfed69ab1af5ce975d71731b3
+address:         secret1auhh7zd9l77adjsq3cvff78jxd88zrtthw7pwh
+transactionHash: E44598FF0C461313AF5100B57BEFB63772E8CD04A8FC3680C07C0D11CCBB0A66
+---
 name:            Lend[v1].Rewards.SIENNA-sl-SATOM
 chainId:         secret-4
 codeId:          511
