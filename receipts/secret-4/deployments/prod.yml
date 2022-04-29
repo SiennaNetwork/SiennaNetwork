@@ -4058,107 +4058,107 @@ codeHash:        BD573658377D724C691715E267C4765B4643999E35F2C143F03D57F00FDE445
 address:         secret1pf88n9hm64mn58aw48jxfs2fsvzr07svnrrdlv
 transactionHash: F166C03C94EB66E815506A1517F331A30F99D7B49DE42B815E2C8251780F7704
 ---
-name:            Lend[v1].Rewards.SIENNA-sl-SSCRT
+name:            Lend[v1].Rewards[v3].SIENNA-sl-SSCRT
 chainId:         secret-4
 codeId:          511
 codeHash:        000df0c6900013df8087c94164fd40604ea57babfed69ab1af5ce975d71731b3
-address:         secret1auhh7zd9l77adjsq3cvff78jxd88zrtthw7pwh
-transactionHash: E44598FF0C461313AF5100B57BEFB63772E8CD04A8FC3680C07C0D11CCBB0A66
+address:         secret1ezu7zgh5qs605pqyc7sdxce7qvts3932qcwp2e
+transactionHash: 401697170FD399A61B0A44B6FAFCE14DB16F9A8C968B103EFC821286CA5D6316
 ---
-name:            Lend[v1].Rewards.SIENNA-sl-SATOM
+name:            Lend[v1].Rewards[v3].SIENNA-sl-SATOM
 chainId:         secret-4
 codeId:          511
 codeHash:        000df0c6900013df8087c94164fd40604ea57babfed69ab1af5ce975d71731b3
-address:         secret1js9cryxsnrxlnnlc74xdfu6ezqe703ufqe6d4z
-transactionHash: B6AB45A7555AD42E0F3FA88F7C0BE88E3FD65F792CF7AEDF02C170C3A6947120
+address:         secret10r2v9qwdnsmvssed9sn2x4hh6eg9tj05735tmw
+transactionHash: EC95FB71BE20EC7FD40C7C154E88C611CD68A5E61542E9B1F0E8F6B19CEF7ACF
 ---
-name:            Lend[v1].Rewards.SIENNA-sl-SETH
+name:            Lend[v1].Rewards[v3].SIENNA-sl-SETH
 chainId:         secret-4
 codeId:          511
 codeHash:        000df0c6900013df8087c94164fd40604ea57babfed69ab1af5ce975d71731b3
-address:         secret12fmjn3svnzlf5ax5nkus2r2wj84gu76umv2rky
-transactionHash: 4B59B374A42E196D75480834EFBB9D2EAE72D70CBBA5AF648B249A4432161B2D
+address:         secret18n7lmzhqwjhm7cfyv7lsckzusymjnth3ev7jrm
+transactionHash: 4BD1572F407A67DEF9F53A8DB36B276FD938C624B65EE0C3B99F2451F2D908D0
 ---
-name:            Lend[v1].Rewards.SIENNA-sl-SUST
+name:            Lend[v1].Rewards[v3].SIENNA-sl-SUST
 chainId:         secret-4
 codeId:          511
 codeHash:        000df0c6900013df8087c94164fd40604ea57babfed69ab1af5ce975d71731b3
-address:         secret1dc6svwjm7zk7zc77zcdqw4rl88j5fqsdhjwvhk
-transactionHash: 39645ED8E39B2419650BB5EF0E9AB987D28E6A12CD0600ABA869F2A310852F5A
+address:         secret182ad9rr3zmujqf6h5rgglqjeuf7v6skgraxkgu
+transactionHash: B68B6AF8BFAF1FDDAABBF395FA6CB5D0A9D11B58E24C5AD381EF21AC0FA2E9DF
 ---
-name:            Lend[v1].Rewards.SIENNA-sl-SWBTC
+name:            Lend[v1].Rewards[v3].SIENNA-sl-SWBTC
 chainId:         secret-4
 codeId:          511
 codeHash:        000df0c6900013df8087c94164fd40604ea57babfed69ab1af5ce975d71731b3
-address:         secret1mh8juyj5hern8x0x6em46l9rvyryqd36dp60g3
-transactionHash: 8BE887BD7CFB397ECBA9F3953C9AB3A9B8A8E8528A93F5F38B6C2827443E48A5
+address:         secret1x64amhfyk6g6hvqtc8wyel7f5q0tpkkm95ma8l
+transactionHash: F03EA04B975622937D3B778EA72EA86FD84B872F72C5BECC461A7C20B27950C5
 ---
-name:            Lend[v1].Rewards.SIENNA-sl-SLUNA
+name:            Lend[v1].Rewards[v3].SIENNA-sl-SLUNA
 chainId:         secret-4
 codeId:          511
 codeHash:        000df0c6900013df8087c94164fd40604ea57babfed69ab1af5ce975d71731b3
-address:         secret10mpex8ve74rl2c0ulqxucwrhnajy4y7uwyk07l
-transactionHash: AA12DC66918B15CA5A505E64A03F695850E5B10BE9CFDC606B6FF3641B1FB0EA
+address:         secret1x6qcwlry93324d7cqzsxs0uf32smzzm4wkjpfl
+transactionHash: AD3299E2179D9D923F030887B59B2DCE9C6AD650510530E65C693741590CE55E
 ---
-name:            Lend[v1].Rewards.SIENNA-sl-SOSMO
+name:            Lend[v1].Rewards[v3].SIENNA-sl-SOSMO
 chainId:         secret-4
 codeId:          511
 codeHash:        000df0c6900013df8087c94164fd40604ea57babfed69ab1af5ce975d71731b3
-address:         secret1mdm0nxrfxn6lpqj28t0c6a0chj3d9sdk0ukrxp
-transactionHash: ECD78F14BF97E2678FEAFC17610C9C93F4C30936FCFE580067C9830C5ED278F2
+address:         secret1sh5snnqkr9852ylsgql4c4fv9kcjq0ldqrmmja
+transactionHash: 0B942B048B83BA348766047151DDEF81BBDEA64F7D1328A94157A02FFE44446C
 ---
-name:            Lend[v1].Rewards.SIENNA-sl-stkd-SCRT
+name:            Lend[v1].Rewards[v3].SIENNA-sl-stkd-SCRT
 chainId:         secret-4
 codeId:          511
 codeHash:        000df0c6900013df8087c94164fd40604ea57babfed69ab1af5ce975d71731b3
-address:         secret14zr884j4ptwwxwcywnw2ltpunudjza7xy7pfwd
-transactionHash: 018617C98CFB4533EA3C46D691D9E94ECCDDDE82D3B7612DFA799C9F5DDF0CAC
+address:         secret10mw4v29cgljeh2vad0n7zakcrvu3kfdw44t3kc
+transactionHash: ECBC14A6F55DEDCA64CFD546416778AA78CAF741B86AD83B10393DC8118F67B5
 ---
-name:            Lend[v1].Rewards.SIENNA-sl-SUSDT
+name:            Lend[v1].Rewards[v3].SIENNA-sl-SUSDT
 chainId:         secret-4
 codeId:          511
 codeHash:        000df0c6900013df8087c94164fd40604ea57babfed69ab1af5ce975d71731b3
-address:         secret1l397ssrrq90ucrlk0mt3nw589gu7eazcs86wk0
-transactionHash: D895DB64D46CF034E0779BD769A36530A7DAB14D476CDB7A5015566BB05B495D
+address:         secret13sauxmjy2d3fz5ypswclg3qkte8z2tszvgt7c5
+transactionHash: 1749343BAB60889008566A7670FAFACC219BC136CB210C2F76EE8BE5A38D2378
 ---
-name:            Lend[v1].Rewards.SIENNA-sl-SUSDC
+name:            Lend[v1].Rewards[v3].SIENNA-sl-SUSDC
 chainId:         secret-4
 codeId:          511
 codeHash:        000df0c6900013df8087c94164fd40604ea57babfed69ab1af5ce975d71731b3
-address:         secret12rtvzmtxlaw2w8mnrenlunmfkyaahv7gd3yv65
-transactionHash: 6B2A061DDDB0E7D4F56CB51EB6F2C35E5EF8BDAC1C73837D62D7D9D1C1AA6C3A
+address:         secret1266jqzsyw98g3v8cz5cyhw2s9kwhtmtdnr0898
+transactionHash: 7C5703BABDC67B8AED9DD14BA9E2D0DF5DCE863BE69572A4257448B4C74EE887
 ---
-name:            Lend[v1].Rewards.SIENNA-sl-SDAI
+name:            Lend[v1].Rewards[v3].SIENNA-sl-SDAI
 chainId:         secret-4
 codeId:          511
 codeHash:        000df0c6900013df8087c94164fd40604ea57babfed69ab1af5ce975d71731b3
-address:         secret18mxl5vewp3y06runvfqxdelussz65pumnyx63h
-transactionHash: 0E6F3951906E2B428F6F5E000EB20E83A9ABAA19905100C29F2D67C9A1C2F025
+address:         secret1hhskv9ldcl8revg75mc57mm9dms5tcnze3qzsy
+transactionHash: 7F15D87FDBC88CD07A09ED6A6BFFA6D46D038C045B5552AE1FE3B607E930AFAF
 ---
-name:            Lend[v1].Rewards.SIENNA-sl-SAAVE
+name:            Lend[v1].Rewards[v3].SIENNA-sl-SAAVE
 chainId:         secret-4
 codeId:          511
 codeHash:        000df0c6900013df8087c94164fd40604ea57babfed69ab1af5ce975d71731b3
-address:         secret1cme4w477694hq4k8epj5kgrd8htr9cm6s66acr
-transactionHash: 09255DBA6CD67BBED84474935386F2858CCE66254C4741A82BD1FC0147048BCA
+address:         secret1dl2ekf54qnhnux4wr6u3cjgq864pwzxxv5arz4
+transactionHash: 3E2E5B2600F9FF6D6A325AB97D0DC9AB9D4DEB33485E2CA3D121036869240C80
 ---
-name:            Lend[v1].Rewards.SIENNA-sl-MANA
+name:            Lend[v1].Rewards[v3].SIENNA-sl-MANA
 chainId:         secret-4
 codeId:          511
 codeHash:        000df0c6900013df8087c94164fd40604ea57babfed69ab1af5ce975d71731b3
-address:         secret15qlay9n9gvmf0u6wq3zc0s0sckq2pft7mg6h3m
-transactionHash: 7A4B188F3CDDA8F390CEF3134D6C209536D2A50A3D81C140BD1EBE6ED52584E5
+address:         secret1x050dwvhkp4njehk7muz5d32cjpxl5xj36gufh
+transactionHash: 40B3349201ECD398107F12865AF6F706C638E2E276A9BB072177EE10A5B08658
 ---
-name:            Lend[v1].Rewards.SIENNA-sl-SXMR
+name:            Lend[v1].Rewards[v3].SIENNA-sl-SXMR
 chainId:         secret-4
 codeId:          511
 codeHash:        000df0c6900013df8087c94164fd40604ea57babfed69ab1af5ce975d71731b3
-address:         secret1p4v95je4zsnpx6vhd2xcm77fg3dxd2rlf7784f
-transactionHash: 884927A729933F44A26BBA17097A1BF5ED61E537CD429650744FE3272B51C9CF
+address:         secret1r9nheflsxme835dxls2u2l53m084amj9p7hue8
+transactionHash: B05F5B9F5EEE03EF1A7403CC95552EA1EEF2647CAF658C3377FA0D0276EAB45A
 ---
-name:            Lend[v1].Rewards.SIENNA-sl-SBNB(BSC)
+name:            Lend[v1].Rewards[v3].SIENNA-sl-SBNB(BSC)
 chainId:         secret-4
 codeId:          511
 codeHash:        000df0c6900013df8087c94164fd40604ea57babfed69ab1af5ce975d71731b3
-address:         secret1us8hm6ptwx8ap7k0eadlq9mafcxh53kppt2mq6
-transactionHash: 6F68AC7E9186883C0478FD20DDCB9E6E0B66559368065E2958A52D3EC3575D28
+address:         secret1s3y25kvw5gjzv7vd6vmuxjng29wslppdlz2g49
+transactionHash: 90A736BD4B3090AF9E353661A72C9B43A54271B0DAA8E24A53D051574610B304
