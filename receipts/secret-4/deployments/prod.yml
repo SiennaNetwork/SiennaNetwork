@@ -4055,8 +4055,8 @@ name:            Lend[v1].Overseer
 chainId:         secret-4
 codeId:          510
 codeHash:        BD573658377D724C691715E267C4765B4643999E35F2C143F03D57F00FDE4454
-address:         secret1zvplvju4dcsta0smka30j7a4aggn4dewsg9efm
-transactionHash: 5A168498091D9C8E34842E705B7D91A819C5F49C5CDD9A69845795E7EC264AD7
+address:         secret1pf88n9hm64mn58aw48jxfs2fsvzr07svnrrdlv
+transactionHash: F166C03C94EB66E815506A1517F331A30F99D7B49DE42B815E2C8251780F7704
 ---
 name:            Lend[v1].Rewards.SIENNA-sl-SSCRT
 chainId:         secret-4

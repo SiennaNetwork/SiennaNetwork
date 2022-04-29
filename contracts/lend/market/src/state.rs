@@ -264,6 +264,16 @@ impl Account {
         }
     }
 
+    pub fn can_subtract(&self, storage: &impl Storage, amount: Uint256) -> StdResult<Uint256> {
+        let balance = self.get_balance(storage)?;
+
+        if balance < amount {
+            Ok((amount.0 - balance.0).into())
+        } else {
+            Ok(Uint256::zero())
+        }
+    }
+
     pub fn save_borrow_snapshot<S: Storage>(
         &self,
         storage: &mut S,

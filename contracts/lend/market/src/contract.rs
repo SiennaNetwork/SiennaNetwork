@@ -29,7 +29,8 @@ use lend_shared::{
         interest_model::{query_borrow_rate, query_supply_rate},
         market::{
             AccountInfo, Borrower, Config, HandleMsg, MarketAuth,
-            MarketPermissions, ReceiverCallbackMsg, State, BorrowersResponse
+            MarketPermissions, ReceiverCallbackMsg, State, BorrowersResponse,
+            SimulateLiquidationResult, query_simulate_seize
         },
         overseer::{
             query_account_liquidity, query_can_transfer, query_entered_markets,
@@ -367,18 +368,18 @@ pub trait Market {
         query_market(
             &deps.querier,
             Contracts::load_overseer(deps)?,
-            env.message.sender.clone(),
+            env.message.sender
         )?;
 
         let underlying_asset = Contracts::load_underlying(deps)?;
 
         let balance = snip20::balance_query(
             &deps.querier,
-            env.contract.address.clone(),
+            env.contract.address,
             Constants::load_vk(&deps.storage)?,
             BLOCK_SIZE,
-            underlying_asset.code_hash.clone(),
-            underlying_asset.address.clone(),
+            underlying_asset.code_hash,
+            underlying_asset.address,
         )?
         .amount;
 
@@ -390,7 +391,7 @@ pub trait Market {
             balance.into(),
             Account::of(deps, &liquidator)?,
             Account::of(deps, &borrower)?,
-            amount,
+            amount
         )
     }
 
@@ -494,6 +495,86 @@ pub trait Market {
     #[handle]
     fn set_viewing_key(key: String, padding: Option<String>) -> StdResult<HandleResponse> {
         AuthImpl.set_viewing_key(key, padding, deps, env)
+    }
+
+    #[query]
+    fn simulate_liquidation(
+        block: u64,
+        borrower: Binary,
+        collateral: HumanAddr,
+        amount: Uint256
+    ) -> StdResult<SimulateLiquidationResult> {
+        let underlying_asset = Contracts::load_underlying(deps)?;
+
+        let balance = snip20::balance_query(
+            &deps.querier,
+            Contracts::load_self_ref(deps)?.address,
+            Constants::load_vk(&deps.storage)?,
+            BLOCK_SIZE,
+            underlying_asset.code_hash.clone(),
+            underlying_asset.address.clone(),
+        )?
+        .amount;
+
+        let interest = accrued_interest_at(deps, Some(block), balance)?;
+
+        let borrower = Account::from_id(&deps.storage, &borrower)?;
+        let snapshot = borrower.get_borrow_snapshot(&deps.storage)?;
+    
+        let borrower_address = borrower.address(&deps.api)?;
+    
+        let overseer = Contracts::load_overseer(deps)?;
+        checks::assert_liquidate_allowed(
+            deps,
+            overseer.clone(),
+            borrower_address.clone(),
+            snapshot.current_balance(interest.borrow_index)?,
+            block,
+            amount,
+        )?;
+
+        let this = Contracts::load_self_ref(deps)?;
+        let this_is_collateral = this.address == collateral;
+    
+        let seize_amount = query_seize_amount(
+            &deps.querier,
+            overseer.clone(),
+            this.address,
+            collateral.clone(),
+            amount
+        )?;
+    
+        let shortfall = if this_is_collateral {
+            borrower.can_subtract(&deps.storage, seize_amount)?
+        } else {
+            let market = query_market(&deps.querier, overseer, collateral)?;
+            
+            query_simulate_seize(
+                &deps.querier,
+                market.contract,
+                MasterKey::load(&deps.storage)?,
+                borrower_address,
+                seize_amount
+            )?
+        };
+
+        Ok(SimulateLiquidationResult {
+            seize_amount,
+            shortfall
+        })
+    }
+
+    #[query]
+    fn simulate_seize(
+        key: MasterKey,
+        borrower: HumanAddr,
+        amount: Uint256
+    ) -> StdResult<Uint256> {
+        MasterKey::check(&deps.storage, &key)?;
+
+        let borrower = Account::of(&deps, &borrower)?;
+
+        borrower.can_subtract(&deps.storage, amount)
     }
 
     #[query]
@@ -873,7 +954,7 @@ fn liquidate<S: Storage, A: Api, Q: Querier>(
             seize_amount,
         )
     } else {
-        let market = query_market(&deps.querier, overseer, collateral.clone())?;
+        let market = query_market(&deps.querier, overseer, collateral)?;
 
         Ok(HandleResponse {
             messages: vec![CosmosMsg::Wasm(WasmMsg::Execute {

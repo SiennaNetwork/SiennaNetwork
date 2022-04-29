@@ -399,26 +399,46 @@ impl Lend {
     }
 
     #[inline]
+    pub fn simulate_liquidation(
+        &mut self,
+        market: HumanAddr,
+        borrower: Binary,
+        collateral: HumanAddr,
+        amount: Uint256
+    ) -> StdResult<market::SimulateLiquidationResult> {
+        let block = self.ensemble.block().height;
+
+        self.ensemble.query(
+            market,
+            market::QueryMsg::SimulateLiquidation {
+                block,
+                borrower,
+                collateral,
+                amount
+            }
+        )
+    }
+
+    #[inline]
     pub fn account_info(
         &self,
         address: impl Into<HumanAddr>,
         market: HumanAddr,
     ) -> market::AccountInfo {
-        self.ensemble
-            .query(
-                market.clone(),
-                market::QueryMsg::Account {
-                    method: Permit::new(
-                        address,
-                        vec![market::MarketPermissions::AccountInfo],
-                        vec![market],
-                        "balance",
-                    )
-                    .into(),
-                    block: None,
-                },
-            )
-            .unwrap()
+        self.ensemble.query(
+            market.clone(),
+            market::QueryMsg::Account {
+                method: Permit::new(
+                    address,
+                    vec![market::MarketPermissions::AccountInfo],
+                    vec![market],
+                    "balance",
+                )
+                .into(),
+                block: None,
+            },
+        )
+        .unwrap()
     }
 
     #[inline]
