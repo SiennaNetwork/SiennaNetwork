@@ -759,3 +759,141 @@ fn premium_rate() {
 
     assert_eq!(seize_amount, expected);
 }
+
+#[test]
+fn simulate_liquidation() {
+    let mut lend = Lend::default();
+
+    let borrow_amount = Uint256::from(10 * one_token(18));
+
+    let underlying_1 = lend.new_underlying_token("ONE", 18).unwrap();
+    let underlying_2 = lend.new_underlying_token("TWO", 18).unwrap();
+    let underlying_3 = lend.new_underlying_token("THREE", 18).unwrap();
+
+    let market_1 = lend
+        .whitelist_market(
+            underlying_1.clone(),
+            Decimal256::one(),
+            None,
+            None,
+        )
+        .unwrap();
+
+    let market_2 = lend
+        .whitelist_market(
+            underlying_2.clone(),
+            Decimal256::one(),
+            None,
+            None,
+        )
+        .unwrap();
+
+    let market_3 = lend
+        .whitelist_market(
+            underlying_3.clone(),
+            Decimal256::one(),
+            None,
+            None,
+        )
+        .unwrap();
+
+    lend.set_oracle_price(market_1.symbol.as_bytes(), Uint128(1 * one_token(18)))
+        .unwrap();
+    lend.set_oracle_price(market_2.symbol.as_bytes(), Uint128(1 * one_token(18)))
+        .unwrap();
+    lend.set_oracle_price(market_3.symbol.as_bytes(), Uint128(1 * one_token(18)))
+        .unwrap();
+
+    lend.prefund_and_deposit(
+        BOB,
+        borrow_amount.low_u128().into(),
+        market_1.contract.address.clone(),
+    );
+
+    lend.prefund_and_deposit(
+        BOB,
+        Uint128(1 * one_token(18)),
+        market_2.contract.address.clone(),
+    );
+
+    lend.prefund_and_deposit(
+        ALICE,
+        borrow_amount.low_u128().into(),
+        market_3.contract.address.clone()
+    );
+
+    lend.ensemble.execute(
+        &overseer::HandleMsg::Enter {
+            markets: vec![
+                market_1.contract.address.clone(),
+                market_2.contract.address.clone(),
+                market_3.contract.address.clone(),
+            ],
+        },
+        MockEnv::new(BOB, lend.overseer.clone()),
+    )
+    .unwrap();
+
+    lend.ensemble.execute(
+        &market::HandleMsg::Borrow {
+            amount: borrow_amount.into(),
+        },
+        MockEnv::new(BOB, market_3.contract.clone()),
+    )
+    .unwrap();
+
+    lend.set_oracle_price(market_1.symbol.as_bytes(), Uint128(1 * one_token(6))).unwrap();
+
+    let block = lend.ensemble.block().height;
+    let liquidity = lend.get_liquidity(
+        BOB,
+        None,
+        Uint256::zero(),
+        Uint256::zero(),
+        Some(block)
+    ).unwrap();
+
+    assert_eq!(liquidity.liquidity, Uint256::zero());
+
+    let id = lend.id(BOB, market_3.contract.address.clone());
+    let res = lend.simulate_liquidation(
+        market_3.contract.address.clone(),
+        id.clone(),
+        market_2.contract.address.clone(),
+        borrow_amount
+    ).unwrap();
+
+    let shortfall = Uint256::from(9 * one_token(18));
+    
+    assert_eq!(res.seize_amount, borrow_amount);
+    assert_eq!(res.shortfall, shortfall);
+
+    lend.prefund_user(ALICE, borrow_amount.low_u128().into(), underlying_3.clone());
+    
+    let err = lend.ensemble.execute(
+        &Snip20HandleMsg::Send {
+            recipient: market_3.contract.address.clone(),
+            recipient_code_hash: None,
+            amount: borrow_amount.low_u128().into(),
+            msg: Some(
+                to_binary(&market::ReceiverCallbackMsg::Liquidate {
+                    borrower: id.clone(),
+                    collateral: market_2.contract.address.clone(),
+                })
+                .unwrap(),
+            ),
+            memo: None,
+            padding: None,
+        },
+        MockEnv::new(ALICE, underlying_3.clone()),
+    )
+    .unwrap_err();
+
+    assert_eq!(
+        err,
+        StdError::generic_err(format!(
+            "Borrower collateral balance is less than the seize amount. Shortfall: {}",
+            shortfall
+        ))
+    );
+}
