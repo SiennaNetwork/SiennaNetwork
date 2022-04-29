@@ -68,7 +68,7 @@ See also:
     * **Script:**   [deploy.ts](./contracts/amm/deploy.ts) - AMM deployment
     * **Script:**   [upgrade.ts](./contracts/amm/upgrade.ts) - AMM migrations
 
-  * [📖 lend](./contracts/amm) - Sienna Lend
+  * [📖 lend](./contracts/lend) - **Sienna Lend** - Private Lending Protocol
     * **Contract:** [market](./contracts/lend/market)
     * **Contract:** [oracle](./contracts/lend/oracle)
     * **Contract:** [overseer](./contracts/lend/overseer)
