@@ -1,0 +1,200 @@
+{
+  "pairs": [
+    {
+      "name": "SIENNA",
+      "total": 400,
+      "address": "secret1uta9zf3prn7lvc6whp8sqv7ynxmtz3jz9xkyu7"
+    },
+    {
+      "name": "SIENNA - stkd-sSCRT",
+      "total": 300,
+      "address": "secret1mv63thhlkqqgprydeqtsr7sevkvvgnp5gn5xjh"
+    },
+    {
+      "name": "SIENNA - sSCRT",
+      "total": 100,
+      "address": "secret1msxp0ktn058dj7u0dlpa0lxtj7ec87vmefva8u"
+    },
+    {
+      "name": "SIENNA - sBNB",
+      "total": 20,
+      "address": "secret1hyq5lcr43sh6dpar5sk68ypgu6r8ugc8mqyg7t"
+    },
+    {
+      "name": "SIENNA - sETH",
+      "total": 75,
+      "address": "secret1jqecc5qfvquqgdgvj2tn4tass2t28kpwpdk5zs"
+    },
+    {
+      "name": "SIENNA - sUSDT_ERC20",
+      "total": 70,
+      "address": "secret1m78plye56tpuefvksawemh8esfaxw55v90gagp"
+    },
+    {
+      "name": "SIENNA - sUSDC_ERC20",
+      "total": 70,
+      "address": "secret14gfn4hcc9rk8efhtfvn3xa4vxvhert4mluzm56"
+    },
+    {
+      "name": "SIENNA - sXMR",
+      "total": 70,
+      "address": "secret1ytxu82drp5w55qtxv9qx444zjw6hlr6cp5hqn5"
+    },
+    {
+      "name": "SIENNA - WBTC",
+      "total": 70,
+      "address": "secret1jea7f4gmpuz3njgwjguctzx355mf7rxsmrn9zf"
+    },
+    {
+      "name": "SIENNA - SEFI",
+      "total": 10,
+      "address": "secret1x29pcz8h7uvsjfwn0ce8qjg6fy98kk6c9jx5gk"
+    },
+    {
+      "name": "sXMR - sUSDT_ERC20",
+      "total": 20,
+      "address": "secret1t95m9w2sl4khxej4tgmjdujhfzgfvklak6q90f"
+    },
+    {
+      "name": "sXMR - sSCRT",
+      "total": 20,
+      "address": "secret1x59rw60r2gfdk0475zprx0prtqcce3470x6c0j"
+    },
+    {
+      "name": "sSCRT - sETH",
+      "total": 20,
+      "address": "secret19x8cehl5czhct8qyvmsz8m7m4jrvaqruuxyzk3"
+    },
+    {
+      "name": "sSCRT - sUSDC_ERC20",
+      "total": 20,
+      "address": "secret1rl40qmmh76e0ned3yjnvv74pjdmyxzt3nszh44"
+    },
+    {
+      "name": "sXMR - sWBTC",
+      "total": 20,
+      "address": "secret1s79879yanyupd0r0z2z3hdwj3qmhyn6ft45m2t"
+    },
+    {
+      "name": "sSCRT - sWBTC",
+      "total": 20,
+      "address": "secret16wx6zvx0kg9zvrllqsdj2pw5x38rhu7a8z7r39"
+    },
+    {
+      "name": "SIENNA - sLUNA",
+      "total": 90,
+      "address": "secret1ycqpceswdqmy4ez4j6a85hfp59wlswk0lmqzg8"
+    },
+    {
+      "name": "SIENNA - sUST",
+      "total": 100,
+      "address": "secret1dq22t866gjh746d7luz0enzp2rtzylhfyd759f"
+    },
+    {
+      "name": "SIENNA - sOSMO",
+      "total": 70,
+      "address": "secret1vzv4v4rvzfdvhjv6we0xt9knhwrgk42hrf90y4"
+    },
+    {
+      "name": "SIENNA - sATOM",
+      "total": 70,
+      "address": "secret1gjxsk4twa2dhuaeeyk5qnaccrrxjy8z33zc5uy"
+    },
+    {
+      "name": "sSCRT - sUST",
+      "total": 10,
+      "address": "secret1udv6pxj86drt6mlf7qsdhh0m8adqnzjevfqctf"
+    },
+    {
+      "name": "sSCRT - sLUNA",
+      "total": 20,
+      "address": "secret1nfahup9lrftwl6xzcyh0ulfs7gcxn0q98cmhrt"
+    },
+    {
+      "name": "SIENNA - sdVPN",
+      "total": 10,
+      "address": "secret1sjy9g64ptpngn8rkshlmf8wqvvscqrkh5vdhj7"
+    },
+    {
+      "name": "SIENNA - SHD",
+      "total": 75,
+      "address": "secret145sj6t2nvl53yhpqjf243f99vsycehl0n6s2vl"
+    },
+    {
+      "name": "sl-SSCRT",
+      "total": 110,
+      "address": "secret1auhh7zd9l77adjsq3cvff78jxd88zrtthw7pwh"
+    },
+    {
+      "name": "sl-SATOM",
+      "total": 50,
+      "address": "secret1js9cryxsnrxlnnlc74xdfu6ezqe703ufqe6d4z"
+    },
+    {
+      "name": "sl-SETH",
+      "total": 100,
+      "address": "secret12fmjn3svnzlf5ax5nkus2r2wj84gu76umv2rky"
+    },
+    {
+      "name": "sl-SUST",
+      "total": 100,
+      "address": "secret1dc6svwjm7zk7zc77zcdqw4rl88j5fqsdhjwvhk"
+    },
+    {
+      "name": "sl-SWBTC",
+      "total": 30,
+      "address": "secret1mh8juyj5hern8x0x6em46l9rvyryqd36dp60g3"
+    },
+    {
+      "name": "sl-SLUNA",
+      "total": 50,
+      "address": "secret10mpex8ve74rl2c0ulqxucwrhnajy4y7uwyk07l"
+    },
+    {
+      "name": "sl-SOSMO",
+      "total": 30,
+      "address": "secret1mdm0nxrfxn6lpqj28t0c6a0chj3d9sdk0ukrxp"
+    },
+    {
+      "name": "sl-stkd-SCRT",
+      "total": 110,
+      "address": "secret14zr884j4ptwwxwcywnw2ltpunudjza7xy7pfwd"
+    },
+    {
+      "name": "sl-SUSDT",
+      "total": 20,
+      "address": "secret1l397ssrrq90ucrlk0mt3nw589gu7eazcs86wk0"
+    },
+    {
+      "name": "sl-SUSDC",
+      "total": 20,
+      "address": "secret12rtvzmtxlaw2w8mnrenlunmfkyaahv7gd3yv65"
+    },
+    {
+      "name": "sl-SDAI",
+      "total": 20,
+      "address": "secret18mxl5vewp3y06runvfqxdelussz65pumnyx63h"
+    },
+    {
+      "name": "sl-SAAVE",
+      "total": 20,
+      "address": "secret1cme4w477694hq4k8epj5kgrd8htr9cm6s66acr"
+    },
+    {
+      "name": "sl-MANA",
+      "total": 20,
+      "address": "secret15qlay9n9gvmf0u6wq3zc0s0sckq2pft7mg6h3m"
+    },
+    {
+      "name": "sl-SXMR",
+      "total": 50,
+      "address": "secret1p4v95je4zsnpx6vhd2xcm77fg3dxd2rlf7784f"
+    },
+    {
+      "name": "sl-SBNB(BSC)",
+      "total": 20,
+      "address": "secret1us8hm6ptwx8ap7k0eadlq9mafcxh53kppt2mq6"
+    }
+  ],
+  "total": 2500
+}
